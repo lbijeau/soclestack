@@ -1,0 +1,378 @@
+name: Playwright E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run nightly tests at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  NODE_VERSION: '18'
+  DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+  SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+  NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+  NEXTAUTH_URL: http://localhost:3000
+
+jobs:
+  test:
+    name: Run Playwright Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit]
+        shard: [1/4, 2/4, 3/4, 4/4]
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: soclestack_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ matrix.project }}
+
+      - name: Setup test database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/soclestack_test
+        run: |
+          npm run db:migrate
+          npm run db:seed:test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run Playwright tests
+        run: npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/soclestack_test
+          BASE_URL: http://localhost:3000
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.project }}-${{ matrix.shard }}
+          path: test-results/
+          retention-days: 30
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-html-report-${{ matrix.project }}-${{ matrix.shard }}
+          path: test-results/html-report/
+          retention-days: 30
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.ref == 'refs/heads/main'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: soclestack_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup test database with bulk data
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/soclestack_test
+        run: |
+          npm run db:migrate
+          npm run db:seed:performance
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run performance tests
+        run: npx playwright test tests/e2e/performance/ --project=chromium
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/soclestack_test
+          BASE_URL: http://localhost:3000
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-test-results
+          path: test-results/performance/
+          retention-days: 30
+
+  accessibility-tests:
+    name: Accessibility Tests
+    runs-on: ubuntu-latest
+    needs: [test]
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: soclestack_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup test database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/soclestack_test
+        run: |
+          npm run db:migrate
+          npm run db:seed:test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run accessibility tests
+        run: npx playwright test tests/e2e/accessibility/ --project=chromium
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/soclestack_test
+          BASE_URL: http://localhost:3000
+
+      - name: Upload accessibility results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: accessibility-test-results
+          path: test-results/accessibility/
+          retention-days: 30
+
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.ref == 'refs/heads/main'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: soclestack_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup test database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/soclestack_test
+        run: |
+          npm run db:migrate
+          npm run db:seed:test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run security tests
+        run: npx playwright test tests/e2e/security/ --project=chromium
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/soclestack_test
+          BASE_URL: http://localhost:3000
+
+      - name: Upload security test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-test-results
+          path: test-results/security/
+          retention-days: 30
+
+  generate-report:
+    name: Generate Combined Report
+    runs-on: ubuntu-latest
+    needs: [test, performance-tests, accessibility-tests, security-tests]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: test-results/
+
+      - name: Generate combined report
+        run: |
+          mkdir -p combined-report
+          node scripts/generate-combined-report.js
+
+      - name: Upload combined report
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-test-report
+          path: combined-report/
+          retention-days: 30
+
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            try {
+              const summary = JSON.parse(fs.readFileSync('combined-report/summary.json', 'utf8'));
+
+              const comment = `## 🧪 Test Results Summary
+
+              | Test Suite | Status | Passed | Failed | Skipped |
+              |------------|--------|--------|--------|---------|
+              | **E2E Tests** | ${summary.e2e.status} | ${summary.e2e.passed} | ${summary.e2e.failed} | ${summary.e2e.skipped} |
+              | **Performance** | ${summary.performance.status} | ${summary.performance.passed} | ${summary.performance.failed} | ${summary.performance.skipped} |
+              | **Accessibility** | ${summary.accessibility.status} | ${summary.accessibility.passed} | ${summary.accessibility.failed} | ${summary.accessibility.skipped} |
+              | **Security** | ${summary.security.status} | ${summary.security.passed} | ${summary.security.failed} | ${summary.security.skipped} |
+
+              **Total Test Duration:** ${summary.totalDuration}
+
+              ${summary.e2e.failed > 0 || summary.performance.failed > 0 || summary.accessibility.failed > 0 || summary.security.failed > 0
+                ? '❌ Some tests failed. Please check the detailed reports.'
+                : '✅ All tests passed!'}
+
+              [View Detailed Report](${summary.reportUrl})`;
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } catch (error) {
+              console.log('Could not read test summary:', error);
+            }
+
+  deploy-test-reports:
+    name: Deploy Test Reports
+    runs-on: ubuntu-latest
+    needs: [generate-report]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download combined report
+        uses: actions/download-artifact@v4
+        with:
+          name: combined-test-report
+          path: reports/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./reports
+          destination_dir: test-reports/${{ github.run_number }}
+
+      - name: Update latest report link
+        run: |
+          echo "Latest test report: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/test-reports/${{ github.run_number }}"

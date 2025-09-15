@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Read(//home/luc-bijeau/Projects/demo2/task-app/**)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run build:*)",
+      "Bash(make:*)",
+      "Bash(cat:*)",
+      "Bash(source:*)",
+      "Bash(DATABASE_URL=\"file:./dev.db\" npx prisma db push)",
+      "Bash(npm run lint)",
+      "Bash(npx tsc:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

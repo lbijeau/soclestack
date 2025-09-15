@@ -1,0 +1,49 @@
+import { User, Role } from '@prisma/client'
+
+export interface LoginCredentials {
+  email: string
+  password: string
+}
+
+export interface RegisterData {
+  email: string
+  username?: string
+  password: string
+  firstName?: string
+  lastName?: string
+}
+
+export interface JWTPayload {
+  sub: string // user id
+  email: string
+  role: Role
+  iat: number
+  exp: number
+  jti: string // unique token identifier
+}
+
+export interface RefreshTokenPayload {
+  sub: string
+  jti: string
+  iat: number
+  exp: number
+}
+
+export interface AuthState {
+  user: User | null
+  isLoading: boolean
+  isAuthenticated: boolean
+}
+
+export interface AuthError {
+  type: 'VALIDATION_ERROR' | 'AUTHENTICATION_ERROR' | 'AUTHORIZATION_ERROR' | 'NOT_FOUND' | 'SERVER_ERROR'
+  message: string
+  details?: Record<string, string[]>
+}
+
+export interface SessionData {
+  userId: string
+  email: string
+  role: Role
+  isLoggedIn: boolean
+}
