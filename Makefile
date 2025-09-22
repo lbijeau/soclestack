@@ -3,7 +3,7 @@
 
 # Configuration
 APP_NAME := soclestack
-DEFAULT_PORT := 3000
+DEFAULT_PORT := 3333
 NODE_ENV ?= development
 DATABASE_URL ?= file:./dev.db
 
@@ -36,25 +36,26 @@ help: ## Show this help message
 # Application Control
 start: ## Start the application (stops existing instance if running)
 	@echo "$(BLUE)Starting $(APP_NAME)...$(NC)"
-	@# Check if already running on the default port
-	@if lsof -Pi :$(DEFAULT_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
-		PID=$$(lsof -Pi :$(DEFAULT_PORT) -sTCP:LISTEN -t); \
-		PROC=$$(ps -p $$PID -o comm= 2>/dev/null || echo "unknown"); \
-		if echo "$$PROC" | grep -q "node\|next"; then \
-			echo "$(YELLOW)Found $(APP_NAME) already running on port $(DEFAULT_PORT) (PID: $$PID)$(NC)"; \
-			echo "$(YELLOW)Stopping existing instance...$(NC)"; \
-			kill -15 $$PID 2>/dev/null || true; \
-			sleep 2; \
-			if kill -0 $$PID 2>/dev/null; then \
-				echo "$(RED)Process didn't stop gracefully, forcing...$(NC)"; \
-				kill -9 $$PID 2>/dev/null || true; \
-			fi; \
-			echo "$(GREEN)✓ Stopped existing instance$(NC)"; \
-		else \
-			echo "$(RED)Port $(DEFAULT_PORT) is in use by another application ($$PROC)$(NC)"; \
-			echo "$(RED)Please stop it manually or use a different port$(NC)"; \
-			exit 1; \
+	@# Kill any process using the port (but not this make process)
+	@if command -v fuser >/dev/null 2>&1; then \
+		fuser -k $(DEFAULT_PORT)/tcp 2>/dev/null || true; \
+	fi
+	@# Clean up any stale PID file
+	@if [ -f .pid ]; then \
+		OLD_PID=$$(cat .pid); \
+		if ps -p $$OLD_PID > /dev/null 2>&1; then \
+			echo "$(YELLOW)Stopping existing instance (PID: $$OLD_PID)...$(NC)"; \
+			kill $$OLD_PID 2>/dev/null || true; \
 		fi; \
+		rm -f .pid; \
+	fi
+	@# Wait for port to be free
+	@sleep 2
+	@# Final check if port is free
+	@if ss -tulpn 2>/dev/null | grep -q ":$(DEFAULT_PORT) "; then \
+		echo "$(YELLOW)Port $(DEFAULT_PORT) is still in use, attempting forceful cleanup...$(NC)"; \
+		fuser -k $(DEFAULT_PORT)/tcp 2>/dev/null || true; \
+		sleep 2; \
 	fi
 	@# Start the application
 	@echo "$(GREEN)Starting $(APP_NAME) on port $(DEFAULT_PORT)...$(NC)"
