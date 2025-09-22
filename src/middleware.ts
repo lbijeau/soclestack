@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getSessionFromRequest } from '@/lib/auth'
+import { getSessionFromRequest } from '@/lib/auth-edge'
 import { securityHeaders, contentSecurityPolicy } from '@/lib/security-headers'
 
 // Define protected routes and their required roles

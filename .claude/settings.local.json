@@ -17,7 +17,19 @@
       "Bash(ls:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(for port in {3000..3010})",
+      "Bash(do lsof:*)",
+      "Bash(xargs -r kill -9)",
+      "Bash(done)",
+      "Bash(PORT=3005 npm run dev)",
+      "Bash(PORT=3000 npm run dev)",
+      "Bash(pkill:*)",
+      "Bash(ss:*)",
+      "Bash(PORT=3333 npm run dev)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
