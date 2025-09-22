@@ -1,260 +1,351 @@
-# Next.js User Management Application Makefile
+# Liteshell - Next.js User Management Application Makefile
 # Provides easy commands for development, testing, and deployment
 
-.PHONY: help install dev build start test clean setup db-setup db-migrate db-reset lint format docker-build docker-run
+# Configuration
+APP_NAME := soclestack
+DEFAULT_PORT := 3000
+NODE_ENV ?= development
+DATABASE_URL ?= file:./dev.db
+
+# Colors for output
+RED := \033[0;31m
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+.PHONY: help start stop restart dev dev-clean status setup install db-setup db-seed clean build test lint type-check
 
 # Default command
 help: ## Show this help message
-	@echo "Next.js User Management Application"
-	@echo "Usage: make [command]"
+	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║          Liteshell - User Management Application          ║$(NC)"
+	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@echo "Available commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@echo "$(GREEN)Available commands:$(NC)"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(BLUE)Examples:$(NC)"
+	@echo "  make start        # Start the application"
+	@echo "  make stop         # Stop the application"
+	@echo "  make restart      # Restart the application"
+	@echo "  make status       # Check application status"
+	@echo ""
 
-# Development Setup
+# Application Control
+start: ## Start the application (stops existing instance if running)
+	@echo "$(BLUE)Starting $(APP_NAME)...$(NC)"
+	@# Check if already running on the default port
+	@if lsof -Pi :$(DEFAULT_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		PID=$$(lsof -Pi :$(DEFAULT_PORT) -sTCP:LISTEN -t); \
+		PROC=$$(ps -p $$PID -o comm= 2>/dev/null || echo "unknown"); \
+		if echo "$$PROC" | grep -q "node\|next"; then \
+			echo "$(YELLOW)Found $(APP_NAME) already running on port $(DEFAULT_PORT) (PID: $$PID)$(NC)"; \
+			echo "$(YELLOW)Stopping existing instance...$(NC)"; \
+			kill -15 $$PID 2>/dev/null || true; \
+			sleep 2; \
+			if kill -0 $$PID 2>/dev/null; then \
+				echo "$(RED)Process didn't stop gracefully, forcing...$(NC)"; \
+				kill -9 $$PID 2>/dev/null || true; \
+			fi; \
+			echo "$(GREEN)✓ Stopped existing instance$(NC)"; \
+		else \
+			echo "$(RED)Port $(DEFAULT_PORT) is in use by another application ($$PROC)$(NC)"; \
+			echo "$(RED)Please stop it manually or use a different port$(NC)"; \
+			exit 1; \
+		fi; \
+	fi
+	@# Start the application
+	@echo "$(GREEN)Starting $(APP_NAME) on port $(DEFAULT_PORT)...$(NC)"
+	@PORT=$(DEFAULT_PORT) npm run dev > logs/app.log 2>&1 & \
+		echo $$! > .pid
+	@sleep 3
+	@if [ -f .pid ] && kill -0 $$(cat .pid) 2>/dev/null; then \
+		echo "$(GREEN)✓ $(APP_NAME) started successfully!$(NC)"; \
+		echo "$(GREEN)  URL: http://localhost:$(DEFAULT_PORT)$(NC)"; \
+		echo "$(GREEN)  PID: $$(cat .pid)$(NC)"; \
+		echo "$(GREEN)  Logs: logs/app.log$(NC)"; \
+	else \
+		echo "$(RED)✗ Failed to start $(APP_NAME)$(NC)"; \
+		echo "$(RED)  Check logs/app.log for details$(NC)"; \
+		exit 1; \
+	fi
+
+stop: ## Stop the application
+	@echo "$(BLUE)Stopping $(APP_NAME)...$(NC)"
+	@if [ -f .pid ]; then \
+		PID=$$(cat .pid); \
+		if kill -0 $$PID 2>/dev/null; then \
+			kill -15 $$PID; \
+			sleep 2; \
+			if kill -0 $$PID 2>/dev/null; then \
+				echo "$(YELLOW)Process didn't stop gracefully, forcing...$(NC)"; \
+				kill -9 $$PID 2>/dev/null || true; \
+			fi; \
+			echo "$(GREEN)✓ $(APP_NAME) stopped (PID: $$PID)$(NC)"; \
+		else \
+			echo "$(YELLOW)Process with PID $$PID not found$(NC)"; \
+		fi; \
+		rm -f .pid; \
+	else \
+		echo "$(YELLOW)No PID file found. Checking for running processes...$(NC)"; \
+		if lsof -Pi :$(DEFAULT_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+			PID=$$(lsof -Pi :$(DEFAULT_PORT) -sTCP:LISTEN -t); \
+			PROC=$$(ps -p $$PID -o comm= 2>/dev/null || echo "unknown"); \
+			if echo "$$PROC" | grep -q "node\|next"; then \
+				echo "$(YELLOW)Found $(APP_NAME) running on port $(DEFAULT_PORT) (PID: $$PID)$(NC)"; \
+				kill -15 $$PID 2>/dev/null || true; \
+				sleep 2; \
+				if kill -0 $$PID 2>/dev/null; then \
+					kill -9 $$PID 2>/dev/null || true; \
+				fi; \
+				echo "$(GREEN)✓ Stopped $(APP_NAME)$(NC)"; \
+			else \
+				echo "$(YELLOW)Port $(DEFAULT_PORT) is used by another application ($$PROC)$(NC)"; \
+			fi; \
+		else \
+			echo "$(YELLOW)$(APP_NAME) is not running$(NC)"; \
+		fi; \
+	fi
+
+restart: ## Restart the application
+	@echo "$(BLUE)Restarting $(APP_NAME)...$(NC)"
+	@$(MAKE) stop
+	@sleep 1
+	@$(MAKE) start
+
+status: ## Check application status
+	@echo "$(BLUE)Checking $(APP_NAME) status...$(NC)"
+	@echo ""
+	@if [ -f .pid ]; then \
+		PID=$$(cat .pid); \
+		if kill -0 $$PID 2>/dev/null; then \
+			echo "$(GREEN)✓ $(APP_NAME) is running$(NC)"; \
+			echo "  PID: $$PID"; \
+			echo "  Port: $(DEFAULT_PORT)"; \
+			echo "  URL: http://localhost:$(DEFAULT_PORT)"; \
+		else \
+			echo "$(RED)✗ $(APP_NAME) is not running (stale PID file)$(NC)"; \
+			rm -f .pid; \
+		fi; \
+	else \
+		if lsof -Pi :$(DEFAULT_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+			PID=$$(lsof -Pi :$(DEFAULT_PORT) -sTCP:LISTEN -t); \
+			PROC=$$(ps -p $$PID -o comm= 2>/dev/null || echo "unknown"); \
+			if echo "$$PROC" | grep -q "node\|next"; then \
+				echo "$(YELLOW)⚠ $(APP_NAME) is running but no PID file found$(NC)"; \
+				echo "  PID: $$PID"; \
+				echo "  Port: $(DEFAULT_PORT)"; \
+				echo "  URL: http://localhost:$(DEFAULT_PORT)"; \
+			else \
+				echo "$(RED)✗ Port $(DEFAULT_PORT) is used by another application ($$PROC)$(NC)"; \
+			fi; \
+		else \
+			echo "$(RED)✗ $(APP_NAME) is not running$(NC)"; \
+		fi; \
+	fi
+	@echo ""
+
+# Development
+dev: start ## Start development server (alias for start)
+
+dev-clean: clean start ## Clean and start fresh
+
+logs: ## Show application logs
+	@if [ -f logs/app.log ]; then \
+		echo "$(BLUE)Showing last 50 lines of logs:$(NC)"; \
+		tail -50 logs/app.log; \
+	else \
+		echo "$(YELLOW)No log file found$(NC)"; \
+	fi
+
+logs-follow: ## Follow application logs in real-time
+	@if [ -f logs/app.log ]; then \
+		echo "$(BLUE)Following logs (Ctrl+C to stop):$(NC)"; \
+		tail -f logs/app.log; \
+	else \
+		echo "$(YELLOW)No log file found$(NC)"; \
+	fi
+
+# Setup & Installation
+setup: install db-setup db-seed ## Complete project setup (install + database + seed)
+	@echo "$(GREEN)✓ Setup complete!$(NC)"
+	@echo "$(GREEN)Run 'make start' to start the application$(NC)"
+
 install: ## Install dependencies
-	npm install
-
-setup: install ## Complete project setup (install + database setup with SQLite)
-	@echo "Setting up environment with SQLite..."
-	@if [ ! -f .env.local ]; then \
-		cp .env.example .env.local 2>/dev/null || echo "# Database (SQLite for easy local development)\nDATABASE_URL=\"file:./dev.db\"\n\n# JWT Secrets\nJWT_SECRET=\"dev-jwt-secret-change-in-production\"\nJWT_REFRESH_SECRET=\"dev-refresh-secret-change-in-production\"\n\n# Session Secret\nSESSION_SECRET=\"dev-session-secret-change-in-production\"\n\n# App Configuration\nNEXTAUTH_URL=\"http://localhost:3000\"\nNEXTAUTH_SECRET=\"dev-nextauth-secret-change-in-production\"\n\n# Security\nCSRF_SECRET=\"dev-csrf-secret-change-in-production\"" > .env.local; \
-		echo "Created .env.local with SQLite configuration"; \
-	fi
-	@make db-setup
-
-setup-postgres: install ## Setup with PostgreSQL using Docker
-	@echo "Setting up environment with PostgreSQL..."
-	@if [ ! -f .env.local ]; then \
-		cp .env.postgres .env.local; \
-		echo "Created .env.local with PostgreSQL configuration"; \
-	fi
-	@echo "Starting PostgreSQL with Docker..."
-	docker-compose up -d postgres
-	@echo "Waiting for PostgreSQL to be ready..."
-	@sleep 5
-	@make db-setup
+	@echo "$(BLUE)Installing dependencies...$(NC)"
+	@npm install
+	@mkdir -p logs
+	@echo "$(GREEN)✓ Dependencies installed$(NC)"
 
 # Database Management
 db-setup: ## Setup database (generate client + push schema)
+	@echo "$(BLUE)Setting up database...$(NC)"
 	@if [ -f .env.local ] && [ ! -f .env ]; then cp .env.local .env; fi
-	npx prisma generate
-	npx prisma db push
-
-db-migrate: ## Apply database migrations
-	npx prisma migrate dev
-
-db-reset: ## Reset database (WARNING: destroys all data)
-	npx prisma migrate reset --force
-	npx prisma db push
-
-db-studio: ## Open Prisma Studio (database GUI)
-	npx prisma studio
+	@npx prisma generate
+	@npx prisma db push
+	@echo "$(GREEN)✓ Database setup complete$(NC)"
 
 db-seed: ## Seed database with demo users
-	npm run db:seed
+	@echo "$(BLUE)Seeding database...$(NC)"
+	@npm run db:seed
+	@echo "$(GREEN)✓ Database seeded with demo users$(NC)"
 
-# Development
-dev: ## Start development server with Turbopack
-	npm run dev
+db-reset: ## Reset database (WARNING: destroys all data)
+	@echo "$(RED)WARNING: This will destroy all data!$(NC)"
+	@echo "Press Ctrl+C to cancel, or wait 3 seconds to continue..."
+	@sleep 3
+	@rm -f prisma/dev.db
+	@$(MAKE) db-setup
+	@$(MAKE) db-seed
+	@echo "$(GREEN)✓ Database reset complete$(NC)"
 
-build: ## Build application for production
-	npm run build
-
-start: ## Start production server (requires build first)
-	npm run start
-
-preview: build start ## Build and start production server
+db-studio: ## Open Prisma Studio (database GUI)
+	@echo "$(BLUE)Opening Prisma Studio...$(NC)"
+	@npx prisma studio
 
 # Code Quality
 lint: ## Run ESLint
-	npm run lint
+	@echo "$(BLUE)Running linter...$(NC)"
+	@npm run lint
 
 lint-fix: ## Run ESLint and fix issues
-	npm run lint -- --fix
-
-format: ## Format code with Prettier (if available)
-	@if command -v prettier >/dev/null 2>&1; then \
-		prettier --write "src/**/*.{js,jsx,ts,tsx,json,css,md}"; \
-	else \
-		echo "Prettier not installed. Run: npm install -D prettier"; \
-	fi
+	@echo "$(BLUE)Running linter with auto-fix...$(NC)"
+	@npm run lint -- --fix
 
 type-check: ## Run TypeScript type checking
-	npx tsc --noEmit
+	@echo "$(BLUE)Running type check...$(NC)"
+	@npx tsc --noEmit
+
+format: ## Format code with Prettier (if available)
+	@echo "$(BLUE)Formatting code...$(NC)"
+	@if command -v prettier >/dev/null 2>&1; then \
+		prettier --write "src/**/*.{js,jsx,ts,tsx,json,css,md}"; \
+		echo "$(GREEN)✓ Code formatted$(NC)"; \
+	else \
+		echo "$(YELLOW)Prettier not installed. Run: npm install -D prettier$(NC)"; \
+	fi
 
 # Testing
 test: ## Run all tests
-	npm run test
-
-test-unit: ## Run unit tests (if available)
-	@if npm run test:unit 2>/dev/null; then \
-		npm run test:unit; \
-	else \
-		echo "Unit tests not configured"; \
-	fi
+	@echo "$(BLUE)Running tests...$(NC)"
+	@npm run test
 
 test-e2e: ## Run end-to-end tests with Playwright
-	npx playwright test
+	@echo "$(BLUE)Running E2E tests...$(NC)"
+	@npx playwright test
 
 test-e2e-ui: ## Run Playwright tests with UI mode
-	npx playwright test --ui
+	@echo "$(BLUE)Opening Playwright UI...$(NC)"
+	@npx playwright test --ui
 
-test-e2e-headed: ## Run Playwright tests in headed mode
-	npx playwright test --headed
+# Build & Production
+build: ## Build application for production
+	@echo "$(BLUE)Building for production...$(NC)"
+	@npm run build
+	@echo "$(GREEN)✓ Build complete$(NC)"
 
-test-auth: ## Run authentication tests only
-	npx playwright test tests/e2e/auth/
-
-test-user-management: ## Run user management tests only
-	npx playwright test tests/e2e/user-management/
-
-test-performance: ## Run performance tests
-	npx playwright test tests/e2e/performance/
-
-test-accessibility: ## Run accessibility tests
-	npx playwright test tests/e2e/accessibility/
-
-test-report: ## Show Playwright test report
-	npx playwright show-report
-
-# Security & Dependencies
-security-audit: ## Run npm security audit
-	npm audit
-
-security-fix: ## Fix security vulnerabilities
-	npm audit fix
-
-update-deps: ## Update dependencies (use with caution)
-	npm update
-
-check-outdated: ## Check for outdated dependencies
-	npm outdated
-
-# Docker Support
-docker-build: ## Build Docker image
-	@if [ -f Dockerfile ]; then \
-		docker build -t nextjs-user-management .; \
-	else \
-		echo "Dockerfile not found. Create one to use Docker commands."; \
-	fi
-
-docker-run: ## Run application in Docker container
-	@if docker images | grep -q nextjs-user-management; then \
-		docker run -p 3000:3000 --env-file .env.local nextjs-user-management; \
-	else \
-		echo "Docker image not found. Run 'make docker-build' first."; \
-	fi
-
-postgres-start: ## Start PostgreSQL with Docker
-	docker-compose up -d postgres
-	@echo "PostgreSQL started. Waiting for it to be ready..."
-	@sleep 5
-
-postgres-stop: ## Stop PostgreSQL Docker container
-	docker-compose down
-
-postgres-logs: ## View PostgreSQL logs
-	docker-compose logs -f postgres
-
-postgres-shell: ## Connect to PostgreSQL shell
-	docker-compose exec postgres psql -U soclestack -d soclestack
-
-# Database Backup & Restore (PostgreSQL)
-db-backup: ## Backup database (requires PostgreSQL tools)
-	@echo "Creating database backup..."
-	@if command -v pg_dump >/dev/null 2>&1; then \
-		pg_dump $(shell grep DATABASE_URL .env.local | cut -d '=' -f2) > backup_$(shell date +%Y%m%d_%H%M%S).sql; \
-		echo "Backup created: backup_$(shell date +%Y%m%d_%H%M%S).sql"; \
-	else \
-		echo "pg_dump not found. Install PostgreSQL client tools."; \
-	fi
+prod: build ## Build and start production server
+	@echo "$(BLUE)Starting production server...$(NC)"
+	@npm start
 
 # Cleanup
 clean: ## Clean build artifacts and dependencies
-	rm -rf .next
-	rm -rf node_modules
-	rm -rf dist
-	rm -rf build
+	@echo "$(BLUE)Cleaning...$(NC)"
+	@rm -rf .next
+	@rm -rf node_modules
+	@rm -rf dist
+	@rm -rf build
+	@rm -f .pid
+	@rm -f logs/*.log
+	@echo "$(GREEN)✓ Cleanup complete$(NC)"
 
 clean-cache: ## Clean Next.js cache
-	rm -rf .next
-	npm run build
+	@echo "$(BLUE)Cleaning cache...$(NC)"
+	@rm -rf .next
+	@echo "$(GREEN)✓ Cache cleaned$(NC)"
 
 # Environment Management
 env-check: ## Check environment variables
-	@echo "Checking required environment variables..."
+	@echo "$(BLUE)Checking environment variables...$(NC)"
 	@if [ -f .env.local ]; then \
-		echo "✅ .env.local exists"; \
-		if grep -q "DATABASE_URL=" .env.local; then echo "✅ DATABASE_URL set"; else echo "❌ DATABASE_URL missing"; fi; \
-		if grep -q "NEXTAUTH_SECRET=" .env.local; then echo "✅ NEXTAUTH_SECRET set"; else echo "❌ NEXTAUTH_SECRET missing"; fi; \
-		if grep -q "NEXTAUTH_URL=" .env.local; then echo "✅ NEXTAUTH_URL set"; else echo "❌ NEXTAUTH_URL missing"; fi; \
+		echo "$(GREEN)✓ .env.local exists$(NC)"; \
+		if grep -q "DATABASE_URL=" .env.local; then \
+			echo "$(GREEN)✓ DATABASE_URL set$(NC)"; \
+		else \
+			echo "$(RED)✗ DATABASE_URL missing$(NC)"; \
+		fi; \
+		if grep -q "SESSION_SECRET=" .env.local; then \
+			echo "$(GREEN)✓ SESSION_SECRET set$(NC)"; \
+		else \
+			echo "$(RED)✗ SESSION_SECRET missing$(NC)"; \
+		fi; \
+		if grep -q "JWT_SECRET=" .env.local; then \
+			echo "$(GREEN)✓ JWT_SECRET set$(NC)"; \
+		else \
+			echo "$(RED)✗ JWT_SECRET missing$(NC)"; \
+		fi; \
 	else \
-		echo "❌ .env.local not found. Run 'make setup' first."; \
+		echo "$(RED)✗ .env.local not found$(NC)"; \
+		echo "$(YELLOW)Run 'make setup' to create it$(NC)"; \
 	fi
 
-# Development Workflow Commands
-dev-fresh: clean install db-reset dev ## Fresh development start (clean + install + reset DB + dev)
+# Quick Commands
+quick-start: setup start ## Quick setup and start from scratch
 
-quick-start: ## Quick start for existing setup
-	@make env-check
-	@make db-setup
-	@make dev
+reset-all: clean setup start ## Complete reset and restart
 
-deploy-check: ## Check if ready for deployment
-	@make env-check
-	@make lint
-	@make type-check
-	@make build
-	@echo "✅ Ready for deployment"
+# Git Commands
+commit: ## Commit all changes
+	@git add .
+	@git status
+	@echo "$(BLUE)Enter commit message:$(NC)"
+	@read -r MESSAGE; \
+	git commit -m "$$MESSAGE"
 
-# Git Hooks (if using)
-install-hooks: ## Install git hooks (if .git/hooks directory exists)
-	@if [ -d .git ]; then \
-		echo "Installing git hooks..."; \
-		echo "#!/bin/sh\nmake lint" > .git/hooks/pre-commit; \
-		chmod +x .git/hooks/pre-commit; \
-		echo "✅ Pre-commit hook installed"; \
+# Docker Support (if needed in future)
+docker-build: ## Build Docker image
+	@if [ -f Dockerfile ]; then \
+		docker build -t $(APP_NAME) .; \
+		echo "$(GREEN)✓ Docker image built$(NC)"; \
 	else \
-		echo "Not a git repository"; \
+		echo "$(YELLOW)Dockerfile not found$(NC)"; \
+		echo "$(YELLOW)Create a Dockerfile to use Docker commands$(NC)"; \
 	fi
 
-# Production Deployment Helpers
-prod-build: ## Production build with optimizations
-	NODE_ENV=production npm run build
-
-# Monitoring and Health Checks
-health-check: ## Basic health check
-	@if curl -f http://localhost:3000/api/health 2>/dev/null; then \
-		echo "✅ Application is running"; \
+docker-run: ## Run application in Docker container
+	@if docker images | grep -q $(APP_NAME); then \
+		docker run -p $(DEFAULT_PORT):$(DEFAULT_PORT) --env-file .env.local $(APP_NAME); \
 	else \
-		echo "❌ Application is not responding"; \
+		echo "$(RED)Docker image not found. Run 'make docker-build' first$(NC)"; \
 	fi
 
-# Documentation
-docs: ## Generate documentation (if available)
-	@echo "Documentation available in:"
-	@echo "  - README.md"
-	@echo "  - docs/ directory"
-	@echo "  - TECHNICAL_ARCHITECTURE.md"
-	@echo "  - IMPLEMENTATION_PLAN.md"
+# Health Check
+health: ## Health check for the application
+	@echo "$(BLUE)Performing health check...$(NC)"
+	@if curl -f -s http://localhost:$(DEFAULT_PORT) >/dev/null 2>&1; then \
+		echo "$(GREEN)✓ Application is healthy$(NC)"; \
+	else \
+		echo "$(RED)✗ Application is not responding$(NC)"; \
+	fi
 
-# Common Development Workflows
-reset: clean install db-reset ## Complete reset (clean + install + reset DB)
+# Info Commands
+info: ## Show application information
+	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║                 Application Information                    ║$(NC)"
+	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "  Name:        $(APP_NAME)"
+	@echo "  Port:        $(DEFAULT_PORT)"
+	@echo "  Environment: $(NODE_ENV)"
+	@echo "  Database:    $(DATABASE_URL)"
+	@echo ""
+	@echo "$(BLUE)Demo Users:$(NC)"
+	@echo "  Admin:     admin@demo.com / Demo123!"
+	@echo "  User:      user@demo.com / Demo123!"
+	@echo "  Moderator: moderator@demo.com / Demo123!"
+	@echo ""
 
-fresh: reset dev ## Complete fresh start
-
-ci: install lint type-check build test ## CI pipeline simulation
-
-# Emergency Commands
-force-unlock: ## Force unlock if package manager is stuck
-	rm -f package-lock.json
-	rm -rf node_modules
-	npm install
-
-fix-permissions: ## Fix file permissions (Unix/Linux)
-	find . -type f -name "*.js" -o -name "*.ts" -o -name "*.json" | xargs chmod 644
-	find . -type d | xargs chmod 755
-
-# Default target when no argument is provided
+# Default target
 .DEFAULT_GOAL := help
