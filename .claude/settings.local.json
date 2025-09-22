@@ -29,7 +29,10 @@
       "Bash(PORT=3333 npm run dev)",
       "mcp__ide__getDiagnostics",
       "Bash(npm run dev:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(sudo lsof:*)",
+      "Bash(xargs:*)",
+      "Bash(fuser:*)"
     ],
     "deny": [],
     "ask": []
