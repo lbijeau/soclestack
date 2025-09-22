@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# testing
+playwright-report/
+playwright/.cache/
+
+# logs
+logs/
+*.log
+
+# PID file
+.pid
