@@ -23,6 +23,7 @@ export function LoginForm() {
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [error, setError] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isLocked, setIsLocked] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,6 +46,9 @@ export function LoginForm() {
         const authError = data.error as AuthError
         if (authError.type === 'VALIDATION_ERROR' && authError.details) {
           setErrors(authError.details)
+        } else if (authError.type === 'ACCOUNT_LOCKED') {
+          setError(authError.message)
+          setIsLocked(true)
         } else {
           setError(authError.message)
         }
@@ -86,7 +90,7 @@ export function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
           {error && (
             <Alert variant="error">
               {error}
@@ -107,6 +111,7 @@ export function LoginForm() {
               onChange={handleChange}
               error={!!errors.email}
               disabled={isLoading}
+              data-testid="email-input"
             />
             {errors.email && (
               <p className="text-sm text-red-600">{errors.email[0]}</p>
@@ -127,16 +132,34 @@ export function LoginForm() {
               onChange={handleChange}
               error={!!errors.password}
               disabled={isLoading}
+              data-testid="password-input"
             />
             {errors.password && (
               <p className="text-sm text-red-600">{errors.password[0]}</p>
             )}
           </div>
 
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
+              data-testid="remember-me-checkbox"
+              checked={formData.rememberMe}
+              onChange={(e) => setFormData(prev => ({ ...prev, rememberMe: e.target.checked }))}
+              disabled={isLoading}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+              Remember me
+            </label>
+          </div>
+
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading}
+            disabled={isLoading || isLocked}
+            data-testid="login-submit"
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
@@ -145,12 +168,13 @@ export function LoginForm() {
             <Link
               href="/forgot-password"
               className="text-sm text-blue-600 hover:text-blue-500"
+              data-testid="forgot-password-link"
             >
               Forgot your password?
             </Link>
             <div className="text-sm text-gray-600">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-blue-600 hover:text-blue-500">
+              <Link href="/register" className="text-blue-600 hover:text-blue-500" data-testid="register-link">
                 Sign up
               </Link>
             </div>
