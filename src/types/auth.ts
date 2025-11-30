@@ -43,9 +43,17 @@ export interface AuthError {
   retryAfterSeconds?: number
 }
 
+export interface ImpersonationData {
+  originalUserId: string
+  originalEmail: string
+  originalRole: Role
+  startedAt: number // Unix timestamp
+}
+
 export interface SessionData {
   userId: string
   email: string
   role: Role
   isLoggedIn: boolean
+  impersonating?: ImpersonationData
 }
