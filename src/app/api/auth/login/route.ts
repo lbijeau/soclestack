@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
 
     // Check if 2FA is enabled
     if (authenticatedUser.twoFactorEnabled) {
-      const pendingToken = createPending2FAToken(authenticatedUser.id, authenticatedUser.email)
+      const pendingToken = createPending2FAToken(authenticatedUser.id)
 
       await logAuditEvent({
         action: 'AUTH_LOGIN_SUCCESS',

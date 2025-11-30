@@ -5,26 +5,26 @@ const { pendingTokenExpiryMinutes } = SECURITY_CONFIG.twoFactor;
 
 interface Pending2FAPayload {
   userId: string;
-  email: string;
   type: 'pending_2fa';
   iat: number;
   exp: number;
 }
 
-export function createPending2FAToken(userId: string, email: string): string {
+export function createPending2FAToken(userId: string): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error('JWT_SECRET is not defined');
   }
 
+  // Only include userId - no PII in the token
   return jwt.sign(
-    { userId, email, type: 'pending_2fa' },
+    { userId, type: 'pending_2fa' },
     secret,
     { expiresIn: `${pendingTokenExpiryMinutes}m` }
   );
 }
 
-export function verifyPending2FAToken(token: string): { userId: string; email: string } | null {
+export function verifyPending2FAToken(token: string): { userId: string } | null {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error('JWT_SECRET is not defined');
@@ -35,7 +35,7 @@ export function verifyPending2FAToken(token: string): { userId: string; email: s
     if (payload.type !== 'pending_2fa') {
       return null;
     }
-    return { userId: payload.userId, email: payload.email };
+    return { userId: payload.userId };
   } catch {
     return null;
   }

@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../db';
 import { SECURITY_CONFIG } from '../config/security';
@@ -5,11 +6,12 @@ import { SECURITY_CONFIG } from '../config/security';
 const { backupCodeCount } = SECURITY_CONFIG.twoFactor;
 
 function generateCode(): string {
-  // Generate 8-character alphanumeric code (easy to read/type)
+  // Generate 8-character alphanumeric code using cryptographically secure RNG
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars: I, O, 0, 1
+  const bytes = randomBytes(8);
   let code = '';
   for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(bytes[i] % chars.length);
   }
   return code;
 }
@@ -50,16 +52,23 @@ export async function verifyBackupCode(userId: string, code: string): Promise<bo
     },
   });
 
+  // Check all codes to prevent timing attacks (don't return early on match)
+  let matchedCode: typeof backupCodes[0] | null = null;
+
   for (const backupCode of backupCodes) {
     const isMatch = await bcrypt.compare(normalizedCode, backupCode.codeHash);
     if (isMatch) {
-      // Mark as used
-      await prisma.backupCode.update({
-        where: { id: backupCode.id },
-        data: { usedAt: new Date() },
-      });
-      return true;
+      matchedCode = backupCode;
     }
+  }
+
+  if (matchedCode) {
+    // Mark as used
+    await prisma.backupCode.update({
+      where: { id: matchedCode.id },
+      data: { usedAt: new Date() },
+    });
+    return true;
   }
 
   return false;
