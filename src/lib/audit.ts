@@ -13,7 +13,14 @@ export type AuditAction =
   | 'SECURITY_ACCOUNT_LOCKED'
   | 'SECURITY_ACCOUNT_UNLOCKED'
   | 'SECURITY_PASSWORD_CHANGED'
-  | 'SECURITY_ALL_SESSIONS_REVOKED';
+  | 'SECURITY_ALL_SESSIONS_REVOKED'
+  // Two-factor authentication
+  | 'AUTH_2FA_ENABLED'
+  | 'AUTH_2FA_DISABLED'
+  | 'AUTH_2FA_SUCCESS'
+  | 'AUTH_2FA_FAILURE'
+  | 'AUTH_2FA_BACKUP_USED'
+  | 'ADMIN_2FA_RESET';
 
 export type AuditCategory = 'authentication' | 'security' | 'admin';
 

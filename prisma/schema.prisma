@@ -31,11 +31,17 @@ model User {
   failedLoginAttempts  Int       @default(0) @map("failed_login_attempts")
   lockedUntil          DateTime? @map("locked_until")
 
+  // Two-factor authentication
+  twoFactorSecret    String?   @map("two_factor_secret")
+  twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorVerified  Boolean   @default(false) @map("two_factor_verified")
+
   // Relations
   sessions UserSession[]
   passwordHistory PasswordHistory[]
   auditLogs            AuditLog[]
   rememberMeTokens     RememberMeToken[]
+  backupCodes        BackupCode[]
 
   @@map("users")
 }
@@ -106,4 +112,16 @@ model RememberMeToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("remember_me_tokens")
+}
+
+model BackupCode {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String    @map("code_hash")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("backup_codes")
 }

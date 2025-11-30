@@ -7,6 +7,7 @@ import { securityHeaders, contentSecurityPolicy } from '@/lib/security-headers'
 const protectedRoutes = {
   '/dashboard': 'USER',
   '/profile': 'USER',
+  '/profile/security': 'USER',
   '/admin': 'ADMIN',
   '/api/users': 'MODERATOR',
   '/api/users/profile': 'USER',
