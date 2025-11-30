@@ -1,7 +1,7 @@
 import { prisma } from '../db';
 import { logAuditEvent } from '../audit';
 import { SECURITY_CONFIG } from '../config/security';
-import { generateSessionToken, hashSessionToken } from '../security';
+import { generateSessionToken, hashSessionToken, timeSafeEqual } from '../security';
 
 const { tokenLifetimeDays, cookieName } = SECURITY_CONFIG.rememberMe;
 
@@ -78,7 +78,8 @@ export async function validateRememberMeToken(
   }
 
   // Check token hash - if mismatch, theft detected!
-  if (storedToken.tokenHash !== tokenHash) {
+  // Use timing-safe comparison to prevent timing attacks
+  if (!timeSafeEqual(storedToken.tokenHash, tokenHash)) {
     // Revoke ALL tokens for this user - security breach!
     await revokeAllUserTokens(storedToken.userId);
 
