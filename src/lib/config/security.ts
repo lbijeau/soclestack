@@ -7,6 +7,11 @@ export const SECURITY_CONFIG = {
     tokenLifetimeDays: 30,
     cookieName: 'remember_me',
   },
+  twoFactor: {
+    issuer: 'SocleStack',
+    backupCodeCount: 10,
+    pendingTokenExpiryMinutes: 5,
+  },
 } as const;
 
 export type SecurityConfig = typeof SECURITY_CONFIG;
