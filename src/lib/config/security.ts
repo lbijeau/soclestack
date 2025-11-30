@@ -12,6 +12,9 @@ export const SECURITY_CONFIG = {
     backupCodeCount: 10,
     pendingTokenExpiryMinutes: 5,
   },
+  impersonation: {
+    timeoutMinutes: 60,
+  },
 } as const;
 
 export type SecurityConfig = typeof SECURITY_CONFIG;
