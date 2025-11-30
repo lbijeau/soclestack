@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { getSession, createUserSession, getClientIP } from '@/lib/auth';
 import { validateRememberMeToken, REMEMBER_ME_COOKIE_NAME } from '@/lib/auth/remember-me';
 import { prisma } from '@/lib/db';
+import { isImpersonating, hasImpersonationExpired, getImpersonationTimeRemaining, getImpersonationDuration } from '@/lib/auth/impersonation';
+import { logAuditEvent } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -14,6 +16,37 @@ export async function GET(req: NextRequest) {
     // Check existing session first
     const session = await getSession();
     if (session.isLoggedIn && session.userId) {
+      // Check if impersonation has expired
+      if (isImpersonating(session) && hasImpersonationExpired(session)) {
+        const impersonating = session.impersonating!;
+        const duration = getImpersonationDuration(session);
+        const targetUserId = session.userId;
+        const targetEmail = session.email;
+
+        // Restore original admin
+        session.userId = impersonating.originalUserId;
+        session.email = impersonating.originalEmail;
+        session.role = impersonating.originalRole;
+        session.impersonating = undefined;
+        await session.save();
+
+        // Log expiry
+        await logAuditEvent({
+          action: 'ADMIN_IMPERSONATION_EXPIRED',
+          category: 'admin',
+          userId: impersonating.originalUserId,
+          ipAddress: clientIP,
+          userAgent,
+          metadata: {
+            adminUserId: impersonating.originalUserId,
+            adminEmail: impersonating.originalEmail,
+            targetUserId,
+            targetEmail,
+            durationSeconds: duration,
+          },
+        });
+      }
+
       const user = await prisma.user.findUnique({
         where: { id: session.userId, isActive: true },
         select: {
@@ -29,7 +62,16 @@ export async function GET(req: NextRequest) {
       });
 
       if (user) {
-        return NextResponse.json({ user, authenticated: true });
+        const response: Record<string, unknown> = { user, authenticated: true };
+
+        if (isImpersonating(session)) {
+          response.impersonating = {
+            originalEmail: session.impersonating!.originalEmail,
+            timeRemainingMinutes: getImpersonationTimeRemaining(session),
+          };
+        }
+
+        return NextResponse.json(response);
       }
     }
 
