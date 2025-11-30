@@ -20,7 +20,11 @@ export type AuditAction =
   | 'AUTH_2FA_SUCCESS'
   | 'AUTH_2FA_FAILURE'
   | 'AUTH_2FA_BACKUP_USED'
-  | 'ADMIN_2FA_RESET';
+  | 'ADMIN_2FA_RESET'
+  // Impersonation
+  | 'ADMIN_IMPERSONATION_START'
+  | 'ADMIN_IMPERSONATION_END'
+  | 'ADMIN_IMPERSONATION_EXPIRED';
 
 export type AuditCategory = 'authentication' | 'security' | 'admin';
 
