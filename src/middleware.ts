@@ -10,6 +10,7 @@ const protectedRoutes = {
   '/profile/security': 'USER',
   '/profile/sessions': 'USER',
   '/admin': 'ADMIN',
+  '/admin/audit-logs': 'ADMIN',
   '/api/users': 'MODERATOR',
   '/api/users/profile': 'USER',
 } as const

@@ -2,8 +2,9 @@ import { getCurrentUser, hasRequiredRole } from '@/lib/auth'
 import { Navbar } from '@/components/navigation/navbar'
 import { UserManagement } from '@/components/admin/user-management'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Shield, Activity, AlertTriangle } from 'lucide-react'
+import { Users, Shield, Activity, AlertTriangle, FileText } from 'lucide-react'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { prisma } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -88,6 +89,28 @@ export default async function AdminPage() {
               </Card>
             ))}
           </div>
+
+          {/* Quick Links - Only for ADMIN */}
+          {user.role === 'ADMIN' && (
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Admin Tools</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Link href="/admin/audit-logs">
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <FileText className="h-8 w-8 text-indigo-600" />
+                        <div className="ml-4">
+                          <div className="font-medium text-gray-900">Audit Logs</div>
+                          <div className="text-sm text-gray-500">View security events</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* User Management */}
           <Card>

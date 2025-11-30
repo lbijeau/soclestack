@@ -1,0 +1,54 @@
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth';
+import { Navbar } from '@/components/navigation/navbar';
+import { AuditLogViewer } from '@/components/admin/audit-log-viewer';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
+
+export default async function AuditLogsPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect('/login?returnUrl=/admin/audit-logs');
+  }
+
+  // Only ADMIN can access audit logs (more restrictive than /admin which allows MODERATOR)
+  if (user.role !== 'ADMIN') {
+    redirect('/dashboard');
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {/* Header */}
+          <div className="mb-8">
+            <Link
+              href="/admin"
+              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back to Admin Panel
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
+            <p className="mt-2 text-gray-600">
+              View and export security audit events.
+            </p>
+          </div>
+
+          {/* Audit Log Viewer */}
+          <AuditLogViewer />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export const metadata = {
+  title: 'Audit Logs - SocleStack Admin',
+  description: 'View security audit logs',
+};
