@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { TwoFactorInput } from './two-factor-input'
 import { LoginInput } from '@/lib/validations'
 import { AuthError } from '@/types/auth'
 
@@ -24,6 +25,9 @@ export function LoginForm() {
   const [error, setError] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
+  const [requires2FA, setRequires2FA] = useState(false)
+  const [pendingToken, setPendingToken] = useState<string | null>(null)
+  const [twoFactorError, setTwoFactorError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,6 +59,13 @@ export function LoginForm() {
         return
       }
 
+      // Check if 2FA is required
+      if (data.requiresTwoFactor) {
+        setRequires2FA(true)
+        setPendingToken(data.pendingToken)
+        return
+      }
+
       // Store tokens (in a real app, you might want to use httpOnly cookies)
       if (data.tokens) {
         localStorage.setItem('accessToken', data.tokens.accessToken)
@@ -79,6 +90,80 @@ export function LoginForm() {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: [] }))
     }
+  }
+
+  const handle2FASubmit = async (code: string, isBackupCode: boolean) => {
+    setIsLoading(true)
+    setTwoFactorError('')
+
+    try {
+      const response = await fetch('/api/auth/2fa/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pendingToken,
+          code,
+          isBackupCode,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setTwoFactorError(data.error?.message || 'Invalid code')
+        return
+      }
+
+      // Store tokens
+      if (data.tokens) {
+        localStorage.setItem('accessToken', data.tokens.accessToken)
+        localStorage.setItem('refreshToken', data.tokens.refreshToken)
+      }
+
+      // Show warning if low on backup codes
+      if (data.warnings?.lowBackupCodes) {
+        alert(`Warning: You only have ${data.warnings.remainingBackupCodes} backup codes remaining. Consider regenerating them.`)
+      }
+
+      // Redirect
+      router.push(returnUrl)
+      router.refresh()
+
+    } catch {
+      setTwoFactorError('An unexpected error occurred')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCancel2FA = () => {
+    setRequires2FA(false)
+    setPendingToken(null)
+    setTwoFactorError('')
+    setFormData({ email: '', password: '', rememberMe: false })
+  }
+
+  if (requires2FA) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle>Two-Factor Authentication</CardTitle>
+          <CardDescription>
+            Verify your identity to complete sign in
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TwoFactorInput
+            onSubmit={handle2FASubmit}
+            onCancel={handleCancel2FA}
+            isLoading={isLoading}
+            error={twoFactorError}
+          />
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
