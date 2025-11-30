@@ -55,41 +55,79 @@ export async function logAuditEvent(event: AuditEvent): Promise<void> {
   }
 }
 
-export async function getAuditLogs(filters: {
-  userId?: string;
-  action?: AuditAction;
-  category?: AuditCategory;
-  from?: Date;
-  to?: Date;
-  limit?: number;
-  offset?: number;
-}): Promise<Array<{
+export interface AuditLogEntry {
   id: string;
   userId: string | null;
+  userEmail: string | null;
   action: string;
   category: string;
   ipAddress: string | null;
   userAgent: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: Date;
-}>> {
-  const logs = await prisma.auditLog.findMany({
-    where: {
-      userId: filters.userId,
-      action: filters.action,
-      category: filters.category,
-      createdAt: {
-        gte: filters.from,
-        lte: filters.to,
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: filters.limit || 100,
-    skip: filters.offset || 0,
-  });
+}
 
-  return logs.map((log) => ({
-    ...log,
-    metadata: log.metadata ? JSON.parse(log.metadata) : null,
-  }));
+export interface AuditLogsResult {
+  logs: AuditLogEntry[];
+  total: number;
+}
+
+export async function getAuditLogs(filters: {
+  userId?: string;
+  userEmail?: string;
+  action?: AuditAction;
+  category?: AuditCategory;
+  from?: Date;
+  to?: Date;
+  limit?: number;
+  offset?: number;
+}): Promise<AuditLogsResult> {
+  const where = {
+    userId: filters.userId,
+    action: filters.action,
+    category: filters.category,
+    createdAt: {
+      gte: filters.from,
+      lte: filters.to,
+    },
+    ...(filters.userEmail && {
+      user: {
+        email: {
+          contains: filters.userEmail,
+        },
+      },
+    }),
+  };
+
+  const [logs, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: filters.limit || 100,
+      skip: filters.offset || 0,
+    }),
+    prisma.auditLog.count({ where }),
+  ]);
+
+  return {
+    logs: logs.map((log) => ({
+      id: log.id,
+      userId: log.userId,
+      userEmail: log.user?.email ?? null,
+      action: log.action,
+      category: log.category,
+      ipAddress: log.ipAddress,
+      userAgent: log.userAgent,
+      metadata: log.metadata ? JSON.parse(log.metadata) : null,
+      createdAt: log.createdAt,
+    })),
+    total,
+  };
 }
