@@ -62,41 +62,62 @@ Build a Next.js 14 application with Enterprise-grade-style user management featu
 - `RememberMeToken` model - persistent sessions
 - `User` model - added `failedLoginAttempts`, `lockedUntil` fields
 
+### Two-Factor Authentication (2FA) ✅
+*Completed 2025-11-30*
+
+**Core Features:**
+- TOTP-based 2FA with QR code setup (otpauth library)
+- Backup codes (10 one-time codes) for recovery
+- Required for ADMIN role, optional for USER/MODERATOR
+- Admin can reset user's 2FA
+
+**Files Created:**
+- `src/lib/auth/totp.ts` - TOTP generation/validation
+- `src/lib/auth/backup-codes.ts` - Backup code generation/validation
+- `src/lib/auth/pending-2fa.ts` - JWT tokens for 2FA login flow
+- `src/app/api/auth/2fa/setup/route.ts` - Generate secret, QR code, backup codes
+- `src/app/api/auth/2fa/verify/route.ts` - Complete 2FA setup
+- `src/app/api/auth/2fa/validate/route.ts` - Validate code during login
+- `src/app/api/auth/2fa/disable/route.ts` - Disable 2FA (blocked for admins)
+- `src/app/api/admin/users/[id]/reset-2fa/route.ts` - Admin reset
+- `src/app/(dashboard)/profile/security/page.tsx` - Security settings UI
+
+**Database Changes:**
+- `User` model - added `twoFactorSecret`, `twoFactorEnabled`, `twoFactorVerified`
+- `BackupCode` model - stores hashed backup codes
+
+### User Impersonation (Switch User) ✅
+*Completed 2025-11-30*
+
+**Core Features:**
+- Admins can impersonate any non-admin user
+- Session preserves original admin identity
+- 1-hour timeout with auto-expiry
+- Sticky amber banner shows impersonation status
+
+**Security:**
+- Cannot impersonate other ADMINs
+- Security actions blocked during impersonation (2FA, password changes)
+- Full audit trail (start, end, expired events)
+
+**API Endpoints:**
+- `POST /api/admin/impersonate` - Start impersonation
+- `POST /api/admin/exit-impersonation` - End impersonation
+
+**Files Created:**
+- `src/lib/auth/impersonation.ts` - Impersonation helpers
+- `src/app/api/admin/impersonate/route.ts` - Start impersonation
+- `src/app/api/admin/exit-impersonation/route.ts` - Exit impersonation
+- `src/components/admin/impersonation-banner.tsx` - UI banner
+- `src/components/admin/impersonation-banner-wrapper.tsx` - Server wrapper
+
 ---
 
 ## Next Steps (Suggested Priorities)
 
-### Tier 1: Complete Enterprise-grade Parity
+### Tier 1: Production Readiness
 
-#### 1. Two-Factor Authentication (2FA)
-- TOTP-based (Google Authenticator, Authy compatible)
-- Backup codes for recovery
-- Enable/disable per user
-- Required for admin accounts
-
-**Files to create:**
-- `src/lib/auth/totp.ts` - TOTP generation/validation
-- `src/app/api/auth/2fa/setup/route.ts` - Generate secret, return QR code
-- `src/app/api/auth/2fa/verify/route.ts` - Verify code, enable 2FA
-- `src/app/api/auth/2fa/disable/route.ts` - Disable 2FA
-- `src/app/(dashboard)/profile/security/page.tsx` - 2FA management UI
-- Update login flow to check for 2FA requirement
-
-#### 2. User Impersonation (Switch User)
-- Admins can "become" another user for debugging
-- Original admin identity preserved
-- Clear visual indicator when impersonating
-- Full audit trail of impersonation events
-
-**Files to create:**
-- `src/lib/auth/impersonation.ts` - Impersonation logic
-- `src/app/api/admin/impersonate/route.ts` - Start impersonation
-- `src/app/api/admin/exit-impersonation/route.ts` - Return to admin
-- Impersonation banner component
-
-### Tier 2: Production Readiness
-
-#### 3. Active Sessions UI
+#### 1. Active Sessions UI
 - Page to view all active sessions (from remember-me tokens)
 - Show IP address, browser/device, last used
 - Revoke individual sessions or all sessions
@@ -105,7 +126,7 @@ Build a Next.js 14 application with Enterprise-grade-style user management featu
 **Files to create:**
 - `src/app/(dashboard)/profile/sessions/page.tsx` - Sessions management page
 
-#### 4. Audit Log Viewer (Admin)
+#### 2. Audit Log Viewer (Admin)
 - Admin page to view audit logs
 - Filter by user, action, date range
 - Export to CSV
@@ -114,25 +135,25 @@ Build a Next.js 14 application with Enterprise-grade-style user management featu
 **Files to create:**
 - `src/app/(admin)/audit-logs/page.tsx` - Audit log viewer
 
-#### 5. Email Notifications
+#### 3. Email Notifications
 - Login from new device/location
 - Account locked notification
 - Password changed notification
 - 2FA enabled/disabled notification
 
-### Tier 3: Enhanced Features
+### Tier 2: Enhanced Features
 
-#### 6. Groups/Teams
+#### 4. Groups/Teams
 - Organizational hierarchy beyond roles
 - Team-based permissions
 - Team admin designation
 
-#### 7. OAuth/Social Login
+#### 5. OAuth/Social Login
 - Google OAuth
 - GitHub OAuth
 - Account linking (connect social to existing account)
 
-#### 8. API Keys
+#### 6. API Keys
 - Generate API keys for programmatic access
 - Scoped permissions per key
 - Key rotation
@@ -190,6 +211,14 @@ export const SECURITY_CONFIG = {
     tokenLifetimeDays: 30,   // Remember me lasts 30 days
     cookieName: 'remember_me',
   },
+  twoFactor: {
+    issuer: 'SocleStack',
+    backupCodeCount: 10,
+    pendingTokenExpiryMinutes: 5,
+  },
+  impersonation: {
+    timeoutMinutes: 60,      // Auto-expire after 1 hour
+  },
 } as const;
 ```
 
@@ -197,8 +226,12 @@ export const SECURITY_CONFIG = {
 
 ## Design Documents
 
-- `docs/plans/2025-11-30-security-ux-hardening-design.md` - Design for completed phase
-- `docs/plans/2025-11-30-security-ux-hardening-implementation.md` - Implementation plan (completed)
+- `docs/plans/2025-11-30-security-ux-hardening-design.md` - Security hardening design
+- `docs/plans/2025-11-30-security-ux-hardening-implementation.md` - Security hardening implementation
+- `docs/plans/2025-11-30-two-factor-auth-design.md` - 2FA design
+- `docs/plans/2025-11-30-two-factor-auth-implementation.md` - 2FA implementation
+- `docs/plans/2025-11-30-user-impersonation-design.md` - Impersonation design
+- `docs/plans/2025-11-30-user-impersonation-implementation.md` - Impersonation implementation
 
 ---
 
