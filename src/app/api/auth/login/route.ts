@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { loginSchema } from '@/lib/validations'
 import { authenticateUser, createUserSession, getClientIP, isRateLimited } from '@/lib/auth'
 import { AuthError } from '@/types/auth'
+import { checkAccountLocked, recordFailedAttempt, resetFailedAttempts } from '@/lib/auth/lockout'
+import { createRememberMeToken, REMEMBER_ME_COOKIE_NAME } from '@/lib/auth/remember-me'
+import { logAuditEvent } from '@/lib/audit'
+import { SECURITY_CONFIG } from '@/lib/config/security'
+import { prisma } from '@/lib/db'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
+  const clientIP = getClientIP(req)
+  const userAgent = req.headers.get('user-agent') || undefined
+
   try {
     // Rate limiting
-    const clientIP = getClientIP(req)
     const rateLimitKey = `login:${clientIP}`
 
-    if (isRateLimited(rateLimitKey, 5, 15 * 60 * 1000)) { // 5 attempts per 15 minutes
+    if (isRateLimited(rateLimitKey, 10, 15 * 60 * 1000)) {
       return NextResponse.json(
         {
           error: {
@@ -40,11 +48,78 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { email, password } = validationResult.data
+    const { email, password, rememberMe } = validationResult.data
+
+    // Find user first to check lockout
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (user) {
+      // Check if account is locked
+      const lockoutStatus = await checkAccountLocked(user.id)
+      if (lockoutStatus.isLocked) {
+        const retryAfterSeconds = lockoutStatus.lockedUntil
+          ? Math.ceil((lockoutStatus.lockedUntil.getTime() - Date.now()) / 1000)
+          : SECURITY_CONFIG.lockout.durationMinutes * 60
+
+        return NextResponse.json(
+          {
+            error: {
+              type: 'ACCOUNT_LOCKED',
+              message: 'Account temporarily locked due to too many failed attempts',
+              lockedUntil: lockoutStatus.lockedUntil?.toISOString(),
+              retryAfterSeconds,
+            },
+          },
+          { status: 423 }
+        )
+      }
+    }
 
     // Authenticate user
-    const user = await authenticateUser(email, password)
-    if (!user) {
+    const authenticatedUser = await authenticateUser(email, password)
+    if (!authenticatedUser) {
+      // Record failed attempt if user exists
+      if (user) {
+        const lockoutStatus = await recordFailedAttempt(user.id, clientIP, userAgent)
+
+        await logAuditEvent({
+          action: 'AUTH_LOGIN_FAILURE',
+          category: 'authentication',
+          userId: user.id,
+          ipAddress: clientIP,
+          userAgent,
+          metadata: { reason: 'invalid_password' },
+        })
+
+        if (lockoutStatus.isLocked) {
+          const retryAfterSeconds = lockoutStatus.lockedUntil
+            ? Math.ceil((lockoutStatus.lockedUntil.getTime() - Date.now()) / 1000)
+            : SECURITY_CONFIG.lockout.durationMinutes * 60
+
+          return NextResponse.json(
+            {
+              error: {
+                type: 'ACCOUNT_LOCKED',
+                message: 'Account temporarily locked due to too many failed attempts',
+                lockedUntil: lockoutStatus.lockedUntil?.toISOString(),
+                retryAfterSeconds,
+              },
+            },
+            { status: 423 }
+          )
+        }
+      } else {
+        await logAuditEvent({
+          action: 'AUTH_LOGIN_FAILURE',
+          category: 'authentication',
+          ipAddress: clientIP,
+          userAgent,
+          metadata: { reason: 'user_not_found', email },
+        })
+      }
+
       return NextResponse.json(
         {
           error: {
@@ -57,7 +132,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if email is verified
-    if (!user.emailVerified) {
+    if (!authenticatedUser.emailVerified) {
       return NextResponse.json(
         {
           error: {
@@ -69,24 +144,53 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Reset failed attempts on successful login
+    await resetFailedAttempts(authenticatedUser.id)
+
     // Create session
-    const userAgent = req.headers.get('user-agent') || undefined
-    const tokens = await createUserSession(user, clientIP, userAgent)
+    const tokens = await createUserSession(authenticatedUser, clientIP, userAgent)
+
+    // Log successful login
+    await logAuditEvent({
+      action: 'AUTH_LOGIN_SUCCESS',
+      category: 'authentication',
+      userId: authenticatedUser.id,
+      ipAddress: clientIP,
+      userAgent,
+    })
+
+    // Handle Remember Me
+    const cookieStore = await cookies()
+    if (rememberMe) {
+      const rememberMeResult = await createRememberMeToken(
+        authenticatedUser.id,
+        clientIP,
+        userAgent
+      )
+
+      cookieStore.set(REMEMBER_ME_COOKIE_NAME, rememberMeResult.cookie, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        expires: rememberMeResult.expiresAt,
+        path: '/',
+      })
+    }
 
     // Return success response
     return NextResponse.json({
       message: 'Login successful',
       user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        isActive: user.isActive,
-        emailVerified: user.emailVerified,
-        lastLoginAt: user.lastLoginAt,
-        createdAt: user.createdAt,
+        id: authenticatedUser.id,
+        email: authenticatedUser.email,
+        username: authenticatedUser.username,
+        firstName: authenticatedUser.firstName,
+        lastName: authenticatedUser.lastName,
+        role: authenticatedUser.role,
+        isActive: authenticatedUser.isActive,
+        emailVerified: authenticatedUser.emailVerified,
+        lastLoginAt: authenticatedUser.lastLoginAt,
+        createdAt: authenticatedUser.createdAt,
       },
       tokens: {
         accessToken: tokens.accessToken,

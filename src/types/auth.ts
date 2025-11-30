@@ -36,9 +36,11 @@ export interface AuthState {
 }
 
 export interface AuthError {
-  type: 'VALIDATION_ERROR' | 'AUTHENTICATION_ERROR' | 'AUTHORIZATION_ERROR' | 'NOT_FOUND' | 'SERVER_ERROR'
+  type: 'VALIDATION_ERROR' | 'AUTHENTICATION_ERROR' | 'AUTHORIZATION_ERROR' | 'NOT_FOUND' | 'SERVER_ERROR' | 'ACCOUNT_LOCKED'
   message: string
   details?: Record<string, string[]>
+  lockedUntil?: string
+  retryAfterSeconds?: number
 }
 
 export interface SessionData {

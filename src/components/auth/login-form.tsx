@@ -18,6 +18,7 @@ export function LoginForm() {
   const [formData, setFormData] = useState<LoginInput>({
     email: '',
     password: '',
+    rememberMe: false,
   })
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [error, setError] = useState<string>('')
