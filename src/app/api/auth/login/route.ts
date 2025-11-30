@@ -5,6 +5,7 @@ import { authenticateUser, createUserSession, getClientIP, isRateLimited } from 
 import { AuthError } from '@/types/auth'
 import { checkAccountLocked, recordFailedAttempt, resetFailedAttempts } from '@/lib/auth/lockout'
 import { createRememberMeToken, REMEMBER_ME_COOKIE_NAME } from '@/lib/auth/remember-me'
+import { createPending2FAToken } from '@/lib/auth/pending-2fa'
 import { logAuditEvent } from '@/lib/audit'
 import { SECURITY_CONFIG } from '@/lib/config/security'
 import { prisma } from '@/lib/db'
@@ -147,7 +148,26 @@ export async function POST(req: NextRequest) {
     // Reset failed attempts on successful login
     await resetFailedAttempts(authenticatedUser.id)
 
-    // Create session
+    // Check if 2FA is enabled
+    if (authenticatedUser.twoFactorEnabled) {
+      const pendingToken = createPending2FAToken(authenticatedUser.id, authenticatedUser.email)
+
+      await logAuditEvent({
+        action: 'AUTH_LOGIN_SUCCESS',
+        category: 'authentication',
+        userId: authenticatedUser.id,
+        ipAddress: clientIP,
+        userAgent,
+        metadata: { requires2FA: true },
+      })
+
+      return NextResponse.json({
+        requiresTwoFactor: true,
+        pendingToken,
+      })
+    }
+
+    // Create session (no 2FA)
     const tokens = await createUserSession(authenticatedUser, clientIP, userAgent)
 
     // Log successful login
