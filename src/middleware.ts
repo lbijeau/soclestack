@@ -8,6 +8,7 @@ const protectedRoutes = {
   '/dashboard': 'USER',
   '/profile': 'USER',
   '/profile/security': 'USER',
+  '/profile/sessions': 'USER',
   '/admin': 'ADMIN',
   '/api/users': 'MODERATOR',
   '/api/users/profile': 'USER',

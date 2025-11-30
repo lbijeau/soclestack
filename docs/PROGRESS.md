@@ -111,22 +111,26 @@ Build a Next.js 14 application with Enterprise-grade-style user management featu
 - `src/components/admin/impersonation-banner.tsx` - UI banner
 - `src/components/admin/impersonation-banner-wrapper.tsx` - Server wrapper
 
+### Active Sessions UI ✅
+*Completed 2025-11-30*
+
+**Features:**
+- View all active "Remember me" sessions
+- Shows browser, OS, IP address, last active time
+- "This device" indicator for current session
+- Revoke individual sessions or all at once
+
+**Files Created:**
+- `src/app/(dashboard)/profile/sessions/page.tsx` - Sessions page
+- `src/components/profile/sessions-list.tsx` - Sessions list component
+
 ---
 
 ## Next Steps (Suggested Priorities)
 
 ### Tier 1: Production Readiness
 
-#### 1. Active Sessions UI
-- Page to view all active sessions (from remember-me tokens)
-- Show IP address, browser/device, last used
-- Revoke individual sessions or all sessions
-- "This device" indicator
-
-**Files to create:**
-- `src/app/(dashboard)/profile/sessions/page.tsx` - Sessions management page
-
-#### 2. Audit Log Viewer (Admin)
+#### 1. Audit Log Viewer (Admin)
 - Admin page to view audit logs
 - Filter by user, action, date range
 - Export to CSV
