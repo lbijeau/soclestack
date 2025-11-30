@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
@@ -97,9 +97,15 @@ export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
     }
   }
 
-  // Initial loading state - start setup automatically
-  if (step === 'loading' && !setupData) {
-    startSetup()
+  // Start setup automatically on mount
+  useEffect(() => {
+    if (step === 'loading' && !setupData) {
+      startSetup()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initial loading state
+  if (step === 'loading') {
     return (
       <Card>
         <CardContent className="p-8 text-center">
