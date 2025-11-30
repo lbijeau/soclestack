@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { generateTOTPSecret } from '@/lib/auth/totp';
 import { generateBackupCodes } from '@/lib/auth/backup-codes';
 import { prisma } from '@/lib/db';
+import { assertNotImpersonating, ImpersonationBlockedError } from '@/lib/auth/impersonation';
 
 export const runtime = 'nodejs';
 
@@ -15,6 +16,19 @@ export async function POST(_req: NextRequest) {
         { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
         { status: 401 }
       );
+    }
+
+    // Block during impersonation
+    try {
+      assertNotImpersonating(session);
+    } catch (error) {
+      if (error instanceof ImpersonationBlockedError) {
+        return NextResponse.json(
+          { error: { type: 'FORBIDDEN', message: error.message } },
+          { status: 403 }
+        );
+      }
+      throw error;
     }
 
     const user = await prisma.user.findUnique({
