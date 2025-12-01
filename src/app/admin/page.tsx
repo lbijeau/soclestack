@@ -2,7 +2,7 @@ import { getCurrentUser, hasRequiredRole } from '@/lib/auth'
 import { Navbar } from '@/components/navigation/navbar'
 import { UserManagement } from '@/components/admin/user-management'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Shield, Activity, AlertTriangle, FileText } from 'lucide-react'
+import { Users, Shield, Activity, AlertTriangle, FileText, Lock, Smartphone, UserPlus, LogIn } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
@@ -20,39 +20,50 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
-  // Get some basic stats
-  const [totalUsers, activeUsers, inactiveUsers, adminUsers] = await Promise.all([
+  // Get time boundaries
+  const now = new Date()
+  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+  // Get comprehensive stats
+  const [
+    totalUsers,
+    activeUsers,
+    lockedUsers,
+    adminUsers,
+    twoFactorEnabled,
+    recentLogins,
+    failedLogins24h,
+    newUsers7d,
+  ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { isActive: true } }),
-    prisma.user.count({ where: { isActive: false } }),
+    prisma.user.count({ where: { lockedUntil: { gt: now } } }),
     prisma.user.count({ where: { role: 'ADMIN' } }),
+    prisma.user.count({ where: { twoFactorEnabled: true } }),
+    prisma.auditLog.count({
+      where: { action: 'AUTH_LOGIN_SUCCESS', createdAt: { gte: last24h } },
+    }),
+    prisma.auditLog.count({
+      where: { action: 'AUTH_LOGIN_FAILURE', createdAt: { gte: last24h } },
+    }),
+    prisma.user.count({ where: { createdAt: { gte: last7d } } }),
   ])
 
-  const stats = [
-    {
-      title: 'Total Users',
-      value: totalUsers,
-      icon: Users,
-      color: 'text-blue-600',
-    },
-    {
-      title: 'Active Users',
-      value: activeUsers,
-      icon: Activity,
-      color: 'text-green-600',
-    },
-    {
-      title: 'Inactive Users',
-      value: inactiveUsers,
-      icon: AlertTriangle,
-      color: 'text-red-600',
-    },
-    {
-      title: 'Administrators',
-      value: adminUsers,
-      icon: Shield,
-      color: 'text-purple-600',
-    },
+  const twoFactorPercent = totalUsers > 0 ? Math.round((twoFactorEnabled / totalUsers) * 100) : 0
+
+  const userStats = [
+    { title: 'Total Users', value: totalUsers, icon: Users, color: 'text-blue-600' },
+    { title: 'Active', value: activeUsers, icon: Activity, color: 'text-green-600' },
+    { title: 'Locked', value: lockedUsers, icon: Lock, color: lockedUsers > 0 ? 'text-red-600' : 'text-gray-400' },
+    { title: 'Admins', value: adminUsers, icon: Shield, color: 'text-purple-600' },
+  ]
+
+  const securityStats = [
+    { title: 'Logins (24h)', value: recentLogins, icon: LogIn, color: 'text-green-600' },
+    { title: 'Failed (24h)', value: failedLogins24h, icon: AlertTriangle, color: failedLogins24h > 10 ? 'text-red-600' : 'text-amber-600' },
+    { title: '2FA Enabled', value: `${twoFactorPercent}%`, icon: Smartphone, color: 'text-blue-600' },
+    { title: 'New (7d)', value: newUsers7d, icon: UserPlus, color: 'text-indigo-600' },
   ]
 
   return (
@@ -71,23 +82,44 @@ export default async function AdminPage() {
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat) => (
-              <Card key={stat.title}>
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <stat.icon className={`h-8 w-8 ${stat.color}`} />
+          {/* User Stats */}
+          <div className="mb-6">
+            <h2 className="text-sm font-medium text-gray-500 mb-3">Users</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {userStats.map((stat) => (
+                <Card key={stat.title}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                      <div className="ml-3">
+                        <div className="text-xs text-gray-500">{stat.title}</div>
+                        <div className="text-xl font-bold text-gray-900">{stat.value}</div>
+                      </div>
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-500">{stat.title}</div>
-                      <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Security Stats */}
+          <div className="mb-8">
+            <h2 className="text-sm font-medium text-gray-500 mb-3">Security & Activity</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {securityStats.map((stat) => (
+                <Card key={stat.title}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                      <div className="ml-3">
+                        <div className="text-xs text-gray-500">{stat.title}</div>
+                        <div className="text-xl font-bold text-gray-900">{stat.value}</div>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
           {/* Quick Links - Only for ADMIN */}
