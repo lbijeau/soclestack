@@ -11,7 +11,8 @@ import {
   generateSessionToken,
   hashSessionToken
 } from './security'
-import { User } from '@prisma/client'
+import { User, ApiKeyPermission } from '@prisma/client'
+import { validateApiKey, isMethodAllowed } from './api-keys'
 
 // Session configuration
 const sessionOptions = {
@@ -68,6 +69,11 @@ export async function authenticateUser(email: string, password: string): Promise
     })
 
     if (!user || !user.isActive) {
+      return null
+    }
+
+    // OAuth-only users cannot log in with password
+    if (!user.password) {
       return null
     }
 
@@ -302,4 +308,108 @@ export function getClientIP(req: NextRequest): string {
   return req.headers.get('cf-connecting-ip') ||
          req.headers.get('x-forwarded-for')?.split(',')[0] ||
          'unknown'
+}
+
+// API Key authentication context
+export interface ApiKeyAuthContext {
+  type: 'api_key'
+  apiKeyId: string
+  permission: ApiKeyPermission
+  user: {
+    id: string
+    email: string
+    role: string
+    isActive: boolean
+    organizationId: string | null
+  }
+}
+
+export interface SessionAuthContext {
+  type: 'session'
+  user: User
+}
+
+export type AuthContext = ApiKeyAuthContext | SessionAuthContext
+
+/**
+ * Get authentication context from request.
+ * Supports both session-based and API key authentication.
+ * API key auth is checked first via Authorization header.
+ */
+export async function getAuthContext(req: NextRequest): Promise<{
+  context: AuthContext | null
+  error?: string
+  status?: number
+}> {
+  // Check for API key in Authorization header
+  const authHeader = req.headers.get('authorization')
+
+  if (authHeader?.startsWith('Bearer lsk_')) {
+    const apiKey = authHeader.substring(7) // Remove 'Bearer ' prefix
+    const result = await validateApiKey(apiKey)
+
+    if (!result.valid || !result.apiKey) {
+      return {
+        context: null,
+        error: result.error || 'Invalid API key',
+        status: 401,
+      }
+    }
+
+    // Check if the HTTP method is allowed for this key's permission
+    if (!isMethodAllowed(result.apiKey.permission, req.method)) {
+      return {
+        context: null,
+        error: 'This API key does not have permission for this operation',
+        status: 403,
+      }
+    }
+
+    return {
+      context: {
+        type: 'api_key',
+        apiKeyId: result.apiKey.id,
+        permission: result.apiKey.permission,
+        user: result.apiKey.user,
+      },
+    }
+  }
+
+  // Fall back to session-based authentication
+  const user = await getCurrentUser()
+
+  if (!user) {
+    return {
+      context: null,
+      error: 'Not authenticated',
+      status: 401,
+    }
+  }
+
+  return {
+    context: {
+      type: 'session',
+      user,
+    },
+  }
+}
+
+/**
+ * Helper to get user from auth context regardless of auth type
+ */
+export function getUserFromContext(context: AuthContext): {
+  id: string
+  email: string
+  role: string
+  organizationId: string | null
+} {
+  if (context.type === 'session') {
+    return {
+      id: context.user.id,
+      email: context.user.email,
+      role: context.user.role,
+      organizationId: context.user.organizationId,
+    }
+  }
+  return context.user
 }

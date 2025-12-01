@@ -24,7 +24,17 @@ export type AuditAction =
   // Impersonation
   | 'ADMIN_IMPERSONATION_START'
   | 'ADMIN_IMPERSONATION_END'
-  | 'ADMIN_IMPERSONATION_EXPIRED';
+  | 'ADMIN_IMPERSONATION_EXPIRED'
+  // OAuth
+  | 'AUTH_OAUTH_LOGIN_SUCCESS'
+  | 'AUTH_OAUTH_LOGIN_FAILURE'
+  | 'AUTH_OAUTH_REGISTRATION'
+  | 'AUTH_OAUTH_ACCOUNT_LINKED'
+  | 'AUTH_OAUTH_ACCOUNT_UNLINKED'
+  // API Keys
+  | 'API_KEY_CREATED'
+  | 'API_KEY_UPDATED'
+  | 'API_KEY_REVOKED';
 
 export type AuditCategory = 'authentication' | 'security' | 'admin';
 

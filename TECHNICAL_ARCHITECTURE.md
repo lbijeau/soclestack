@@ -218,3 +218,161 @@ interface ApiError {
 - Error tracking and alerting
 - Performance monitoring for database queries
 - Security event logging (failed logins, suspicious activity)
+
+### 12. OAuth/Social Login Integration
+
+#### Supported Providers
+- **Google**: OAuth 2.0 with OpenID Connect
+- **GitHub**: OAuth 2.0 authorization code flow
+
+#### OAuth Database Schema
+```sql
+CREATE TABLE oauth_accounts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL, -- 'google' | 'github'
+  provider_account_id TEXT NOT NULL,
+  email TEXT,
+  access_token TEXT,
+  refresh_token TEXT,
+  token_expires_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(provider, provider_account_id)
+);
+```
+
+#### OAuth Flow Architecture
+1. **Initiation**: `GET /api/auth/oauth/[provider]` - Generates state token, redirects to provider
+2. **Callback**: `GET /api/auth/oauth/[provider]/callback` - Handles provider response
+   - Existing user with linked OAuth: Sign in directly
+   - Existing user by email (no OAuth): Redirect to `/auth/oauth/link` for password verification
+   - New user: Redirect to `/auth/oauth/complete` for organization setup
+3. **Registration**: `POST /api/auth/oauth/complete` - Creates user + organization or accepts invite
+4. **Linking**: `POST /api/auth/oauth/link` - Links OAuth account after password verification
+
+#### Security Measures
+- **State Token**: JWT with nonce, provider, returnTo, inviteToken - prevents CSRF
+- **Pending OAuth Token**: JWT containing OAuth profile data - expires in 15 minutes
+- **Password Verification**: Required before linking OAuth to existing accounts
+- **2FA Integration**: OAuth login respects 2FA requirement for linked accounts
+
+#### OAuth Endpoints
+- `GET /api/auth/oauth/[provider]` - Initiate OAuth flow
+- `GET /api/auth/oauth/[provider]/callback` - OAuth callback handler
+- `POST /api/auth/oauth/complete` - Complete OAuth registration
+- `POST /api/auth/oauth/link` - Link OAuth account with password
+- `GET /api/auth/oauth/accounts` - List user's linked OAuth accounts
+- `DELETE /api/auth/oauth/accounts` - Unlink OAuth account
+
+#### OAuth Libraries
+```
+src/lib/auth/oauth/
+├── providers.ts     - Provider configurations (client IDs, scopes, URLs)
+├── state.ts         - OAuth state token generation/verification (jose JWT)
+├── client.ts        - OAuth HTTP client (authorization URL, token exchange, profile fetch)
+├── pending-oauth.ts - Pending OAuth session tokens
+└── index.ts         - Re-exports
+```
+
+### 13. Organizations (Multi-Tenancy)
+
+#### Organization Database Schema
+```sql
+CREATE TABLE organizations (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  owner_id TEXT REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE organization_members (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL, -- 'owner' | 'admin' | 'member'
+  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(organization_id, user_id)
+);
+
+CREATE TABLE organization_invites (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  role TEXT NOT NULL,
+  token TEXT UNIQUE NOT NULL,
+  invited_by_id TEXT REFERENCES users(id),
+  expires_at TIMESTAMP NOT NULL,
+  accepted_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Organization Features
+- Users must belong to at least one organization
+- New users create organization during registration or accept invite
+- Organization roles: owner, admin, member
+- Invite system with email and token-based acceptance
+- Organization switching (for users in multiple orgs)
+
+### 14. Two-Factor Authentication (2FA)
+
+#### 2FA Implementation
+- TOTP-based 2FA using authenticator apps
+- QR code generation for easy setup
+- 10 backup codes for recovery
+- Admin can reset user's 2FA
+- Required for ADMIN role, optional for others
+
+#### 2FA Endpoints
+- `POST /api/auth/2fa/setup` - Generate TOTP secret and QR code
+- `POST /api/auth/2fa/verify` - Verify TOTP and enable 2FA
+- `POST /api/auth/2fa/validate` - Validate 2FA during login
+- `POST /api/auth/2fa/disable` - Disable 2FA (requires verification)
+- `POST /api/admin/users/[id]/reset-2fa` - Admin reset user's 2FA
+
+### 15. API Keys
+
+#### API Key Database Schema
+```sql
+CREATE TABLE api_keys (
+  id TEXT PRIMARY KEY,
+  user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  key_hash TEXT NOT NULL,
+  key_prefix TEXT NOT NULL,
+  permission TEXT NOT NULL, -- 'READ_ONLY' | 'READ_WRITE'
+  expires_at TIMESTAMP,
+  last_used_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  revoked_at TIMESTAMP -- Soft delete
+);
+```
+
+#### API Key Features
+- User-scoped keys for programmatic access
+- Two permission levels: READ_ONLY (GET only) and READ_WRITE (all methods)
+- Optional expiration date
+- Maximum 10 keys per user
+- Key shown only once at creation (stored as SHA-256 hash)
+- Soft delete via `revokedAt` for audit trail
+- `lastUsedAt` tracking for stale key identification
+
+#### API Key Format
+- Prefix: `lsk_` (soclestack key)
+- Random: 32 bytes base64url encoded
+- Example: `lsk_x7Kp2mNqR9vBc4wL8yF6hJ3sD5tG0aE1`
+
+#### API Key Endpoints
+- `POST /api/keys` - Create new API key (returns full key once)
+- `GET /api/keys` - List user's API keys
+- `GET /api/keys/[id]` - Get single key details
+- `PATCH /api/keys/[id]` - Update key (name, permission, expiration)
+- `DELETE /api/keys/[id]` - Revoke key (soft delete)
+
+#### API Key Authentication
+- Header: `Authorization: Bearer lsk_...`
+- Keys respect user's active status and role permissions
+- READ_ONLY keys reject non-GET/HEAD/OPTIONS requests with 403

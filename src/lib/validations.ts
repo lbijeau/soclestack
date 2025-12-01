@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Role } from '@prisma/client'
+import { Role, ApiKeyPermission } from '@prisma/client'
 
 // Auth validation schemas
 export const loginSchema = z.object({
@@ -113,7 +113,43 @@ export const resetPasswordSchema = z.object({
   path: ["confirmPassword"],
 })
 
+// API Key validation schemas
+export const createApiKeySchema = z.object({
+  name: z.string()
+    .min(1, 'Name is required')
+    .max(50, 'Name must be at most 50 characters'),
+  permission: z.nativeEnum(ApiKeyPermission).default('READ_ONLY'),
+  expiresAt: z.string().datetime().optional().nullable(),
+}).refine((data) => {
+  if (data.expiresAt) {
+    return new Date(data.expiresAt) > new Date()
+  }
+  return true
+}, {
+  message: 'Expiration date must be in the future',
+  path: ['expiresAt'],
+})
+
+export const updateApiKeySchema = z.object({
+  name: z.string()
+    .min(1, 'Name is required')
+    .max(50, 'Name must be at most 50 characters')
+    .optional(),
+  permission: z.nativeEnum(ApiKeyPermission).optional(),
+  expiresAt: z.string().datetime().optional().nullable(),
+}).refine((data) => {
+  if (data.expiresAt) {
+    return new Date(data.expiresAt) > new Date()
+  }
+  return true
+}, {
+  message: 'Expiration date must be in the future',
+  path: ['expiresAt'],
+})
+
 // Type inference
+export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>
+export type UpdateApiKeyInput = z.infer<typeof updateApiKeySchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
