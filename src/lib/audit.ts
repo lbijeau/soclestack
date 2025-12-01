@@ -34,7 +34,10 @@ export type AuditAction =
   // API Keys
   | 'API_KEY_CREATED'
   | 'API_KEY_UPDATED'
-  | 'API_KEY_REVOKED';
+  | 'API_KEY_REVOKED'
+  // Account Deletion
+  | 'ACCOUNT_DELETE_FAILED'
+  | 'ACCOUNT_DELETED';
 
 export type AuditCategory = 'authentication' | 'security' | 'admin';
 
