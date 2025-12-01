@@ -159,6 +159,7 @@ export async function POST(req: NextRequest) {
           email,
           username,
           password: hashedPassword,
+          passwordChangedAt: new Date(),
           firstName,
           lastName,
           passwordResetToken: emailVerificationToken,

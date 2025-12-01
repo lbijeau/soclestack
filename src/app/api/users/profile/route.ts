@@ -136,7 +136,7 @@ export async function PATCH(req: NextRequest) {
       // Update password
       const updatedUser = await prisma.user.update({
         where: { id: currentUser.id },
-        data: { password: hashedPassword },
+        data: { password: hashedPassword, passwordChangedAt: new Date() },
         select: {
           id: true,
           email: true,

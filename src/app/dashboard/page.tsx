@@ -1,8 +1,10 @@
 import { getCurrentUser } from '@/lib/auth'
+import { checkPasswordAge } from '@/lib/auth/password-age'
 import { Navbar } from '@/components/navigation/navbar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { User, Calendar, Shield, Activity } from 'lucide-react'
+import { User, Calendar, Shield, Activity, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -14,6 +16,9 @@ export default async function DashboardPage() {
   if (!user) {
     redirect('/login?returnUrl=/dashboard')
   }
+
+  // Check password age (only for users with passwords, not OAuth-only)
+  const passwordStatus = user.password ? checkPasswordAge(user.passwordChangedAt) : null
 
   const getWelcomeMessage = () => {
     const name = user.firstName || user.username || 'there'
@@ -36,6 +41,41 @@ export default async function DashboardPage() {
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
+          {/* Password Expiration Warning */}
+          {passwordStatus?.isExpired && (
+            <Alert variant="error" className="mb-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Your password has expired</p>
+                  <p className="text-sm mt-1">
+                    Your password is {passwordStatus.daysSinceChange} days old. Please change it immediately for security.
+                  </p>
+                  <Link href="/profile" className="text-sm underline mt-2 inline-block">
+                    Change password now
+                  </Link>
+                </div>
+              </div>
+            </Alert>
+          )}
+
+          {passwordStatus?.isWarning && !passwordStatus.isExpired && (
+            <Alert variant="warning" className="mb-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Password expiring soon</p>
+                  <p className="text-sm mt-1">
+                    Your password will expire in {passwordStatus.daysUntilExpiry} days. Consider changing it soon.
+                  </p>
+                  <Link href="/profile" className="text-sm underline mt-2 inline-block">
+                    Change password
+                  </Link>
+                </div>
+              </div>
+            </Alert>
+          )}
+
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">
@@ -48,8 +88,8 @@ export default async function DashboardPage() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardContent className="p-6">
+            <Card className="h-32">
+              <CardContent className="flex items-center justify-center h-full p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <User className="h-8 w-8 text-blue-600" />
@@ -62,8 +102,8 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-6">
+            <Card className="h-32">
+              <CardContent className="flex items-center justify-center h-full p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <Calendar className="h-8 w-8 text-green-600" />
@@ -78,8 +118,8 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-6">
+            <Card className="h-32">
+              <CardContent className="flex items-center justify-center h-full p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <Shield className="h-8 w-8 text-yellow-600" />
@@ -94,8 +134,8 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-6">
+            <Card className="h-32">
+              <CardContent className="flex items-center justify-center h-full p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <Activity className="h-8 w-8 text-purple-600" />

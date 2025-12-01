@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       where: { id: user.id },
       data: {
         password: hashedPassword,
+        passwordChangedAt: new Date(),
         passwordResetToken: null,
         passwordResetExpires: null,
       }
