@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
+import { parseUserAgent } from '@/lib/utils/user-agent'
 
 interface Session {
   id: string
@@ -19,41 +20,6 @@ interface SessionsListProps {
   sessions: Session[]
   userId: string
   currentSeries?: string
-}
-
-function parseUserAgent(userAgent: string | null): { browser: string; os: string } {
-  if (!userAgent) {
-    return { browser: 'Unknown', os: 'Unknown' }
-  }
-
-  let browser = 'Unknown'
-  let os = 'Unknown'
-
-  // Detect browser
-  if (userAgent.includes('Firefox')) {
-    browser = 'Firefox'
-  } else if (userAgent.includes('Edg')) {
-    browser = 'Edge'
-  } else if (userAgent.includes('Chrome')) {
-    browser = 'Chrome'
-  } else if (userAgent.includes('Safari')) {
-    browser = 'Safari'
-  }
-
-  // Detect OS
-  if (userAgent.includes('Windows')) {
-    os = 'Windows'
-  } else if (userAgent.includes('Mac OS')) {
-    os = 'macOS'
-  } else if (userAgent.includes('Linux')) {
-    os = 'Linux'
-  } else if (userAgent.includes('Android')) {
-    os = 'Android'
-  } else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) {
-    os = 'iOS'
-  }
-
-  return { browser, os }
 }
 
 function formatDate(dateString: string): string {
