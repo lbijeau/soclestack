@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TwoFactorInput } from './two-factor-input'
+import { OAuthButtons, OAuthDivider } from './oauth-buttons'
 import { LoginInput } from '@/lib/validations'
 import { AuthError } from '@/types/auth'
+import type { OAuthProvider } from '@/lib/auth/oauth/providers'
 
 export function LoginForm() {
   const router = useRouter()
@@ -28,6 +30,30 @@ export function LoginForm() {
   const [requires2FA, setRequires2FA] = useState(false)
   const [pendingToken, setPendingToken] = useState<string | null>(null)
   const [twoFactorError, setTwoFactorError] = useState('')
+  const [enabledProviders, setEnabledProviders] = useState<OAuthProvider[]>([])
+
+  useEffect(() => {
+    // Fetch enabled OAuth providers
+    fetch('/api/auth/oauth/accounts')
+      .then(res => res.json())
+      .then(data => setEnabledProviders(data.enabledProviders || []))
+      .catch(() => {})
+
+    // Check for OAuth error from URL
+    const oauthError = searchParams.get('error')
+    if (oauthError) {
+      const errorMessages: Record<string, string> = {
+        oauth_denied: 'OAuth authorization was denied',
+        invalid_provider: 'Invalid OAuth provider',
+        missing_params: 'OAuth callback missing required parameters',
+        invalid_state: 'OAuth session expired. Please try again.',
+        token_exchange_failed: 'Failed to complete OAuth authentication',
+        profile_fetch_failed: 'Failed to fetch profile from OAuth provider',
+        account_inactive: 'Your account is inactive. Please contact support.',
+      }
+      setError(errorMessages[oauthError] || 'OAuth authentication failed')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -175,12 +201,25 @@ export function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert variant="error" className="mb-4">
+            {error}
+          </Alert>
+        )}
+
+        {enabledProviders.length > 0 && (
+          <>
+            <OAuthButtons
+              enabledProviders={enabledProviders}
+              returnTo={returnUrl}
+              isLoading={isLoading}
+              mode="login"
+            />
+            <OAuthDivider />
+          </>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
-          {error && (
-            <Alert variant="error">
-              {error}
-            </Alert>
-          )}
 
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">

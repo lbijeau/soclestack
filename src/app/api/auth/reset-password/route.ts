@@ -70,13 +70,15 @@ export async function POST(req: NextRequest) {
     // Hash new password
     const hashedPassword = await hashPassword(password)
 
-    // Store old password in history
-    await prisma.passwordHistory.create({
-      data: {
-        userId: user.id,
-        password: user.password,
-      }
-    })
+    // Store old password in history (if user had a password)
+    if (user.password) {
+      await prisma.passwordHistory.create({
+        data: {
+          userId: user.id,
+          password: user.password,
+        }
+      })
+    }
 
     // Update user's password and clear reset token
     await prisma.user.update({

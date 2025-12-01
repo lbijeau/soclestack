@@ -21,6 +21,9 @@ const protectedRoutes = {
 // Define auth routes that should redirect if already logged in
 const authRoutes = ['/login', '/register', '/forgot-password', '/reset-password']
 
+// Define OAuth routes that are public (part of auth flow)
+const oauthRoutes = ['/auth/oauth/complete', '/auth/oauth/link', '/auth/two-factor']
+
 // Define public routes that don't require authentication
 // Note: /invite/[token] is public so unauthenticated users can view invites
 const publicRoutes = ['/', '/verify-email']
@@ -48,6 +51,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/invite/') || // Public invite pages
     publicApiRoutes.some(route => pathname.startsWith(route)) ||
+    oauthRoutes.includes(pathname) || // OAuth flow pages
     pathname.includes('.') ||
     publicRoutes.includes(pathname)
   ) {

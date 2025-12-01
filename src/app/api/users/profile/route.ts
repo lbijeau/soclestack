@@ -43,6 +43,19 @@ export async function PATCH(req: NextRequest) {
 
       const { currentPassword, newPassword } = validationResult.data
 
+      // OAuth-only users cannot change password this way
+      if (!currentUser.password) {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'AUTHENTICATION_ERROR',
+              message: 'Cannot change password. This account uses OAuth login only.'
+            } as AuthError
+          },
+          { status: 400 }
+        )
+      }
+
       // Verify current password
       const isCurrentPasswordValid = await verifyPassword(currentPassword, currentUser.password)
       if (!isCurrentPasswordValid) {

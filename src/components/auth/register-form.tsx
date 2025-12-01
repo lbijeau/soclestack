@@ -1,17 +1,21 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { OAuthButtons, OAuthDivider } from './oauth-buttons'
 import { RegisterInput } from '@/lib/validations'
 import { AuthError } from '@/types/auth'
+import type { OAuthProvider } from '@/lib/auth/oauth/providers'
 
 export function RegisterForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const inviteToken = searchParams.get('token') || undefined
 
   const [formData, setFormData] = useState<RegisterInput>({
     email: '',
@@ -25,6 +29,15 @@ export function RegisterForm() {
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
+  const [enabledProviders, setEnabledProviders] = useState<OAuthProvider[]>([])
+
+  useEffect(() => {
+    // Fetch enabled OAuth providers
+    fetch('/api/auth/oauth/accounts')
+      .then(res => res.json())
+      .then(data => setEnabledProviders(data.enabledProviders || []))
+      .catch(() => {})
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,18 +98,31 @@ export function RegisterForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="error">
-              {error}
-            </Alert>
-          )}
+        {error && (
+          <Alert variant="error" className="mb-4">
+            {error}
+          </Alert>
+        )}
 
-          {success && (
-            <Alert variant="success">
-              {success}
-            </Alert>
-          )}
+        {success && (
+          <Alert variant="success" className="mb-4">
+            {success}
+          </Alert>
+        )}
+
+        {enabledProviders.length > 0 && (
+          <>
+            <OAuthButtons
+              enabledProviders={enabledProviders}
+              inviteToken={inviteToken}
+              isLoading={isLoading}
+              mode="register"
+            />
+            <OAuthDivider />
+          </>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

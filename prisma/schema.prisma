@@ -14,7 +14,7 @@ model User {
   id                String   @id @default(cuid())
   email             String   @unique
   username          String?  @unique
-  password          String
+  password          String?  // Nullable for OAuth-only users
   firstName         String?  @map("first_name")
   lastName          String?  @map("last_name")
   role              Role     @default(USER)
@@ -48,6 +48,8 @@ model User {
   rememberMeTokens     RememberMeToken[]
   backupCodes          BackupCode[]
   sentInvites          OrganizationInvite[]
+  oauthAccounts        OAuthAccount[]
+  apiKeys              ApiKey[]
 
   @@index([organizationId])
   @@map("users")
@@ -168,4 +170,48 @@ model OrganizationInvite {
   @@index([email])
   @@index([organizationId])
   @@map("organization_invites")
+}
+
+model OAuthAccount {
+  id                String    @id @default(cuid())
+  userId            String    @map("user_id")
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String    // "google" | "github"
+  providerAccountId String    @map("provider_account_id")
+  email             String?   // Email from OAuth provider
+  accessToken       String?   @map("access_token")
+  refreshToken      String?   @map("refresh_token")
+  tokenExpiresAt    DateTime? @map("token_expires_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String                    // User-friendly label
+  keyHash     String    @map("key_hash") // SHA-256 hash of the key
+  keyPrefix   String    @map("key_prefix") // First 8 chars for identification
+
+  permission  ApiKeyPermission @default(READ_ONLY)
+  expiresAt   DateTime? @map("expires_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at") // Soft delete
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+enum ApiKeyPermission {
+  READ_ONLY
+  READ_WRITE
 }

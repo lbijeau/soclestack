@@ -15,6 +15,11 @@ export const SECURITY_CONFIG = {
   impersonation: {
     timeoutMinutes: 60,
   },
+  oauth: {
+    stateTokenExpiryMinutes: 10,
+    pendingLinkExpiryMinutes: 5,
+    stateCookieName: 'oauth_state',
+  },
 } as const;
 
 export type SecurityConfig = typeof SECURITY_CONFIG;

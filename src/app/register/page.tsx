@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { RegisterForm } from '@/components/auth/register-form'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function RegisterPage() {
   return (
@@ -12,7 +14,16 @@ export default function RegisterPage() {
             Join SocleStack to get started
           </p>
         </div>
-        <RegisterForm />
+        <Suspense fallback={
+          <Card className="w-full max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle>Loading...</CardTitle>
+              <CardDescription>Please wait while we load the registration form.</CardDescription>
+            </CardHeader>
+          </Card>
+        }>
+          <RegisterForm />
+        </Suspense>
       </div>
     </div>
   )
