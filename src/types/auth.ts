@@ -1,4 +1,4 @@
-import { User, Role } from '@prisma/client'
+import { User, Role, OrganizationRole } from '@prisma/client'
 
 export interface LoginCredentials {
   email: string
@@ -50,10 +50,18 @@ export interface ImpersonationData {
   startedAt: number // Unix timestamp
 }
 
+export interface OrganizationData {
+  id: string
+  name: string
+  slug: string
+  role: OrganizationRole
+}
+
 export interface SessionData {
   userId: string
   email: string
   role: Role
   isLoggedIn: boolean
   impersonating?: ImpersonationData
+  organization?: OrganizationData
 }

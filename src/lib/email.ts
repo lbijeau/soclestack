@@ -9,6 +9,8 @@ import {
   twoFactorDisabledTemplate,
 } from '@/lib/email/templates';
 
+export { organizationInviteTemplate } from '@/lib/email/templates';
+
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@soclestack.com';
 
@@ -18,7 +20,7 @@ interface EmailOptions {
   html: string;
 }
 
-async function sendEmail(options: EmailOptions): Promise<boolean> {
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
   // In development, just log to console
   if (process.env.NODE_ENV !== 'production') {
     console.log('=== EMAIL (DEV MODE) ===');

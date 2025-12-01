@@ -2,8 +2,8 @@ import { ButtonHTMLAttributes, forwardRef } from 'react'
 import { clsx } from 'clsx'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost'
-  size?: 'sm' | 'md' | 'lg'
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'outline'
+  size?: 'sm' | 'md' | 'lg' | 'icon'
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -20,11 +20,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             'bg-gray-200 text-gray-900 hover:bg-gray-300': variant === 'secondary',
             'bg-red-600 text-white hover:bg-red-700': variant === 'destructive',
             'hover:bg-gray-100 text-gray-900': variant === 'ghost',
+            'border border-gray-300 bg-white text-gray-900 hover:bg-gray-50': variant === 'outline',
 
             // Sizes
             'h-8 px-3 text-sm': size === 'sm',
             'h-10 px-4 text-sm': size === 'md',
             'h-12 px-6 text-base': size === 'lg',
+            'h-10 w-10 p-0': size === 'icon',
           },
           className
         )}

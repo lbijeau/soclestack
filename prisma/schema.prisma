@@ -36,13 +36,20 @@ model User {
   twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
   twoFactorVerified  Boolean   @default(false) @map("two_factor_verified")
 
+  // Organization
+  organizationId     String?          @map("organization_id")
+  organizationRole   OrganizationRole @default(MEMBER) @map("organization_role")
+
   // Relations
-  sessions UserSession[]
-  passwordHistory PasswordHistory[]
+  organization         Organization?       @relation(fields: [organizationId], references: [id])
+  sessions             UserSession[]
+  passwordHistory      PasswordHistory[]
   auditLogs            AuditLog[]
   rememberMeTokens     RememberMeToken[]
-  backupCodes        BackupCode[]
+  backupCodes          BackupCode[]
+  sentInvites          OrganizationInvite[]
 
+  @@index([organizationId])
   @@map("users")
 }
 
@@ -78,6 +85,12 @@ enum Role {
   USER
   ADMIN
   MODERATOR
+}
+
+enum OrganizationRole {
+  OWNER   // Full control, can delete org
+  ADMIN   // Manage users, settings
+  MEMBER  // Basic access
 }
 
 model AuditLog {
@@ -124,4 +137,35 @@ model BackupCode {
 
   @@index([userId])
   @@map("backup_codes")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users     User[]
+  invites   OrganizationInvite[]
+
+  @@map("organizations")
+}
+
+model OrganizationInvite {
+  id             String           @id @default(cuid())
+  email          String
+  role           OrganizationRole @default(MEMBER)
+  token          String           @unique
+  expiresAt      DateTime         @map("expires_at")
+  organizationId String           @map("organization_id")
+  invitedById    String           @map("invited_by_id")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy      User             @relation(fields: [invitedById], references: [id])
+
+  @@index([email])
+  @@index([organizationId])
+  @@map("organization_invites")
 }

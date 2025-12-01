@@ -81,6 +81,7 @@ export async function getAuditLogs(filters: {
   to?: Date;
   limit?: number;
   offset?: number;
+  organizationId?: string; // Filter by organization (only show logs from org members)
 }): Promise<AuditLogsResult> {
   const where = {
     userId: filters.userId,
@@ -95,6 +96,16 @@ export async function getAuditLogs(filters: {
         email: {
           contains: filters.userEmail,
         },
+      },
+    }),
+    ...(filters.organizationId && {
+      user: {
+        organizationId: filters.organizationId,
+        ...(filters.userEmail && {
+          email: {
+            contains: filters.userEmail,
+          },
+        }),
       },
     }),
   };
