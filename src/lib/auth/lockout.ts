@@ -1,6 +1,7 @@
 import { prisma } from '../db';
 import { logAuditEvent } from '../audit';
 import { SECURITY_CONFIG } from '../config/security';
+import { sendAccountLockedNotification } from '../email';
 
 const { maxFailedAttempts, durationMinutes } = SECURITY_CONFIG.lockout;
 
@@ -75,8 +76,8 @@ export async function recordFailedAttempt(
     },
   });
 
-  // Log the lockout event if account was just locked
-  if (shouldLock) {
+  // Log the lockout event and send notification if account was just locked
+  if (shouldLock && lockedUntil) {
     await logAuditEvent({
       action: 'SECURITY_ACCOUNT_LOCKED',
       category: 'security',
@@ -85,6 +86,11 @@ export async function recordFailedAttempt(
       userAgent,
       metadata: { reason: 'too_many_failed_attempts', attempts: newAttempts },
     });
+
+    // Send email notification (fire-and-forget)
+    sendAccountLockedNotification(user.email, lockedUntil).catch((err) =>
+      console.error('Failed to send account locked notification:', err)
+    );
   }
 
   return {

@@ -3,6 +3,8 @@ import { resetPasswordSchema } from '@/lib/validations'
 import { hashPassword, hashResetToken, timeSafeEqual } from '@/lib/security'
 import { prisma } from '@/lib/db'
 import { AuthError } from '@/types/auth'
+import { logAuditEvent } from '@/lib/audit'
+import { sendPasswordChangedNotification } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
@@ -90,6 +92,19 @@ export async function POST(req: NextRequest) {
     await prisma.userSession.deleteMany({
       where: { userId: user.id }
     })
+
+    // Log the password change
+    await logAuditEvent({
+      action: 'SECURITY_PASSWORD_CHANGED',
+      category: 'security',
+      userId: user.id,
+      metadata: { method: 'reset_token' },
+    })
+
+    // Send notification (fire-and-forget)
+    sendPasswordChangedNotification(user.email, new Date()).catch((err) =>
+      console.error('Failed to send password changed notification:', err)
+    )
 
     return NextResponse.json({
       message: 'Password reset successfully. Please log in with your new password.'

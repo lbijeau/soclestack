@@ -3,6 +3,7 @@ import { getSession, getClientIP } from '@/lib/auth';
 import { verifyTOTPCode } from '@/lib/auth/totp';
 import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
+import { sendTwoFactorEnabledNotification } from '@/lib/email';
 import { z } from 'zod';
 import { assertNotImpersonating, ImpersonationBlockedError } from '@/lib/auth/impersonation';
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { twoFactorSecret: true, twoFactorEnabled: true },
+      select: { twoFactorSecret: true, twoFactorEnabled: true, email: true },
     });
 
     if (!user || !user.twoFactorSecret) {
@@ -95,6 +96,11 @@ export async function POST(req: NextRequest) {
       ipAddress: clientIP,
       userAgent,
     });
+
+    // Send notification (fire-and-forget)
+    sendTwoFactorEnabledNotification(user.email).catch((err) =>
+      console.error('Failed to send 2FA enabled notification:', err)
+    );
 
     return NextResponse.json({ message: '2FA enabled successfully' });
   } catch (error) {

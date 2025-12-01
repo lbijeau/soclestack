@@ -145,17 +145,37 @@ Build a Next.js 14 application with Enterprise-grade-style user management featu
 - Added link to audit logs from admin panel
 - Updated middleware for `/admin/audit-logs` route
 
+### Email Notifications ✅
+*Completed 2025-11-30*
+
+**Notification Types:**
+- Login from new device/location (IP + user-agent detection)
+- Account locked (after 5 failed attempts)
+- Password changed
+- 2FA enabled/disabled
+
+**Email Provider:** Resend (console logging in development)
+
+**Files Created:**
+- `src/lib/email.ts` - Email service with Resend + dev fallback
+- `src/lib/email/templates.ts` - HTML email templates
+- `src/lib/utils/user-agent.ts` - Shared user-agent parser
+
+**Files Modified:**
+- `src/app/api/auth/login/route.ts` - New device detection + alert
+- `src/lib/auth/lockout.ts` - Account locked notification
+- `src/app/api/auth/reset-password/route.ts` - Password changed notification
+- `src/app/api/auth/2fa/verify/route.ts` - 2FA enabled notification
+- `src/app/api/auth/2fa/disable/route.ts` - 2FA disabled notification
+- `src/components/profile/sessions-list.tsx` - Uses shared parseUserAgent
+
+**Environment Variables:**
+- `RESEND_API_KEY` - Required in production
+- `EMAIL_FROM` - Sender address (default: noreply@soclestack.com)
+
 ---
 
 ## Next Steps (Suggested Priorities)
-
-### Tier 1: Production Readiness
-
-#### 1. Email Notifications
-- Login from new device/location
-- Account locked notification
-- Password changed notification
-- 2FA enabled/disabled notification
 
 ### Tier 2: Enhanced Features
 
@@ -249,6 +269,7 @@ export const SECURITY_CONFIG = {
 - `docs/plans/2025-11-30-user-impersonation-design.md` - Impersonation design
 - `docs/plans/2025-11-30-user-impersonation-implementation.md` - Impersonation implementation
 - `docs/plans/2025-11-30-audit-log-viewer-design.md` - Audit log viewer design
+- `docs/plans/2025-11-30-email-notifications-design.md` - Email notifications design
 
 ---
 

@@ -9,6 +9,8 @@ import { createPending2FAToken } from '@/lib/auth/pending-2fa'
 import { logAuditEvent } from '@/lib/audit'
 import { SECURITY_CONFIG } from '@/lib/config/security'
 import { prisma } from '@/lib/db'
+import { sendNewDeviceAlert, isKnownDevice } from '@/lib/email'
+import { parseUserAgent } from '@/lib/utils/user-agent'
 
 export const runtime = 'nodejs'
 
@@ -167,6 +169,9 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // Check if this is a new device BEFORE logging the successful login
+    const knownDevice = await isKnownDevice(authenticatedUser.id, clientIP, userAgent)
+
     // Create session (no 2FA)
     const tokens = await createUserSession(authenticatedUser, clientIP, userAgent)
 
@@ -178,6 +183,14 @@ export async function POST(req: NextRequest) {
       ipAddress: clientIP,
       userAgent,
     })
+
+    // Send new device alert if this is an unknown device (fire-and-forget)
+    if (!knownDevice && clientIP && userAgent) {
+      const deviceInfo = parseUserAgent(userAgent)
+      sendNewDeviceAlert(authenticatedUser.email, deviceInfo, clientIP, new Date()).catch(
+        (err) => console.error('Failed to send new device alert:', err)
+      )
+    }
 
     // Handle Remember Me
     const cookieStore = await cookies()

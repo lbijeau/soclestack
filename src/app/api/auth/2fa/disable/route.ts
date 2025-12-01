@@ -4,6 +4,7 @@ import { verifyTOTPCode } from '@/lib/auth/totp';
 import { deleteAllBackupCodes } from '@/lib/auth/backup-codes';
 import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
+import { sendTwoFactorDisabledNotification } from '@/lib/email';
 import { z } from 'zod';
 import { assertNotImpersonating, ImpersonationBlockedError } from '@/lib/auth/impersonation';
 
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { role: true, twoFactorSecret: true, twoFactorEnabled: true },
+      select: { role: true, twoFactorSecret: true, twoFactorEnabled: true, email: true },
     });
 
     if (!user) {
@@ -109,6 +110,11 @@ export async function POST(req: NextRequest) {
       ipAddress: clientIP,
       userAgent,
     });
+
+    // Send notification (fire-and-forget)
+    sendTwoFactorDisabledNotification(user.email).catch((err) =>
+      console.error('Failed to send 2FA disabled notification:', err)
+    );
 
     return NextResponse.json({ message: '2FA disabled successfully' });
   } catch (error) {
