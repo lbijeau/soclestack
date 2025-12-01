@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { page, limit, search, role, isActive, sortBy, sortOrder } = validationResult.data
+    const locked = searchParams.get('locked') === 'true'
 
     // Build where clause
     const where: Prisma.UserWhereInput = {
@@ -68,6 +69,7 @@ export async function GET(req: NextRequest) {
       }),
       ...(role && { role }),
       ...(isActive !== undefined && { isActive }),
+      ...(locked && { lockedUntil: { gt: new Date() } }),
     }
 
     // Get total count

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 // import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, Search, ChevronLeft, ChevronRight, UserX, UserCheck } from 'lucide-react'
+import { Trash2, Search, ChevronLeft, ChevronRight, UserX, UserCheck, Filter, X } from 'lucide-react'
 
 interface User {
   id: string
@@ -51,13 +51,15 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     hasPrevPage: false,
   })
   const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
 
   useEffect(() => {
     fetchUsers()
-  }, [pagination.page, search]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pagination.page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchUsers = async () => {
     try {
@@ -65,8 +67,12 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
-        ...(search && { search }),
       })
+      if (search) params.set('search', search)
+      if (roleFilter) params.set('role', roleFilter)
+      if (statusFilter === 'active') params.set('isActive', 'true')
+      if (statusFilter === 'inactive') params.set('isActive', 'false')
+      if (statusFilter === 'locked') params.set('locked', 'true')
 
       const response = await fetch(`/api/users?${params}`)
 
@@ -89,6 +95,17 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     setPagination(prev => ({ ...prev, page: 1 }))
     fetchUsers()
   }
+
+  const handleClearFilters = () => {
+    setSearch('')
+    setRoleFilter('')
+    setStatusFilter('')
+    setPagination(prev => ({ ...prev, page: 1 }))
+    // Fetch will be triggered by the state change
+    setTimeout(() => fetchUsers(), 0)
+  }
+
+  const hasActiveFilters = search || roleFilter || statusFilter
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     if (userId === currentUser.id) {
@@ -205,21 +222,58 @@ export function UserManagement({ currentUser }: UserManagementProps) {
         </Alert>
       )}
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="flex gap-4">
-        <div className="flex-1">
-          <Input
-            type="text"
-            placeholder="Search users by email, username, or name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full"
-          />
+      {/* Search & Filters */}
+      <form onSubmit={handleSearch} className="space-y-3">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Input
+              type="text"
+              placeholder="Search by email, username, or name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <Button type="submit" disabled={isLoading}>
+            <Search size={16} className="mr-2" />
+            Search
+          </Button>
         </div>
-        <Button type="submit" disabled={isLoading}>
-          <Search size={16} className="mr-2" />
-          Search
-        </Button>
+        <div className="flex flex-wrap gap-3 items-center">
+          <Filter size={16} className="text-gray-400" />
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="h-9 px-3 rounded-md border border-gray-200 bg-white text-sm"
+          >
+            <option value="">All roles</option>
+            <option value="USER">User</option>
+            <option value="MODERATOR">Moderator</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 px-3 rounded-md border border-gray-200 bg-white text-sm"
+          >
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="locked">Locked</option>
+          </select>
+          {hasActiveFilters && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClearFilters}
+              className="text-gray-500"
+            >
+              <X size={14} className="mr-1" />
+              Clear
+            </Button>
+          )}
+        </div>
       </form>
 
       {/* Users Table */}
