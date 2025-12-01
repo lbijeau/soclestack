@@ -173,23 +173,82 @@ Build a Next.js 14 application with Enterprise-grade-style user management featu
 - `RESEND_API_KEY` - Required in production
 - `EMAIL_FROM` - Sender address (default: noreply@soclestack.com)
 
+### Organizations (Multi-Tenancy) ✅
+*Completed 2025-11-30*
+
+**Core Features:**
+- Multi-tenant architecture with logical data isolation
+- Single organization per user
+- Organization-specific roles: OWNER, ADMIN, MEMBER
+- Self-service organization creation on registration
+- Email invitations for adding users (7-day expiry)
+- Organization-scoped audit logs
+
+**Global vs Org Roles:**
+- System `Role.ADMIN` = super admin (can access all organizations)
+- `OrganizationRole.OWNER` = full control of org, can delete
+- `OrganizationRole.ADMIN` = manage users, settings
+- `OrganizationRole.MEMBER` = basic access
+
+**Registration Flow:**
+- New users must provide organization name (becomes OWNER)
+- OR use an invite token (joins with invite's role)
+- Existing users can accept invites if they have no organization
+
+**API Endpoints:**
+- `POST /api/organizations` - Create org (for existing users without one)
+- `GET /api/organizations/current` - Get current user's organization
+- `PATCH /api/organizations/current` - Update org (ADMIN+)
+- `DELETE /api/organizations/current` - Delete org (OWNER only)
+- `GET /api/organizations/current/members` - List members
+- `PATCH /api/organizations/current/members/[id]` - Update member role (ADMIN+)
+- `DELETE /api/organizations/current/members/[id]` - Remove member (ADMIN+)
+- `GET /api/organizations/current/invites` - List pending invites (ADMIN+)
+- `POST /api/organizations/current/invites` - Send invite (ADMIN+)
+- `DELETE /api/organizations/current/invites/[id]` - Cancel invite (ADMIN+)
+- `GET /api/invites/[token]` - Get invite details (public)
+- `POST /api/invites/[token]/accept` - Accept invite (authenticated)
+
+**UI Pages:**
+- `/organization` - Organization settings (ADMIN+)
+- `/organization/members` - Member list with role management
+- `/organization/invites` - Send and manage invitations
+- `/invite/[token]` - Accept invitation page
+
+**Files Created:**
+- `src/lib/organization.ts` - Slug generation, role hierarchy, invite helpers
+- `src/app/api/organizations/` - All organization API routes
+- `src/app/api/invites/[token]/` - Public invite endpoints
+- `src/app/organization/` - Organization UI pages
+- `src/app/invite/[token]/page.tsx` - Invite acceptance page
+- `src/lib/email/templates.ts` - Added `organizationInviteTemplate`
+
+**Database Changes:**
+- `Organization` model - id, name, slug, timestamps
+- `OrganizationInvite` model - email, role, token, expiry
+- `OrganizationRole` enum - OWNER, ADMIN, MEMBER
+- `User` model - added `organizationId`, `organizationRole`, `sentInvites`
+
+**Files Modified:**
+- `src/lib/validations.ts` - Added org fields to registration schema
+- `src/app/api/auth/register/route.ts` - Handles org creation/invite acceptance
+- `src/app/api/admin/audit-logs/route.ts` - Org-scoped filtering
+- `src/lib/audit.ts` - Added organizationId filter
+- `src/middleware.ts` - Added organization routes, public invite paths
+- `src/components/ui/button.tsx` - Added outline variant and icon size
+
 ---
 
 ## Next Steps (Suggested Priorities)
 
 ### Tier 2: Enhanced Features
 
-#### 4. Groups/Teams
-- Organizational hierarchy beyond roles
-- Team-based permissions
-- Team admin designation
-
-#### 5. OAuth/Social Login
+#### 4. OAuth/Social Login
 - Google OAuth
 - GitHub OAuth
 - Account linking (connect social to existing account)
 
-#### 6. API Keys
+#### 5. API Keys
 - Generate API keys for programmatic access
 - Scoped permissions per key
 - Key rotation
@@ -270,6 +329,7 @@ export const SECURITY_CONFIG = {
 - `docs/plans/2025-11-30-user-impersonation-implementation.md` - Impersonation implementation
 - `docs/plans/2025-11-30-audit-log-viewer-design.md` - Audit log viewer design
 - `docs/plans/2025-11-30-email-notifications-design.md` - Email notifications design
+- `docs/plans/2025-11-30-organizations-design.md` - Organizations (multi-tenancy) design
 
 ---
 

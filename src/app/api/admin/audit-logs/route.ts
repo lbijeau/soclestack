@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import { getAuditLogs, AuditAction, AuditCategory } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
+import { hasOrgRole } from '@/lib/organization';
 
 export const runtime = 'nodejs';
 
@@ -25,11 +27,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Must be ADMIN (not MODERATOR - audit logs are sensitive)
-    if (session.role !== 'ADMIN') {
+    // Get user with organization info
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { role: true, organizationId: true, organizationRole: true }
+    });
+
+    if (!user) {
       return NextResponse.json(
-        { error: { type: 'AUTHORIZATION_ERROR', message: 'Admin access required' } },
-        { status: 403 }
+        { error: { type: 'NOT_FOUND', message: 'User not found' } },
+        { status: 404 }
       );
     }
 
@@ -42,6 +49,7 @@ export async function GET(req: NextRequest) {
     const to = searchParams.get('to');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 10000);
+    const orgScope = searchParams.get('organizationId'); // 'all' for system admins to see everything
 
     // Build filters
     const filters: Parameters<typeof getAuditLogs>[0] = {
@@ -54,6 +62,26 @@ export async function GET(req: NextRequest) {
     if (userEmail) filters.userEmail = userEmail;
     if (from) filters.from = new Date(from);
     if (to) filters.to = new Date(to);
+
+    // Determine organization scoping
+    // System ADMIN can see all logs or filter by any org
+    // Organization ADMIN can only see logs from their organization
+    if (user.role === 'ADMIN') {
+      // System admin - can see all or filter by specific org
+      if (orgScope && orgScope !== 'all') {
+        filters.organizationId = orgScope;
+      }
+      // If orgScope is 'all' or not specified, no filter applied (sees everything)
+    } else if (user.organizationId && hasOrgRole(user.organizationRole, 'ADMIN')) {
+      // Organization admin - can only see their org's logs
+      filters.organizationId = user.organizationId;
+    } else {
+      // Not authorized to view audit logs
+      return NextResponse.json(
+        { error: { type: 'AUTHORIZATION_ERROR', message: 'Admin access required' } },
+        { status: 403 }
+      );
+    }
 
     const result = await getAuditLogs(filters);
 

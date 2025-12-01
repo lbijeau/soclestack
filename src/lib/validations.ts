@@ -28,9 +28,23 @@ export const registerSchema = z.object({
     .min(1, 'Last name is required')
     .max(50, 'Last name must be at most 50 characters')
     .optional(),
+  // Organization: either create new org or join via invite
+  organizationName: z.string()
+    .min(2, 'Organization name must be at least 2 characters')
+    .max(100, 'Organization name must be at most 100 characters')
+    .optional(),
+  inviteToken: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
+}).refine((data) => {
+  // Must have either organizationName OR inviteToken (not both, not neither)
+  const hasOrgName = !!data.organizationName
+  const hasInvite = !!data.inviteToken
+  return hasOrgName !== hasInvite // XOR: exactly one must be true
+}, {
+  message: "You must either create a new organization or use an invite token",
+  path: ["organizationName"],
 })
 
 // User profile validation schemas

@@ -13,13 +13,20 @@ const protectedRoutes = {
   '/admin/audit-logs': 'ADMIN',
   '/api/users': 'MODERATOR',
   '/api/users/profile': 'USER',
+  '/organization': 'USER', // Org role checks happen at API level
+  '/organization/members': 'USER',
+  '/organization/invites': 'USER',
 } as const
 
 // Define auth routes that should redirect if already logged in
 const authRoutes = ['/login', '/register', '/forgot-password', '/reset-password']
 
 // Define public routes that don't require authentication
+// Note: /invite/[token] is public so unauthenticated users can view invites
 const publicRoutes = ['/', '/verify-email']
+
+// Define public API routes that don't require authentication
+const publicApiRoutes = ['/api/invites']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -39,6 +46,8 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/invite/') || // Public invite pages
+    publicApiRoutes.some(route => pathname.startsWith(route)) ||
     pathname.includes('.') ||
     publicRoutes.includes(pathname)
   ) {

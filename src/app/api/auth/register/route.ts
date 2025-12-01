@@ -4,6 +4,7 @@ import { hashPassword, generateResetToken } from '@/lib/security'
 import { prisma } from '@/lib/db'
 import { getClientIP, isRateLimited } from '@/lib/auth'
 import { AuthError } from '@/types/auth'
+import { generateSlug } from '@/lib/organization'
 
 export const runtime = 'nodejs'
 
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { email, username, password, firstName, lastName } = validationResult.data
+    const { email, username, password, firstName, lastName, organizationName, inviteToken } = validationResult.data
 
     // Check if user already exists
     const existingUser = await prisma.user.findFirst({
@@ -70,23 +71,105 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Handle invite token if provided
+    let invite = null
+    if (inviteToken) {
+      invite = await prisma.organizationInvite.findUnique({
+        where: { token: inviteToken },
+        include: { organization: true }
+      })
+
+      if (!invite) {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'VALIDATION_ERROR',
+              message: 'Invalid or expired invite token',
+              details: { inviteToken: ['This invite token is not valid'] }
+            } as AuthError
+          },
+          { status: 400 }
+        )
+      }
+
+      if (invite.expiresAt < new Date()) {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'VALIDATION_ERROR',
+              message: 'This invite has expired',
+              details: { inviteToken: ['This invite has expired'] }
+            } as AuthError
+          },
+          { status: 400 }
+        )
+      }
+
+      // Verify email matches the invite
+      if (invite.email.toLowerCase() !== email.toLowerCase()) {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'VALIDATION_ERROR',
+              message: 'Email does not match the invite',
+              details: { email: ['You must register with the email address the invite was sent to'] }
+            } as AuthError
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     // Hash password
     const hashedPassword = await hashPassword(password)
 
     // Generate email verification token
     const emailVerificationToken = await generateResetToken()
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        username,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        passwordResetToken: emailVerificationToken,
-        passwordResetExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    // Create user with organization (transaction to ensure consistency)
+    const user = await prisma.$transaction(async (tx) => {
+      let organizationId: string | undefined
+      let organizationRole: 'OWNER' | 'ADMIN' | 'MEMBER' = 'MEMBER'
+
+      if (organizationName) {
+        // Create new organization with user as OWNER
+        const slug = await generateSlug(organizationName)
+        const organization = await tx.organization.create({
+          data: {
+            name: organizationName,
+            slug,
+          }
+        })
+        organizationId = organization.id
+        organizationRole = 'OWNER'
+      } else if (invite) {
+        // Join existing organization with invite's role
+        organizationId = invite.organizationId
+        organizationRole = invite.role
+
+        // Delete the invite
+        await tx.organizationInvite.delete({
+          where: { id: invite.id }
+        })
       }
+
+      // Create the user
+      return tx.user.create({
+        data: {
+          email,
+          username,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          passwordResetToken: emailVerificationToken,
+          passwordResetExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          organizationId,
+          organizationRole,
+        },
+        include: {
+          organization: true
+        }
+      })
     })
 
     // TODO: Send email verification email
@@ -105,6 +188,12 @@ export async function POST(req: NextRequest) {
         role: user.role,
         emailVerified: user.emailVerified,
         createdAt: user.createdAt,
+        organization: user.organization ? {
+          id: user.organization.id,
+          name: user.organization.name,
+          slug: user.organization.slug,
+          role: user.organizationRole,
+        } : null,
       }
     }, { status: 201 })
 

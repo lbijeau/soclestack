@@ -160,3 +160,39 @@ export function twoFactorDisabledTemplate(): { subject: string; html: string } {
     html: wrapTemplate('Two-Factor Authentication Disabled', content),
   };
 }
+
+export interface OrganizationInviteData {
+  inviterName: string;
+  organizationName: string;
+  inviteUrl: string;
+  expiresAt: Date;
+}
+
+export function organizationInviteTemplate(data: OrganizationInviteData): { subject: string; html: string } {
+  const content = `
+    <h2 style="color: #2563eb; font-size: 20px; margin: 0 0 15px 0;">You're Invited!</h2>
+    <p style="margin: 0 0 15px 0;">
+      ${data.inviterName} has invited you to join <strong>${data.organizationName}</strong> on ${APP_NAME}.
+    </p>
+    <div style="background-color: #fff; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb; margin: 0 0 20px 0;">
+      <p style="margin: 0 0 15px 0;">Click the button below to accept the invitation and create your account:</p>
+      <a href="${data.inviteUrl}" style="display: inline-block; background-color: #2563eb; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+        Accept Invitation
+      </a>
+    </div>
+    <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
+      Or copy and paste this link into your browser:
+    </p>
+    <p style="margin: 0 0 15px 0; word-break: break-all; font-size: 14px;">
+      <a href="${data.inviteUrl}" style="color: #2563eb;">${data.inviteUrl}</a>
+    </p>
+    <p style="margin: 0; color: #666; font-size: 14px;">
+      This invitation expires on ${formatDateTime(data.expiresAt)}.
+    </p>
+  `;
+
+  return {
+    subject: `You've been invited to join ${data.organizationName}`,
+    html: wrapTemplate('Organization Invitation', content),
+  };
+}
