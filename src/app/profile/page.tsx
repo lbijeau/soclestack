@@ -4,6 +4,8 @@ import { ProfileForm } from '@/components/profile/profile-form'
 import { PasswordChangeForm } from '@/components/profile/password-change-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Shield, Monitor, Activity } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +54,50 @@ export default async function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <PasswordChangeForm />
+              </CardContent>
+            </Card>
+
+            {/* Quick Links */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Security & Privacy</CardTitle>
+                <CardDescription>
+                  Manage your security settings, active sessions, and view activity.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Link
+                    href="/profile/security"
+                    className="flex items-center gap-3 p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                  >
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium">Security Settings</p>
+                      <p className="text-sm text-gray-500">2FA, API keys, OAuth</p>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/profile/sessions"
+                    className="flex items-center gap-3 p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                  >
+                    <Monitor className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium">Active Sessions</p>
+                      <p className="text-sm text-gray-500">Manage devices</p>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/profile/activity"
+                    className="flex items-center gap-3 p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                  >
+                    <Activity className="h-5 w-5 text-purple-600" />
+                    <div>
+                      <p className="font-medium">Activity Log</p>
+                      <p className="text-sm text-gray-500">Security events</p>
+                    </div>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
 
