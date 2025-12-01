@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
-import { createUserSession, getClientIP } from '@/lib/auth';
+import { createUserSession, getClientIP, isRateLimited } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import { verifyPendingOAuthToken } from '@/lib/auth/oauth';
 import { z } from 'zod';
+import { SECURITY_CONFIG } from '@/lib/config/security';
 
 const linkOAuthSchema = z.object({
   token: z.string().min(1, 'Token is required'),
@@ -16,6 +17,15 @@ export async function POST(req: NextRequest) {
   const userAgent = req.headers.get('user-agent') || undefined;
 
   try {
+    // Rate limiting
+    const { limit, windowMs } = SECURITY_CONFIG.rateLimits.oauthLink;
+    if (isRateLimited(`oauth-link:${ipAddress}`, limit, windowMs)) {
+      return NextResponse.json(
+        { error: { type: 'AUTHORIZATION_ERROR', message: 'Too many requests. Please try again later.' } },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const validation = linkOAuthSchema.safeParse(body);
 

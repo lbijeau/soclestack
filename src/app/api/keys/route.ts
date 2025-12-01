@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { createApiKeySchema } from '@/lib/validations'
 import { generateApiKey, hasReachedKeyLimit, getActiveKeyCount, MAX_KEYS_PER_USER } from '@/lib/api-keys'
 import { logAuditEvent } from '@/lib/audit'
 import { AuthError } from '@/types/auth'
+import { SECURITY_CONFIG } from '@/lib/config/security'
 
 export const runtime = 'nodejs'
 
@@ -65,6 +66,21 @@ export async function GET() {
 // POST /api/keys - Create new API key
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(req)
+    const { limit, windowMs } = SECURITY_CONFIG.rateLimits.apiKeyCreate
+    if (isRateLimited(`apikey-create:${clientIP}`, limit, windowMs)) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Too many requests. Please try again later.',
+          } as AuthError,
+        },
+        { status: 429 }
+      )
+    }
+
     const currentUser = await getCurrentUser()
     if (!currentUser) {
       return NextResponse.json(

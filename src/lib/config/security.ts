@@ -20,6 +20,14 @@ export const SECURITY_CONFIG = {
     pendingLinkExpiryMinutes: 5,
     stateCookieName: 'oauth_state',
   },
+  rateLimits: {
+    apiKeyCreate: { limit: 10, windowMs: 60 * 60 * 1000 },    // 10 per hour
+    apiKeyRevoke: { limit: 10, windowMs: 60 * 60 * 1000 },    // 10 per hour
+    passwordChange: { limit: 5, windowMs: 60 * 60 * 1000 },   // 5 per hour
+    twoFactorSetup: { limit: 5, windowMs: 60 * 60 * 1000 },   // 5 per hour
+    twoFactorDisable: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
+    oauthLink: { limit: 5, windowMs: 60 * 60 * 1000 },        // 5 per hour
+  },
 } as const;
 
 export type SecurityConfig = typeof SECURITY_CONFIG;

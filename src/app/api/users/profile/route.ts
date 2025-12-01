@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth'
 import { updateProfileSchema, changePasswordSchema } from '@/lib/validations'
 import { hashPassword, verifyPassword } from '@/lib/security'
 import { prisma } from '@/lib/db'
 import { AuthError } from '@/types/auth'
+import { SECURITY_CONFIG } from '@/lib/config/security'
 
 export const runtime = 'nodejs'
 
@@ -27,6 +28,21 @@ export async function PATCH(req: NextRequest) {
 
     // Check if trying to change password
     if ('currentPassword' in body) {
+      // Rate limit password changes
+      const clientIP = getClientIP(req)
+      const { limit, windowMs } = SECURITY_CONFIG.rateLimits.passwordChange
+      if (isRateLimited(`password-change:${clientIP}`, limit, windowMs)) {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'AUTHORIZATION_ERROR',
+              message: 'Too many password change attempts. Please try again later.'
+            } as AuthError
+          },
+          { status: 429 }
+        )
+      }
+
       const validationResult = changePasswordSchema.safeParse(body)
       if (!validationResult.success) {
         return NextResponse.json(

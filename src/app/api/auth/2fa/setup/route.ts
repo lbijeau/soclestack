@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getSession, getClientIP, isRateLimited } from '@/lib/auth';
 import { generateTOTPSecret } from '@/lib/auth/totp';
 import { generateBackupCodes } from '@/lib/auth/backup-codes';
 import { prisma } from '@/lib/db';
 import { assertNotImpersonating, ImpersonationBlockedError } from '@/lib/auth/impersonation';
+import { SECURITY_CONFIG } from '@/lib/config/security';
 
 export const runtime = 'nodejs';
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(req);
+    const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorSetup;
+    if (isRateLimited(`2fa-setup:${clientIP}`, limit, windowMs)) {
+      return NextResponse.json(
+        { error: { type: 'AUTHORIZATION_ERROR', message: 'Too many requests. Please try again later.' } },
+        { status: 429 }
+      );
+    }
+
     const session = await getSession();
 
     if (!session.isLoggedIn || !session.userId) {
