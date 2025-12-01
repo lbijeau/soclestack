@@ -225,12 +225,12 @@ export function AuditLogViewer() {
     });
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'csv' | 'json') => {
     setExporting(true);
     setError('');
 
     const params = new URLSearchParams();
-    params.set('limit', '10000');
+    params.set('format', format);
     if (category) params.set('category', category);
     if (action) params.set('action', action);
     if (userEmail) params.set('userEmail', userEmail);
@@ -242,37 +242,26 @@ export function AuditLogViewer() {
     }
 
     try {
-      const response = await fetch(`/api/admin/audit-logs?${params}`);
+      const response = await fetch(`/api/admin/audit-logs/export?${params}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch logs for export');
+        const data = await response.json();
+        throw new Error(data.error?.message || 'Failed to export logs');
       }
 
-      const data: AuditLogsResponse = await response.json();
+      // Get filename from Content-Disposition header or generate one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `audit-logs-${new Date().toISOString().split('T')[0]}.${format}`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match) filename = match[1];
+      }
 
-      // Generate CSV
-      const headers = ['Timestamp', 'User', 'Action', 'Category', 'IP Address', 'Metadata'];
-      const rows = data.logs.map((log) => [
-        formatDate(log.createdAt),
-        log.userEmail || 'System',
-        ACTION_LABELS[log.action] || log.action,
-        log.category,
-        log.ipAddress || '',
-        log.metadata ? JSON.stringify(log.metadata) : '',
-      ]);
-
-      const csvContent = [
-        headers.join(','),
-        ...rows.map((row) =>
-          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-        ),
-      ].join('\n');
-
-      // Download
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      // Download the file
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -323,11 +312,20 @@ export function AuditLogViewer() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={handleExport}
+            onClick={() => handleExport('csv')}
             disabled={exporting || loading}
           >
             <Download className="h-4 w-4 mr-1" />
-            {exporting ? 'Exporting...' : 'Export CSV'}
+            {exporting ? 'Exporting...' : 'CSV'}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleExport('json')}
+            disabled={exporting || loading}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            JSON
           </Button>
         </div>
       </CardHeader>
