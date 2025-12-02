@@ -41,7 +41,9 @@ export type AuditAction =
   // Admin Bulk Actions
   | 'ADMIN_BULK_ACTIVATE'
   | 'ADMIN_BULK_DEACTIVATE'
-  | 'ADMIN_BULK_DELETE';
+  | 'ADMIN_BULK_DELETE'
+  // Device Management
+  | 'SECURITY_DEVICE_REVOKED';
 
 export type AuditCategory = 'authentication' | 'security' | 'admin';
 

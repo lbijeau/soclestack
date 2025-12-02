@@ -7,7 +7,7 @@ import { DeleteAccount } from '@/components/profile/delete-account'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Monitor, Activity, History } from 'lucide-react'
+import { Shield, Monitor, Activity, History, Smartphone } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,11 +64,11 @@ export default async function ProfilePage() {
               <CardHeader>
                 <CardTitle>Security & Privacy</CardTitle>
                 <CardDescription>
-                  Manage your security settings, active sessions, and view activity.
+                  Manage your security settings, sessions, trusted devices, and view activity.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Link
                     href="/profile/security"
                     className="flex items-center gap-3 p-4 rounded-lg border hover:bg-gray-50 transition-colors"
@@ -107,6 +107,16 @@ export default async function ProfilePage() {
                     <div>
                       <p className="font-medium">Activity Log</p>
                       <p className="text-sm text-gray-500">Security events</p>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/profile/devices"
+                    className="flex items-center gap-3 p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                  >
+                    <Smartphone className="h-5 w-5 text-teal-600" />
+                    <div>
+                      <p className="font-medium">Trusted Devices</p>
+                      <p className="text-sm text-gray-500">Remember me devices</p>
                     </div>
                   </Link>
                 </div>
