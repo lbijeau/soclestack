@@ -173,6 +173,45 @@ export interface EmailVerificationData {
   name?: string;
 }
 
+export interface AccountUnlockData {
+  unlockUrl: string;
+  lockedUntil: Date;
+  name?: string;
+}
+
+export function accountUnlockTemplate(data: AccountUnlockData): { subject: string; html: string } {
+  const greeting = data.name ? `Hi ${data.name},` : 'Hello,';
+  const content = `
+    <h2 style="color: #2563eb; font-size: 20px; margin: 0 0 15px 0;">Unlock Your Account</h2>
+    <p style="margin: 0 0 15px 0;">
+      ${greeting}
+    </p>
+    <p style="margin: 0 0 15px 0;">
+      You requested to unlock your ${APP_NAME} account. Your account is currently locked until ${formatDateTime(data.lockedUntil)}.
+    </p>
+    <div style="background-color: #fff; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb; margin: 0 0 20px 0;">
+      <p style="margin: 0 0 15px 0;">Click the button below to unlock your account immediately:</p>
+      <a href="${data.unlockUrl}" style="display: inline-block; background-color: #2563eb; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+        Unlock My Account
+      </a>
+    </div>
+    <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
+      Or copy and paste this link into your browser:
+    </p>
+    <p style="margin: 0 0 15px 0; word-break: break-all; font-size: 14px;">
+      <a href="${data.unlockUrl}" style="color: #2563eb;">${data.unlockUrl}</a>
+    </p>
+    <p style="margin: 0 0 15px 0; color: #dc2626; font-weight: 500;">
+      This link expires in 1 hour. If you didn't request this, please ignore this email and consider changing your password.
+    </p>
+  `;
+
+  return {
+    subject: `Unlock your ${APP_NAME} account`,
+    html: wrapTemplate('Account Unlock', content),
+  };
+}
+
 export function emailVerificationTemplate(data: EmailVerificationData): { subject: string; html: string } {
   const greeting = data.name ? `Hi ${data.name},` : 'Hello,';
   const content = `

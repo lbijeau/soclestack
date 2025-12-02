@@ -8,6 +8,7 @@ import {
   twoFactorEnabledTemplate,
   twoFactorDisabledTemplate,
   emailVerificationTemplate,
+  accountUnlockTemplate,
 } from '@/lib/email/templates';
 
 export { organizationInviteTemplate } from '@/lib/email/templates';
@@ -105,6 +106,18 @@ export async function sendVerificationEmail(
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
   const { subject, html } = emailVerificationTemplate({ verificationUrl, name });
+  return sendEmail({ to, subject, html });
+}
+
+export async function sendUnlockEmail(
+  to: string,
+  token: string,
+  lockedUntil: Date,
+  name?: string
+): Promise<boolean> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const unlockUrl = `${baseUrl}/unlock-account?token=${token}`;
+  const { subject, html } = accountUnlockTemplate({ unlockUrl, lockedUntil, name });
   return sendEmail({ to, subject, html });
 }
 

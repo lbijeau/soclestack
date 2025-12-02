@@ -204,6 +204,16 @@ export function LoginForm() {
         {error && (
           <Alert variant="error" className="mb-4">
             {error}
+            {isLocked && (
+              <div className="mt-2">
+                <Link
+                  href={`/request-unlock?email=${encodeURIComponent(formData.email)}`}
+                  className="text-sm underline hover:no-underline"
+                >
+                  Request account unlock
+                </Link>
+              </div>
+            )}
           </Alert>
         )}
 
