@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ImpersonationBannerWrapper } from "@/components/admin/impersonation-banner-wrapper";
+import { SessionTimeoutWarning } from "@/components/session/session-timeout-warning";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,7 @@ export default function RootLayout({
       >
         <ImpersonationBannerWrapper />
         {children}
+        <SessionTimeoutWarning />
       </body>
     </html>
   );

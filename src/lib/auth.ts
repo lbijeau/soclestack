@@ -14,6 +14,10 @@ import {
 import { User, ApiKeyPermission } from '@prisma/client'
 import { validateApiKey, isMethodAllowed } from './api-keys'
 
+// Session duration constants
+export const SESSION_DURATION_MS = 60 * 60 * 24 * 7 * 1000 // 7 days in ms
+export const SESSION_WARNING_THRESHOLD_MS = 60 * 60 * 1000 // Show warning 1 hour before expiry
+
 // Session configuration
 const sessionOptions = {
   password: process.env.SESSION_SECRET!,
@@ -56,6 +60,57 @@ export async function getCurrentUser(): Promise<User | null> {
   } catch (error) {
     console.error('Error getting current user:', error)
     return null
+  }
+}
+
+// Get session expiry status
+export interface SessionStatus {
+  isValid: boolean
+  expiresAt: number | null
+  timeRemainingMs: number | null
+  shouldWarn: boolean
+}
+
+export async function getSessionStatus(): Promise<SessionStatus> {
+  try {
+    const session = await getSession()
+
+    if (!session.isLoggedIn || !session.userId) {
+      return { isValid: false, expiresAt: null, timeRemainingMs: null, shouldWarn: false }
+    }
+
+    const createdAt = session.sessionCreatedAt || Date.now()
+    const expiresAt = createdAt + SESSION_DURATION_MS
+    const timeRemainingMs = expiresAt - Date.now()
+    const shouldWarn = timeRemainingMs > 0 && timeRemainingMs <= SESSION_WARNING_THRESHOLD_MS
+
+    return {
+      isValid: timeRemainingMs > 0,
+      expiresAt,
+      timeRemainingMs: Math.max(0, timeRemainingMs),
+      shouldWarn,
+    }
+  } catch (error) {
+    console.error('Error getting session status:', error)
+    return { isValid: false, expiresAt: null, timeRemainingMs: null, shouldWarn: false }
+  }
+}
+
+// Extend session by resetting the creation time
+export async function extendSession(): Promise<boolean> {
+  try {
+    const session = await getSession()
+
+    if (!session.isLoggedIn || !session.userId) {
+      return false
+    }
+
+    session.sessionCreatedAt = Date.now()
+    await session.save()
+    return true
+  } catch (error) {
+    console.error('Error extending session:', error)
+    return false
   }
 }
 
@@ -136,6 +191,7 @@ export async function createUserSession(
   session.email = user.email
   session.role = user.role
   session.isLoggedIn = true
+  session.sessionCreatedAt = Date.now()
   await session.save()
 
   return {

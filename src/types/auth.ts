@@ -62,6 +62,7 @@ export interface SessionData {
   email: string
   role: Role
   isLoggedIn: boolean
+  sessionCreatedAt?: number // Unix timestamp for session expiry tracking
   impersonating?: ImpersonationData
   organization?: OrganizationData
 }
