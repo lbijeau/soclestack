@@ -37,6 +37,12 @@ model User {
   twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
   twoFactorVerified  Boolean   @default(false) @map("two_factor_verified")
 
+  // Notification preferences (all default to true)
+  notifyNewDevice       Boolean @default(true) @map("notify_new_device")
+  notifyPasswordChange  Boolean @default(true) @map("notify_password_change")
+  notifyLoginAlert      Boolean @default(true) @map("notify_login_alert")
+  notify2FAChange       Boolean @default(true) @map("notify_2fa_change")
+
   // Organization
   organizationId     String?          @map("organization_id")
   organizationRole   OrganizationRole @default(MEMBER) @map("organization_role")

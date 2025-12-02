@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { SecuritySettings } from '@/components/profile/security-settings'
 import { OAuthAccounts } from '@/components/profile/oauth-accounts'
 import { ApiKeys } from '@/components/profile/api-keys'
+import { NotificationPreferences } from '@/components/profile/notification-preferences'
 import { Loader2 } from 'lucide-react'
 
 export default async function SecurityPage() {
@@ -54,6 +55,8 @@ export default async function SecurityPage() {
       </Suspense>
 
       <ApiKeys />
+
+      <NotificationPreferences />
     </div>
   )
 }
