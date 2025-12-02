@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
+import { PasswordStrengthMeter } from '@/components/ui/password-strength-meter'
 import { ChangePasswordInput } from '@/lib/validations'
 import { AuthError } from '@/types/auth'
 
@@ -123,9 +124,7 @@ export function PasswordChangeForm() {
         {errors.newPassword && (
           <p className="text-sm text-red-600">{errors.newPassword[0]}</p>
         )}
-        <p className="text-sm text-gray-600">
-          Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character.
-        </p>
+        <PasswordStrengthMeter password={formData.newPassword} />
       </div>
 
       <div className="space-y-2">

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PasswordStrengthMeter } from '@/components/ui/password-strength-meter'
 import { OAuthButtons, OAuthDivider } from './oauth-buttons'
 import { RegisterInput } from '@/lib/validations'
 import { AuthError } from '@/types/auth'
@@ -221,6 +222,7 @@ export function RegisterForm() {
             {errors.password && (
               <p className="text-sm text-red-600">{errors.password[0]}</p>
             )}
+            <PasswordStrengthMeter password={formData.password} />
           </div>
 
           <div className="space-y-2">
