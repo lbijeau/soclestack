@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { User, Calendar, Shield, Activity, AlertTriangle } from 'lucide-react'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
+import { SecurityEventsWidget } from '@/components/dashboard/security-events-widget'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -158,9 +159,9 @@ export default async function DashboardPage() {
           </div>
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Hello World Card */}
-            <Card>
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Hello World!</CardTitle>
                 <CardDescription>
@@ -195,7 +196,12 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Account Info */}
+            {/* Security Events Widget */}
+            <SecurityEventsWidget />
+          </div>
+
+          {/* Account Info Section */}
+          <div className="mt-8">
             <Card>
               <CardHeader>
                 <CardTitle>Account Information</CardTitle>
