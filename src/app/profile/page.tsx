@@ -6,7 +6,7 @@ import { DeleteAccount } from '@/components/profile/delete-account'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Monitor, Activity } from 'lucide-react'
+import { Shield, Monitor, Activity, History } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,7 +67,7 @@ export default async function ProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Link
                     href="/profile/security"
                     className="flex items-center gap-3 p-4 rounded-lg border hover:bg-gray-50 transition-colors"
@@ -86,6 +86,16 @@ export default async function ProfilePage() {
                     <div>
                       <p className="font-medium">Active Sessions</p>
                       <p className="text-sm text-gray-500">Manage devices</p>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/profile/login-history"
+                    className="flex items-center gap-3 p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                  >
+                    <History className="h-5 w-5 text-orange-600" />
+                    <div>
+                      <p className="font-medium">Login History</p>
+                      <p className="text-sm text-gray-500">Recent logins</p>
                     </div>
                   </Link>
                   <Link
