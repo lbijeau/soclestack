@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth'
-import { isImpersonating, getImpersonationTimeRemaining } from '@/lib/auth/impersonation'
+import { isImpersonating, getImpersonationTimeRemaining, getOriginalAdmin } from '@/lib/auth/impersonation'
 import { ImpersonationBanner } from './impersonation-banner'
 
 export async function ImpersonationBannerWrapper() {
@@ -9,10 +9,16 @@ export async function ImpersonationBannerWrapper() {
     return null
   }
 
+  const originalAdmin = getOriginalAdmin(session)
+  if (!originalAdmin) {
+    return null
+  }
+
   return (
     <ImpersonationBanner
+      originalEmail={originalAdmin.originalEmail}
       targetEmail={session.email}
-      timeRemainingMinutes={getImpersonationTimeRemaining(session)}
+      minutesRemaining={getImpersonationTimeRemaining(session)}
     />
   )
 }

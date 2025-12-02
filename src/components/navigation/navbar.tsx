@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
 import { User, Settings, LogOut, Users } from 'lucide-react'
 
 interface User {
@@ -15,9 +16,15 @@ interface User {
   role: 'USER' | 'MODERATOR' | 'ADMIN'
 }
 
+interface Impersonation {
+  originalEmail: string
+  minutesRemaining: number
+}
+
 export function Navbar() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
+  const [impersonation, setImpersonation] = useState<Impersonation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -30,6 +37,7 @@ export function Navbar() {
       if (response.ok) {
         const data = await response.json()
         setUser(data.user)
+        setImpersonation(data.impersonation || null)
       }
     } catch (error) {
       console.error('Failed to fetch user:', error)
@@ -102,13 +110,21 @@ export function Navbar() {
   }
 
   return (
-    <nav className="border-b bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center space-x-8">
-            <Link href="/dashboard" className="text-xl font-bold text-gray-900">
-              SocleStack
-            </Link>
+    <>
+      {impersonation && user && (
+        <ImpersonationBanner
+          originalEmail={impersonation.originalEmail}
+          targetEmail={user.email}
+          minutesRemaining={impersonation.minutesRemaining}
+        />
+      )}
+      <nav className="border-b bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center space-x-8">
+              <Link href="/dashboard" className="text-xl font-bold text-gray-900">
+                SocleStack
+              </Link>
 
             <div className="hidden md:flex space-x-4">
               <Link
@@ -160,5 +176,6 @@ export function Navbar() {
         </div>
       </div>
     </nav>
+    </>
   )
 }

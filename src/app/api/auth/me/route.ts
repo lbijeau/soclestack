@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, getSession } from '@/lib/auth'
+import { isImpersonating, getOriginalAdmin, getImpersonationTimeRemaining } from '@/lib/auth/impersonation'
 import { AuthError } from '@/types/auth'
 
 export const runtime = 'nodejs'
@@ -20,6 +21,19 @@ export async function GET() {
       )
     }
 
+    // Check for impersonation
+    const session = await getSession()
+    let impersonation = null
+    if (isImpersonating(session)) {
+      const originalAdmin = getOriginalAdmin(session)
+      if (originalAdmin) {
+        impersonation = {
+          originalEmail: originalAdmin.originalEmail,
+          minutesRemaining: getImpersonationTimeRemaining(session),
+        }
+      }
+    }
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -32,7 +46,8 @@ export async function GET() {
         emailVerified: user.emailVerified,
         lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
-      }
+      },
+      impersonation,
     })
 
   } catch (error) {
