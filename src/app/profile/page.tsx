@@ -2,6 +2,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { Navbar } from '@/components/navigation/navbar'
 import { ProfileForm } from '@/components/profile/profile-form'
 import { PasswordChangeForm } from '@/components/profile/password-change-form'
+import { ExportData } from '@/components/profile/export-data'
 import { DeleteAccount } from '@/components/profile/delete-account'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
@@ -185,6 +186,9 @@ export default async function ProfilePage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Export Data */}
+            <ExportData />
 
             {/* Delete Account */}
             <DeleteAccount
