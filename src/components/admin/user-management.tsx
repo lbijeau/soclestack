@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 // import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, Search, ChevronLeft, ChevronRight, UserX, UserCheck, Filter, X } from 'lucide-react'
+import { Trash2, Search, ChevronLeft, ChevronRight, UserX, UserCheck, Filter, X, CheckSquare } from 'lucide-react'
 
 interface User {
   id: string
@@ -56,6 +56,8 @@ export function UserManagement({ currentUser }: UserManagementProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
 
   useEffect(() => {
     fetchUsers()
@@ -188,6 +190,70 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     }
   }
 
+  // Bulk selection handlers
+  const selectableUsers = users.filter(u => u.id !== currentUser.id && u.role !== 'ADMIN')
+
+  const handleSelectAll = () => {
+    if (selectedUsers.size === selectableUsers.length) {
+      setSelectedUsers(new Set())
+    } else {
+      setSelectedUsers(new Set(selectableUsers.map(u => u.id)))
+    }
+  }
+
+  const handleSelectUser = (userId: string) => {
+    const newSelected = new Set(selectedUsers)
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId)
+    } else {
+      newSelected.add(userId)
+    }
+    setSelectedUsers(newSelected)
+  }
+
+  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+    if (selectedUsers.size === 0) return
+
+    const actionLabels = {
+      activate: 'activate',
+      deactivate: 'deactivate',
+      delete: 'permanently delete',
+    }
+
+    if (!confirm(`Are you sure you want to ${actionLabels[action]} ${selectedUsers.size} user(s)?${action === 'delete' ? ' This action cannot be undone.' : ''}`)) {
+      return
+    }
+
+    setIsBulkActionLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const response = await fetch('/api/admin/users/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUsers),
+          action,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Failed to perform bulk action')
+      }
+
+      setSuccess(data.message)
+      setSelectedUsers(new Set())
+      fetchUsers()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to perform bulk action')
+    } finally {
+      setIsBulkActionLoading(false)
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -276,12 +342,72 @@ export function UserManagement({ currentUser }: UserManagementProps) {
         </div>
       </form>
 
+      {/* Bulk Actions Bar */}
+      {currentUser.role === 'ADMIN' && selectedUsers.size > 0 && (
+        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <CheckSquare size={16} className="text-blue-600" />
+            <span className="text-sm font-medium text-blue-900">
+              {selectedUsers.size} user{selectedUsers.size > 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkAction('activate')}
+              disabled={isBulkActionLoading}
+            >
+              <UserCheck size={14} className="mr-1" />
+              Activate
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkAction('deactivate')}
+              disabled={isBulkActionLoading}
+            >
+              <UserX size={14} className="mr-1" />
+              Deactivate
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => handleBulkAction('delete')}
+              disabled={isBulkActionLoading}
+            >
+              <Trash2 size={14} className="mr-1" />
+              Delete
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedUsers(new Set())}
+              disabled={isBulkActionLoading}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Users Table */}
       <div className="bg-white border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                {currentUser.role === 'ADMIN' && (
+                  <th className="px-4 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectableUsers.length > 0 && selectedUsers.size === selectableUsers.length}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      disabled={selectableUsers.length === 0}
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User
                 </th>
@@ -306,6 +432,11 @@ export function UserManagement({ currentUser }: UserManagementProps) {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
+                    {currentUser.role === 'ADMIN' && (
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="h-4 w-4 bg-gray-200 rounded animate-pulse" />
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="h-4 bg-gray-200 rounded animate-pulse" />
                     </td>
@@ -328,13 +459,29 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                 ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={currentUser.role === 'ADMIN' ? 7 : 6} className="px-6 py-4 text-center text-gray-500">
                     No users found
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
-                  <tr key={user.id} className={user.id === currentUser.id ? 'bg-blue-50' : ''}>
+                users.map((user) => {
+                  const isSelectable = user.id !== currentUser.id && user.role !== 'ADMIN'
+                  return (
+                  <tr key={user.id} className={`${user.id === currentUser.id ? 'bg-blue-50' : ''} ${selectedUsers.has(user.id) ? 'bg-blue-50' : ''}`}>
+                    {currentUser.role === 'ADMIN' && (
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        {isSelectable ? (
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.has(user.id)}
+                            onChange={() => handleSelectUser(user.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div>
@@ -399,7 +546,8 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                       )}
                     </td>
                   </tr>
-                ))
+                  )
+                })
               )}
             </tbody>
           </table>

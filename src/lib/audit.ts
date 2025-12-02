@@ -37,7 +37,11 @@ export type AuditAction =
   | 'API_KEY_REVOKED'
   // Account Deletion
   | 'ACCOUNT_DELETE_FAILED'
-  | 'ACCOUNT_DELETED';
+  | 'ACCOUNT_DELETED'
+  // Admin Bulk Actions
+  | 'ADMIN_BULK_ACTIVATE'
+  | 'ADMIN_BULK_DEACTIVATE'
+  | 'ADMIN_BULK_DELETE';
 
 export type AuditCategory = 'authentication' | 'security' | 'admin';
 
