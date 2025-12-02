@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { User, Calendar, Shield, Activity, AlertTriangle } from 'lucide-react'
+import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -41,6 +42,11 @@ export default async function DashboardPage() {
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
+          {/* Email Verification Banner */}
+          {!user.emailVerified && (
+            <EmailVerificationBanner email={user.email} />
+          )}
+
           {/* Password Expiration Warning */}
           {passwordStatus?.isExpired && (
             <Alert variant="error" className="mb-6">

@@ -7,6 +7,7 @@ import {
   passwordChangedTemplate,
   twoFactorEnabledTemplate,
   twoFactorDisabledTemplate,
+  emailVerificationTemplate,
 } from '@/lib/email/templates';
 
 export { organizationInviteTemplate } from '@/lib/email/templates';
@@ -93,6 +94,17 @@ export async function sendTwoFactorEnabledNotification(to: string): Promise<bool
 
 export async function sendTwoFactorDisabledNotification(to: string): Promise<boolean> {
   const { subject, html } = twoFactorDisabledTemplate();
+  return sendEmail({ to, subject, html });
+}
+
+export async function sendVerificationEmail(
+  to: string,
+  token: string,
+  name?: string
+): Promise<boolean> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
+  const { subject, html } = emailVerificationTemplate({ verificationUrl, name });
   return sendEmail({ to, subject, html });
 }
 

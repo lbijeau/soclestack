@@ -36,7 +36,7 @@ export interface AuthState {
 }
 
 export interface AuthError {
-  type: 'VALIDATION_ERROR' | 'AUTHENTICATION_ERROR' | 'AUTHORIZATION_ERROR' | 'NOT_FOUND' | 'SERVER_ERROR' | 'ACCOUNT_LOCKED'
+  type: 'VALIDATION_ERROR' | 'AUTHENTICATION_ERROR' | 'AUTHORIZATION_ERROR' | 'NOT_FOUND' | 'SERVER_ERROR' | 'ACCOUNT_LOCKED' | 'RATE_LIMIT_ERROR'
   message: string
   details?: Record<string, string[]>
   lockedUntil?: string
