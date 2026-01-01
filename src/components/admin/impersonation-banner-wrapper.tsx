@@ -1,17 +1,21 @@
-import { getSession } from '@/lib/auth'
-import { isImpersonating, getImpersonationTimeRemaining, getOriginalAdmin } from '@/lib/auth/impersonation'
-import { ImpersonationBanner } from './impersonation-banner'
+import { getSession } from '@/lib/auth';
+import {
+  isImpersonating,
+  getImpersonationTimeRemaining,
+  getOriginalAdmin,
+} from '@/lib/auth/impersonation';
+import { ImpersonationBanner } from './impersonation-banner';
 
 export async function ImpersonationBannerWrapper() {
-  const session = await getSession()
+  const session = await getSession();
 
   if (!session.isLoggedIn || !isImpersonating(session)) {
-    return null
+    return null;
   }
 
-  const originalAdmin = getOriginalAdmin(session)
+  const originalAdmin = getOriginalAdmin(session);
   if (!originalAdmin) {
-    return null
+    return null;
   }
 
   return (
@@ -20,5 +24,5 @@ export async function ImpersonationBannerWrapper() {
       targetEmail={session.email}
       minutesRemaining={getImpersonationTimeRemaining(session)}
     />
-  )
+  );
 }

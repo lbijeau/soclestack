@@ -41,7 +41,10 @@ export async function generateBackupCodes(userId: string): Promise<string[]> {
   return codes;
 }
 
-export async function verifyBackupCode(userId: string, code: string): Promise<boolean> {
+export async function verifyBackupCode(
+  userId: string,
+  code: string
+): Promise<boolean> {
   // Normalize: uppercase, remove spaces/dashes
   const normalizedCode = code.toUpperCase().replace(/[\s-]/g, '');
 
@@ -53,7 +56,7 @@ export async function verifyBackupCode(userId: string, code: string): Promise<bo
   });
 
   // Check all codes to prevent timing attacks (don't return early on match)
-  let matchedCode: typeof backupCodes[0] | null = null;
+  let matchedCode: (typeof backupCodes)[0] | null = null;
 
   for (const backupCode of backupCodes) {
     const isMatch = await bcrypt.compare(normalizedCode, backupCode.codeHash);
@@ -74,7 +77,9 @@ export async function verifyBackupCode(userId: string, code: string): Promise<bo
   return false;
 }
 
-export async function getRemainingBackupCodeCount(userId: string): Promise<number> {
+export async function getRemainingBackupCodeCount(
+  userId: string
+): Promise<number> {
   return prisma.backupCode.count({
     where: {
       userId,

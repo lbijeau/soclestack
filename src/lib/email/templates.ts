@@ -44,7 +44,10 @@ export interface NewDeviceAlertData {
   loginTime: Date;
 }
 
-export function newDeviceAlertTemplate(data: NewDeviceAlertData): { subject: string; html: string } {
+export function newDeviceAlertTemplate(data: NewDeviceAlertData): {
+  subject: string;
+  html: string;
+} {
   const content = `
     <h2 style="color: #d97706; font-size: 20px; margin: 0 0 15px 0;">New Login Detected</h2>
     <p style="margin: 0 0 15px 0;">
@@ -72,7 +75,10 @@ export interface AccountLockedData {
   reason: string;
 }
 
-export function accountLockedTemplate(data: AccountLockedData): { subject: string; html: string } {
+export function accountLockedTemplate(data: AccountLockedData): {
+  subject: string;
+  html: string;
+} {
   const content = `
     <h2 style="color: #dc2626; font-size: 20px; margin: 0 0 15px 0;">Account Locked</h2>
     <p style="margin: 0 0 15px 0;">
@@ -97,7 +103,10 @@ export interface PasswordChangedData {
   changedAt: Date;
 }
 
-export function passwordChangedTemplate(data: PasswordChangedData): { subject: string; html: string } {
+export function passwordChangedTemplate(data: PasswordChangedData): {
+  subject: string;
+  html: string;
+} {
   const content = `
     <h2 style="color: #2563eb; font-size: 20px; margin: 0 0 15px 0;">Password Changed</h2>
     <p style="margin: 0 0 15px 0;">
@@ -179,7 +188,10 @@ export interface AccountUnlockData {
   name?: string;
 }
 
-export function accountUnlockTemplate(data: AccountUnlockData): { subject: string; html: string } {
+export function accountUnlockTemplate(data: AccountUnlockData): {
+  subject: string;
+  html: string;
+} {
   const greeting = data.name ? `Hi ${data.name},` : 'Hello,';
   const content = `
     <h2 style="color: #2563eb; font-size: 20px; margin: 0 0 15px 0;">Unlock Your Account</h2>
@@ -212,7 +224,10 @@ export function accountUnlockTemplate(data: AccountUnlockData): { subject: strin
   };
 }
 
-export function emailVerificationTemplate(data: EmailVerificationData): { subject: string; html: string } {
+export function emailVerificationTemplate(data: EmailVerificationData): {
+  subject: string;
+  html: string;
+} {
   const greeting = data.name ? `Hi ${data.name},` : 'Hello,';
   const content = `
     <h2 style="color: #2563eb; font-size: 20px; margin: 0 0 15px 0;">Verify Your Email Address</h2>
@@ -245,7 +260,10 @@ export function emailVerificationTemplate(data: EmailVerificationData): { subjec
   };
 }
 
-export function organizationInviteTemplate(data: OrganizationInviteData): { subject: string; html: string } {
+export function organizationInviteTemplate(data: OrganizationInviteData): {
+  subject: string;
+  html: string;
+} {
   const content = `
     <h2 style="color: #2563eb; font-size: 20px; margin: 0 0 15px 0;">You're Invited!</h2>
     <p style="margin: 0 0 15px 0;">

@@ -1,7 +1,11 @@
 import { prisma } from '../db';
 import { logAuditEvent } from '../audit';
 import { SECURITY_CONFIG } from '../config/security';
-import { generateSessionToken, hashSessionToken, timeSafeEqual } from '../security';
+import {
+  generateSessionToken,
+  hashSessionToken,
+  timeSafeEqual,
+} from '../security';
 
 const { tokenLifetimeDays, cookieName } = SECURITY_CONFIG.rememberMe;
 
@@ -22,7 +26,9 @@ export async function createRememberMeToken(
   const series = await generateSessionToken();
   const token = await generateSessionToken();
   const tokenHash = await hashSessionToken(token);
-  const expiresAt = new Date(Date.now() + tokenLifetimeDays * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(
+    Date.now() + tokenLifetimeDays * 24 * 60 * 60 * 1000
+  );
 
   await prisma.rememberMeToken.create({
     data: {
@@ -159,14 +165,16 @@ export async function revokeAllUserTokens(userId: string): Promise<void> {
   });
 }
 
-export async function getUserActiveSessions(userId: string): Promise<Array<{
-  id: string;
-  series: string;
-  ipAddress: string | null;
-  userAgent: string | null;
-  lastUsedAt: Date;
-  createdAt: Date;
-}>> {
+export async function getUserActiveSessions(userId: string): Promise<
+  Array<{
+    id: string;
+    series: string;
+    ipAddress: string | null;
+    userAgent: string | null;
+    lastUsedAt: Date;
+    createdAt: Date;
+  }>
+> {
   return prisma.rememberMeToken.findMany({
     where: {
       userId,

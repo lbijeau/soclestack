@@ -1,36 +1,40 @@
-import { NextResponse } from 'next/server'
-import { getCurrentUser, getSession } from '@/lib/auth'
-import { isImpersonating, getOriginalAdmin, getImpersonationTimeRemaining } from '@/lib/auth/impersonation'
-import { AuthError } from '@/types/auth'
+import { NextResponse } from 'next/server';
+import { getCurrentUser, getSession } from '@/lib/auth';
+import {
+  isImpersonating,
+  getOriginalAdmin,
+  getImpersonationTimeRemaining,
+} from '@/lib/auth/impersonation';
+import { AuthError } from '@/types/auth';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated'
-          } as AuthError
+            message: 'Not authenticated',
+          } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     // Check for impersonation
-    const session = await getSession()
-    let impersonation = null
+    const session = await getSession();
+    let impersonation = null;
     if (isImpersonating(session)) {
-      const originalAdmin = getOriginalAdmin(session)
+      const originalAdmin = getOriginalAdmin(session);
       if (originalAdmin) {
         impersonation = {
           originalEmail: originalAdmin.originalEmail,
           minutesRemaining: getImpersonationTimeRemaining(session),
-        }
+        };
       }
     }
 
@@ -48,18 +52,17 @@ export async function GET() {
         createdAt: user.createdAt,
       },
       impersonation,
-    })
-
+    });
   } catch (error) {
-    console.error('Get current user error:', error)
+    console.error('Get current user error:', error);
     return NextResponse.json(
       {
         error: {
           type: 'SERVER_ERROR',
-          message: 'An internal server error occurred'
-        } as AuthError
+          message: 'An internal server error occurred',
+        } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }

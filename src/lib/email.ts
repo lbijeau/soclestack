@@ -13,7 +13,9 @@ import {
 
 export { organizationInviteTemplate } from '@/lib/email/templates';
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@soclestack.com';
 
 interface EmailOptions {
@@ -67,7 +69,11 @@ export async function sendNewDeviceAlert(
   ipAddress: string,
   loginTime: Date
 ): Promise<boolean> {
-  const { subject, html } = newDeviceAlertTemplate({ deviceInfo, ipAddress, loginTime });
+  const { subject, html } = newDeviceAlertTemplate({
+    deviceInfo,
+    ipAddress,
+    loginTime,
+  });
   return sendEmail({ to, subject, html });
 }
 
@@ -88,12 +94,16 @@ export async function sendPasswordChangedNotification(
   return sendEmail({ to, subject, html });
 }
 
-export async function sendTwoFactorEnabledNotification(to: string): Promise<boolean> {
+export async function sendTwoFactorEnabledNotification(
+  to: string
+): Promise<boolean> {
   const { subject, html } = twoFactorEnabledTemplate();
   return sendEmail({ to, subject, html });
 }
 
-export async function sendTwoFactorDisabledNotification(to: string): Promise<boolean> {
+export async function sendTwoFactorDisabledNotification(
+  to: string
+): Promise<boolean> {
   const { subject, html } = twoFactorDisabledTemplate();
   return sendEmail({ to, subject, html });
 }
@@ -105,7 +115,10 @@ export async function sendVerificationEmail(
 ): Promise<boolean> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
-  const { subject, html } = emailVerificationTemplate({ verificationUrl, name });
+  const { subject, html } = emailVerificationTemplate({
+    verificationUrl,
+    name,
+  });
   return sendEmail({ to, subject, html });
 }
 
@@ -117,7 +130,11 @@ export async function sendUnlockEmail(
 ): Promise<boolean> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const unlockUrl = `${baseUrl}/unlock-account?token=${token}`;
-  const { subject, html } = accountUnlockTemplate({ unlockUrl, lockedUntil, name });
+  const { subject, html } = accountUnlockTemplate({
+    unlockUrl,
+    lockedUntil,
+    name,
+  });
   return sendEmail({ to, subject, html });
 }
 

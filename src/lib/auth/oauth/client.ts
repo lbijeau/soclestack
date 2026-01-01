@@ -1,4 +1,8 @@
-import { getProviderConfig, type OAuthProvider, type OAuthUserProfile } from './providers';
+import {
+  getProviderConfig,
+  type OAuthProvider,
+  type OAuthUserProfile,
+} from './providers';
 
 interface TokenResponse {
   access_token: string;
@@ -65,7 +69,10 @@ export async function exchangeCodeForTokens(
   });
 
   if (!response.ok) {
-    console.error(`OAuth token exchange failed for ${provider}:`, await response.text());
+    console.error(
+      `OAuth token exchange failed for ${provider}:`,
+      await response.text()
+    );
     return null;
   }
 
@@ -153,7 +160,9 @@ async function fetchGitHubProfile(
         emailVerified = primaryEmail.verified;
       } else {
         // Fall back to any verified email
-        const verifiedEmail = emails.find((e: { verified: boolean }) => e.verified);
+        const verifiedEmail = emails.find(
+          (e: { verified: boolean }) => e.verified
+        );
         if (verifiedEmail) {
           email = verifiedEmail.email;
           emailVerified = verifiedEmail.verified;

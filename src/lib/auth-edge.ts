@@ -1,19 +1,19 @@
-import { getIronSession } from 'iron-session'
-import { NextRequest } from 'next/server'
-import { SessionData } from '@/types/auth'
-import { Role } from '@prisma/client'
+import { getIronSession } from 'iron-session';
+import { NextRequest } from 'next/server';
+import { SessionData } from '@/types/auth';
+import { Role } from '@prisma/client';
 
 // Types for iron-session compatibility
 interface MockRequest {
   headers: {
-    cookie: string
-  }
+    cookie: string;
+  };
 }
 
 interface MockResponse {
-  getHeader: () => undefined
-  setHeader: () => void
-  headers: Map<string, string>
+  getHeader: () => undefined;
+  setHeader: () => void;
+  headers: Map<string, string>;
 }
 
 // Session configuration for Edge Runtime
@@ -26,55 +26,59 @@ const sessionOptions = {
     sameSite: 'lax' as const,
     maxAge: 60 * 60 * 24 * 7, // 7 days
   },
-}
+};
 
 // Edge-compatible session retrieval for middleware
-export async function getSessionFromRequest(request: NextRequest): Promise<SessionData> {
+export async function getSessionFromRequest(
+  request: NextRequest
+): Promise<SessionData> {
   try {
-    const cookieStore = request.cookies
-    const sessionCookie = cookieStore.get(sessionOptions.cookieName)
+    const cookieStore = request.cookies;
+    const sessionCookie = cookieStore.get(sessionOptions.cookieName);
 
     if (!sessionCookie) {
       return {
         userId: '',
         email: '',
         role: Role.USER,
-        isLoggedIn: false
-      }
+        isLoggedIn: false,
+      };
     }
 
     // Create a request-like object for iron-session
     const mockRequest: MockRequest = {
       headers: {
-        cookie: `${sessionOptions.cookieName}=${sessionCookie.value}`
-      }
-    }
+        cookie: `${sessionOptions.cookieName}=${sessionCookie.value}`,
+      },
+    };
 
     const mockResponse: MockResponse = {
       getHeader: () => undefined,
       setHeader: () => {},
-      headers: new Map()
-    }
+      headers: new Map(),
+    };
 
     const session = await getIronSession<SessionData>(
       mockRequest as unknown as Parameters<typeof getIronSession>[0],
       mockResponse as unknown as Parameters<typeof getIronSession>[1],
       sessionOptions
-    )
+    );
 
-    return session || {
-      userId: '',
-      email: '',
-      role: Role.USER,
-      isLoggedIn: false
-    }
+    return (
+      session || {
+        userId: '',
+        email: '',
+        role: Role.USER,
+        isLoggedIn: false,
+      }
+    );
   } catch (error) {
-    console.error('Error getting session from request:', error)
+    console.error('Error getting session from request:', error);
     return {
       userId: '',
       email: '',
       role: Role.USER,
-      isLoggedIn: false
-    }
+      isLoggedIn: false,
+    };
   }
 }

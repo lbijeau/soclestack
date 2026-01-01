@@ -45,7 +45,9 @@ export async function GET(
 
   // Verify state token
   const cookieStore = await cookies();
-  const storedState = cookieStore.get(SECURITY_CONFIG.oauth.stateCookieName)?.value;
+  const storedState = cookieStore.get(
+    SECURITY_CONFIG.oauth.stateCookieName
+  )?.value;
 
   if (!storedState || storedState !== state) {
     return NextResponse.redirect(`${appUrl}/login?error=invalid_state`);
@@ -61,14 +63,21 @@ export async function GET(
 
   // Exchange code for tokens
   const redirectUri = `${appUrl}/api/auth/oauth/${provider}/callback`;
-  const tokens = await exchangeCodeForTokens(provider as OAuthProvider, code, redirectUri);
+  const tokens = await exchangeCodeForTokens(
+    provider as OAuthProvider,
+    code,
+    redirectUri
+  );
 
   if (!tokens) {
     return NextResponse.redirect(`${appUrl}/login?error=token_exchange_failed`);
   }
 
   // Fetch user profile
-  const profile = await fetchUserProfile(provider as OAuthProvider, tokens.access_token);
+  const profile = await fetchUserProfile(
+    provider as OAuthProvider,
+    tokens.access_token
+  );
 
   if (!profile || !profile.email) {
     return NextResponse.redirect(`${appUrl}/login?error=profile_fetch_failed`);

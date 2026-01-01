@@ -1,31 +1,39 @@
-import { getCurrentUser } from '@/lib/auth'
-import { checkPasswordAge } from '@/lib/auth/password-age'
-import { Navbar } from '@/components/navigation/navbar'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { User, Calendar, Shield, Activity, AlertTriangle } from 'lucide-react'
-import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
-import { SecurityEventsWidget } from '@/components/dashboard/security-events-widget'
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth';
+import { checkPasswordAge } from '@/lib/auth/password-age';
+import { Navbar } from '@/components/navigation/navbar';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { User, Calendar, Shield, Activity, AlertTriangle } from 'lucide-react';
+import { EmailVerificationBanner } from '@/components/auth/email-verification-banner';
+import { SecurityEventsWidget } from '@/components/dashboard/security-events-widget';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser()
+  const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login?returnUrl=/dashboard')
+    redirect('/login?returnUrl=/dashboard');
   }
 
   // Check password age (only for users with passwords, not OAuth-only)
-  const passwordStatus = user.password ? checkPasswordAge(user.passwordChangedAt) : null
+  const passwordStatus = user.password
+    ? checkPasswordAge(user.passwordChangedAt)
+    : null;
 
   const getWelcomeMessage = () => {
-    const name = user.firstName || user.username || 'there'
-    return `Welcome back, ${name}!`
-  }
+    const name = user.firstName || user.username || 'there';
+    return `Welcome back, ${name}!`;
+  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -34,14 +42,14 @@ export default async function DashboardPage() {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(date)
-  }
+    }).format(date);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {/* Email Verification Banner */}
           {!user.emailVerified && (
@@ -52,13 +60,17 @@ export default async function DashboardPage() {
           {passwordStatus?.isExpired && (
             <Alert variant="error" className="mb-6">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
                 <div>
                   <p className="font-medium">Your password has expired</p>
-                  <p className="text-sm mt-1">
-                    Your password is {passwordStatus.daysSinceChange} days old. Please change it immediately for security.
+                  <p className="mt-1 text-sm">
+                    Your password is {passwordStatus.daysSinceChange} days old.
+                    Please change it immediately for security.
                   </p>
-                  <Link href="/profile" className="text-sm underline mt-2 inline-block">
+                  <Link
+                    href="/profile"
+                    className="mt-2 inline-block text-sm underline"
+                  >
                     Change password now
                   </Link>
                 </div>
@@ -69,13 +81,18 @@ export default async function DashboardPage() {
           {passwordStatus?.isWarning && !passwordStatus.isExpired && (
             <Alert variant="warning" className="mb-6">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
                 <div>
                   <p className="font-medium">Password expiring soon</p>
-                  <p className="text-sm mt-1">
-                    Your password will expire in {passwordStatus.daysUntilExpiry} days. Consider changing it soon.
+                  <p className="mt-1 text-sm">
+                    Your password will expire in{' '}
+                    {passwordStatus.daysUntilExpiry} days. Consider changing it
+                    soon.
                   </p>
-                  <Link href="/profile" className="text-sm underline mt-2 inline-block">
+                  <Link
+                    href="/profile"
+                    className="mt-2 inline-block text-sm underline"
+                  >
                     Change password
                   </Link>
                 </div>
@@ -94,29 +111,35 @@ export default async function DashboardPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card className="h-32">
-              <CardContent className="flex items-center justify-center h-full p-6">
+              <CardContent className="flex h-full items-center justify-center p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <User className="h-8 w-8 text-blue-600" />
                   </div>
                   <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-500">Role</div>
-                    <div className="text-2xl font-bold text-gray-900">{user.role}</div>
+                    <div className="text-sm font-medium text-gray-500">
+                      Role
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {user.role}
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="h-32">
-              <CardContent className="flex items-center justify-center h-full p-6">
+              <CardContent className="flex h-full items-center justify-center p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <Calendar className="h-8 w-8 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-500">Member Since</div>
+                    <div className="text-sm font-medium text-gray-500">
+                      Member Since
+                    </div>
                     <div className="text-2xl font-bold text-gray-900">
                       {formatDate(user.createdAt).split(',')[0]}
                     </div>
@@ -126,13 +149,15 @@ export default async function DashboardPage() {
             </Card>
 
             <Card className="h-32">
-              <CardContent className="flex items-center justify-center h-full p-6">
+              <CardContent className="flex h-full items-center justify-center p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <Shield className="h-8 w-8 text-yellow-600" />
                   </div>
                   <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-500">Status</div>
+                    <div className="text-sm font-medium text-gray-500">
+                      Status
+                    </div>
                     <div className="text-2xl font-bold text-gray-900">
                       {user.isActive ? 'Active' : 'Inactive'}
                     </div>
@@ -142,15 +167,19 @@ export default async function DashboardPage() {
             </Card>
 
             <Card className="h-32">
-              <CardContent className="flex items-center justify-center h-full p-6">
+              <CardContent className="flex h-full items-center justify-center p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <Activity className="h-8 w-8 text-purple-600" />
                   </div>
                   <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-500">Last Login</div>
+                    <div className="text-sm font-medium text-gray-500">
+                      Last Login
+                    </div>
                     <div className="text-2xl font-bold text-gray-900">
-                      {user.lastLoginAt ? formatDate(user.lastLoginAt).split(',')[0] : 'Never'}
+                      {user.lastLoginAt
+                        ? formatDate(user.lastLoginAt).split(',')[0]
+                        : 'Never'}
                     </div>
                   </div>
                 </div>
@@ -159,7 +188,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             {/* Hello World Card */}
             <Card className="lg:col-span-2">
               <CardHeader>
@@ -169,20 +198,19 @@ export default async function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <div className="text-6xl mb-4">👋</div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                <div className="py-8 text-center">
+                  <div className="mb-4 text-6xl">👋</div>
+                  <h3 className="mb-2 text-2xl font-bold text-gray-900">
                     Hello World!
                   </h3>
-                  <p className="text-gray-600 mb-6">
+                  <p className="mb-6 text-gray-600">
                     You&apos;ve successfully logged into your SocleStack account.
-                    This is a complete Next.js application with Enterprise-grade-style user management features.
+                    This is a complete Next.js application with Enterprise-grade-style
+                    user management features.
                   </p>
                   <div className="space-y-3">
                     <Link href="/profile">
-                      <Button className="w-full">
-                        Manage Profile
-                      </Button>
+                      <Button className="w-full">Manage Profile</Button>
                     </Link>
                     {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
                       <Link href="/admin">
@@ -211,35 +239,51 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-sm font-medium text-gray-500">Email</span>
+                  <div className="flex items-center justify-between border-b py-2">
+                    <span className="text-sm font-medium text-gray-500">
+                      Email
+                    </span>
                     <span className="text-sm text-gray-900">{user.email}</span>
                   </div>
 
                   {user.username && (
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="text-sm font-medium text-gray-500">Username</span>
-                      <span className="text-sm text-gray-900">{user.username}</span>
+                    <div className="flex items-center justify-between border-b py-2">
+                      <span className="text-sm font-medium text-gray-500">
+                        Username
+                      </span>
+                      <span className="text-sm text-gray-900">
+                        {user.username}
+                      </span>
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-sm font-medium text-gray-500">Email Verified</span>
-                    <span className={`text-sm ${user.emailVerified ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className="flex items-center justify-between border-b py-2">
+                    <span className="text-sm font-medium text-gray-500">
+                      Email Verified
+                    </span>
+                    <span
+                      className={`text-sm ${user.emailVerified ? 'text-green-600' : 'text-red-600'}`}
+                    >
                       {user.emailVerified ? 'Yes' : 'No'}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-sm font-medium text-gray-500">Account Status</span>
-                    <span className={`text-sm ${user.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className="flex items-center justify-between border-b py-2">
+                    <span className="text-sm font-medium text-gray-500">
+                      Account Status
+                    </span>
+                    <span
+                      className={`text-sm ${user.isActive ? 'text-green-600' : 'text-red-600'}`}
+                    >
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm font-medium text-gray-500">Role</span>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-gray-500">
+                      Role
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
                       {user.role}
                     </span>
                   </div>
@@ -250,10 +294,10 @@ export default async function DashboardPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
 
 export const metadata = {
   title: 'Dashboard - SocleStack',
   description: 'Your SocleStack dashboard',
-}
+};

@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getSession, createUserSession, getClientIP } from '@/lib/auth';
-import { validateRememberMeToken, REMEMBER_ME_COOKIE_NAME } from '@/lib/auth/remember-me';
+import {
+  validateRememberMeToken,
+  REMEMBER_ME_COOKIE_NAME,
+} from '@/lib/auth/remember-me';
 import { prisma } from '@/lib/db';
-import { isImpersonating, hasImpersonationExpired, getImpersonationTimeRemaining, getImpersonationDuration } from '@/lib/auth/impersonation';
+import {
+  isImpersonating,
+  hasImpersonationExpired,
+  getImpersonationTimeRemaining,
+  getImpersonationDuration,
+} from '@/lib/auth/impersonation';
 import { logAuditEvent } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -90,7 +98,10 @@ export async function GET(req: NextRequest) {
         // Clear the cookie and force re-login
         cookieStore.delete(REMEMBER_ME_COOKIE_NAME);
         return NextResponse.json(
-          { error: 'Session compromised. Please login again.', authenticated: false },
+          {
+            error: 'Session compromised. Please login again.',
+            authenticated: false,
+          },
           { status: 401 }
         );
       }

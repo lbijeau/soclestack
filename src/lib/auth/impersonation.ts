@@ -14,7 +14,9 @@ export function isImpersonating(session: IronSession<SessionData>): boolean {
 /**
  * Check if impersonation has expired (past timeout)
  */
-export function hasImpersonationExpired(session: IronSession<SessionData>): boolean {
+export function hasImpersonationExpired(
+  session: IronSession<SessionData>
+): boolean {
   if (!session.impersonating) {
     return false;
   }
@@ -28,7 +30,9 @@ export function hasImpersonationExpired(session: IronSession<SessionData>): bool
 /**
  * Get remaining impersonation time in minutes
  */
-export function getImpersonationTimeRemaining(session: IronSession<SessionData>): number {
+export function getImpersonationTimeRemaining(
+  session: IronSession<SessionData>
+): number {
   if (!session.impersonating) {
     return 0;
   }
@@ -43,14 +47,18 @@ export function getImpersonationTimeRemaining(session: IronSession<SessionData>)
 /**
  * Get the original admin info if impersonating
  */
-export function getOriginalAdmin(session: IronSession<SessionData>): ImpersonationData | null {
+export function getOriginalAdmin(
+  session: IronSession<SessionData>
+): ImpersonationData | null {
   return session.impersonating || null;
 }
 
 /**
  * Calculate impersonation duration in seconds
  */
-export function getImpersonationDuration(session: IronSession<SessionData>): number {
+export function getImpersonationDuration(
+  session: IronSession<SessionData>
+): number {
   if (!session.impersonating) {
     return 0;
   }
@@ -61,7 +69,9 @@ export function getImpersonationDuration(session: IronSession<SessionData>): num
 /**
  * Assert that the session is not impersonating (throws if it is)
  */
-export function assertNotImpersonating(session: IronSession<SessionData>): void {
+export function assertNotImpersonating(
+  session: IronSession<SessionData>
+): void {
   if (isImpersonating(session)) {
     throw new ImpersonationBlockedError();
   }

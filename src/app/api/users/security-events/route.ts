@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { getCurrentUser } from '@/lib/auth'
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 // Security-related audit actions to include
 const SECURITY_ACTIONS = [
@@ -22,17 +22,17 @@ const SECURITY_ACTIONS = [
   'AUTH_OAUTH_ACCOUNT_UNLINKED',
   'API_KEY_CREATED',
   'API_KEY_REVOKED',
-]
+];
 
 // GET /api/users/security-events - Get recent security events for current user
 export async function GET() {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json(
         { error: { type: 'UNAUTHORIZED', message: 'Not authenticated' } },
         { status: 401 }
-      )
+      );
     }
 
     const events = await prisma.auditLog.findMany({
@@ -49,7 +49,7 @@ export async function GET() {
         createdAt: true,
         metadata: true,
       },
-    })
+    });
 
     // Transform events to a more user-friendly format
     const formattedEvents = events.map((event) => ({
@@ -61,15 +61,20 @@ export async function GET() {
       ipAddress: event.ipAddress,
       createdAt: event.createdAt,
       metadata: event.metadata ? JSON.parse(event.metadata) : null,
-    }))
+    }));
 
-    return NextResponse.json({ events: formattedEvents })
+    return NextResponse.json({ events: formattedEvents });
   } catch (error) {
-    console.error('Failed to fetch security events:', error)
+    console.error('Failed to fetch security events:', error);
     return NextResponse.json(
-      { error: { type: 'INTERNAL_ERROR', message: 'Failed to fetch security events' } },
+      {
+        error: {
+          type: 'INTERNAL_ERROR',
+          message: 'Failed to fetch security events',
+        },
+      },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -91,8 +96,8 @@ function getEventDescription(action: string): string {
     AUTH_OAUTH_ACCOUNT_UNLINKED: 'OAuth account unlinked',
     API_KEY_CREATED: 'API key created',
     API_KEY_REVOKED: 'API key revoked',
-  }
-  return descriptions[action] || action
+  };
+  return descriptions[action] || action;
 }
 
 function getEventIcon(action: string): string {
@@ -113,11 +118,13 @@ function getEventIcon(action: string): string {
     AUTH_OAUTH_ACCOUNT_UNLINKED: 'unlink',
     API_KEY_CREATED: 'key-plus',
     API_KEY_REVOKED: 'key-minus',
-  }
-  return icons[action] || 'info'
+  };
+  return icons[action] || 'info';
 }
 
-function getEventSeverity(action: string): 'info' | 'success' | 'warning' | 'error' {
+function getEventSeverity(
+  action: string
+): 'info' | 'success' | 'warning' | 'error' {
   const severities: Record<string, 'info' | 'success' | 'warning' | 'error'> = {
     AUTH_LOGIN_SUCCESS: 'success',
     AUTH_LOGIN_FAILURE: 'warning',
@@ -135,6 +142,6 @@ function getEventSeverity(action: string): 'info' | 'success' | 'warning' | 'err
     AUTH_OAUTH_ACCOUNT_UNLINKED: 'info',
     API_KEY_CREATED: 'success',
     API_KEY_REVOKED: 'info',
-  }
-  return severities[action] || 'info'
+  };
+  return severities[action] || 'info';
 }

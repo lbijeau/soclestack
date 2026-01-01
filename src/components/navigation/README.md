@@ -1,12 +1,15 @@
 # Navigation Components
 
 ## Purpose
+
 Navigation components that provide site-wide navigation, user authentication status, and role-based menu access. These components ensure consistent navigation experience across the application.
 
 ## Contents
 
 ### `navbar.tsx`
+
 **Purpose**: Main application navigation bar with authentication integration
+
 - **Features**:
   - Responsive navigation design
   - User authentication status display
@@ -19,18 +22,21 @@ Navigation components that provide site-wide navigation, user authentication sta
 ## Key Features
 
 ### Authentication Integration
+
 - **User Status**: Displays current user information when logged in
 - **Login/Logout**: Dynamic login/logout buttons based on auth state
 - **User Profile Access**: Quick access to profile and settings
 - **Role-Based Items**: Navigation items shown based on user role
 
 ### Responsive Design
+
 - **Desktop Navigation**: Full horizontal navigation bar
 - **Mobile Menu**: Collapsible hamburger menu for mobile devices
 - **Touch-Friendly**: Optimized for touch interactions
 - **Breakpoint Handling**: Smooth transitions between desktop and mobile
 
 ### Navigation Features
+
 - **Active State**: Highlights current page in navigation
 - **Smooth Transitions**: Animated state changes and hover effects
 - **Dropdown Menus**: User profile and admin dropdown menus
@@ -39,27 +45,30 @@ Navigation components that provide site-wide navigation, user authentication sta
 ## Component Architecture
 
 ### Props Interface
+
 ```typescript
 interface NavbarProps {
-  user?: User | null
-  className?: string
-  onLogout?: () => void
+  user?: User | null;
+  className?: string;
+  onLogout?: () => void;
 }
 ```
 
 ### Navigation Items Structure
+
 ```typescript
 interface NavItem {
-  label: string
-  href: string
-  icon?: React.ComponentType
-  requiresAuth?: boolean
-  requiredRole?: string
-  external?: boolean
+  label: string;
+  href: string;
+  icon?: React.ComponentType;
+  requiresAuth?: boolean;
+  requiredRole?: string;
+  external?: boolean;
 }
 ```
 
 ### User Menu Items
+
 - **Profile**: Link to user profile page
 - **Settings**: Account settings and preferences
 - **Admin Panel**: Administrative interface (admin/moderator only)
@@ -68,6 +77,7 @@ interface NavItem {
 ## Usage Examples
 
 ### Basic Implementation
+
 ```typescript
 import { Navbar } from '@/components/navigation/navbar'
 import { getCurrentUser } from '@/lib/auth'
@@ -85,6 +95,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
 ```
 
 ### With Custom Logout Handler
+
 ```typescript
 'use client'
 
@@ -114,6 +125,7 @@ export function AppNavigation({ user }: { user: User | null }) {
 ```
 
 ### Integration with Layout System
+
 ```typescript
 export default function RootLayout({
   children,
@@ -139,52 +151,58 @@ export default function RootLayout({
 ## Navigation Structure
 
 ### Public Navigation Items
+
 ```typescript
 const publicNavItems = [
   { label: 'Home', href: '/' },
   { label: 'About', href: '/about' },
   { label: 'Contact', href: '/contact' },
-]
+];
 ```
 
 ### Authenticated User Items
+
 ```typescript
 const authenticatedNavItems = [
   { label: 'Dashboard', href: '/dashboard', requiresAuth: true },
   { label: 'Profile', href: '/profile', requiresAuth: true },
-]
+];
 ```
 
 ### Admin Navigation Items
+
 ```typescript
 const adminNavItems = [
   {
     label: 'Admin',
     href: '/admin',
     requiresAuth: true,
-    requiredRole: 'ADMIN'
+    requiredRole: 'ADMIN',
   },
   {
     label: 'User Management',
     href: '/admin/users',
     requiresAuth: true,
-    requiredRole: 'MODERATOR'
+    requiredRole: 'MODERATOR',
   },
-]
+];
 ```
 
 ## Dependencies
 
 ### UI Components
+
 - **@/components/ui/button**: Navigation buttons and actions
 - **@/components/ui/badge**: User role indicators
 - **Custom Icons**: Navigation and UI icons
 
 ### Authentication
+
 - **@/lib/auth**: User authentication utilities
 - **@/types/auth**: User and authentication types
 
 ### Navigation
+
 - **Next.js Link**: Client-side navigation
 - **usePathname**: Active route detection
 - **useRouter**: Programmatic navigation
@@ -192,6 +210,7 @@ const adminNavItems = [
 ## Features Implementation
 
 ### Active Route Detection
+
 ```typescript
 'use client'
 
@@ -219,6 +238,7 @@ export function NavItem({ href, children }: NavItemProps) {
 ```
 
 ### User Dropdown Menu
+
 ```typescript
 function UserDropdown({ user, onLogout }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -248,6 +268,7 @@ function UserDropdown({ user, onLogout }: UserDropdownProps) {
 ```
 
 ### Mobile Menu Toggle
+
 ```typescript
 function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false)
@@ -274,30 +295,35 @@ function MobileMenu() {
 ```
 
 ## Styling Approach
+
 - **Tailwind CSS**: Utility-first styling for responsive design
 - **Mobile-First**: Responsive design starting from mobile
 - **Dark Mode Ready**: Prepared for dark mode implementation
 - **Consistent Spacing**: Follows design system spacing patterns
 
 ## Accessibility Features
+
 - **Keyboard Navigation**: Full keyboard support for all interactive elements
 - **ARIA Labels**: Proper ARIA attributes for screen readers
 - **Focus Management**: Visible focus indicators
 - **Semantic HTML**: Proper nav, button, and link semantics
 
 ## Performance Considerations
+
 - **Client-Side Navigation**: Uses Next.js Link for optimal performance
 - **Conditional Rendering**: Only renders relevant navigation items
 - **Event Delegation**: Efficient event handling for dropdown menus
 - **Responsive Images**: Optimized logo and avatar images
 
 ## Integration Points
+
 - **Layout System**: Integrated with app layout components
 - **Authentication System**: Direct integration with auth state
 - **Routing System**: Works with Next.js App Router
 - **Admin Interface**: Provides access to administrative features
 
 ## Customization Options
+
 - **Theme Variants**: Support for different visual themes
 - **Logo Customization**: Easy logo and branding updates
 - **Menu Structure**: Configurable navigation items

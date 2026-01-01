@@ -3,7 +3,10 @@ import { getSession, getClientIP, isRateLimited } from '@/lib/auth';
 import { generateTOTPSecret } from '@/lib/auth/totp';
 import { generateBackupCodes } from '@/lib/auth/backup-codes';
 import { prisma } from '@/lib/db';
-import { assertNotImpersonating, ImpersonationBlockedError } from '@/lib/auth/impersonation';
+import {
+  assertNotImpersonating,
+  ImpersonationBlockedError,
+} from '@/lib/auth/impersonation';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 
 export const runtime = 'nodejs';
@@ -15,7 +18,12 @@ export async function POST(req: NextRequest) {
     const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorSetup;
     if (isRateLimited(`2fa-setup:${clientIP}`, limit, windowMs)) {
       return NextResponse.json(
-        { error: { type: 'AUTHORIZATION_ERROR', message: 'Too many requests. Please try again later.' } },
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Too many requests. Please try again later.',
+          },
+        },
         { status: 429 }
       );
     }
@@ -24,7 +32,9 @@ export async function POST(req: NextRequest) {
 
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }

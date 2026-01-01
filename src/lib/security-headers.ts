@@ -5,7 +5,7 @@ export const securityHeaders = {
   'Referrer-Policy': 'origin-when-cross-origin',
   'X-XSS-Protection': '1; mode=block',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-} as const
+} as const;
 
 // Content Security Policy
 export const contentSecurityPolicy = [
@@ -18,5 +18,5 @@ export const contentSecurityPolicy = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
-].join('; ')
+  'upgrade-insecure-requests',
+].join('; ');

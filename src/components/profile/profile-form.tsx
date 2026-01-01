@@ -1,23 +1,23 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Alert } from '@/components/ui/alert'
-import { UpdateProfileInput } from '@/lib/validations'
-import { AuthError } from '@/types/auth'
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert } from '@/components/ui/alert';
+import { UpdateProfileInput } from '@/lib/validations';
+import { AuthError } from '@/types/auth';
 
 interface User {
-  id: string
-  email: string
-  username: string | null
-  firstName: string | null
-  lastName: string | null
-  role: string
+  id: string;
+  email: string;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
 }
 
 interface ProfileFormProps {
-  user: User
+  user: User;
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
@@ -26,18 +26,18 @@ export function ProfileForm({ user }: ProfileFormProps) {
     username: user.username || '',
     firstName: user.firstName || '',
     lastName: user.lastName || '',
-  })
-  const [errors, setErrors] = useState<Record<string, string[]>>({})
-  const [error, setError] = useState<string>('')
-  const [success, setSuccess] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(false)
+  });
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-    setSuccess('')
-    setErrors({})
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+    setErrors({});
 
     try {
       const response = await fetch('/api/users/profile', {
@@ -46,60 +46,54 @@ export function ProfileForm({ user }: ProfileFormProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        const authError = data.error as AuthError
+        const authError = data.error as AuthError;
         if (authError.type === 'VALIDATION_ERROR' && authError.details) {
-          setErrors(authError.details)
+          setErrors(authError.details);
         } else {
-          setError(authError.message)
+          setError(authError.message);
         }
-        return
+        return;
       }
 
-      setSuccess(data.message)
+      setSuccess(data.message);
 
       // If email was changed, show additional message
       if (formData.email !== user.email) {
-        setSuccess(data.message + ' Please verify your new email address.')
+        setSuccess(data.message + ' Please verify your new email address.');
       }
-
     } catch {
-      setError('An unexpected error occurred. Please try again.')
+      setError('An unexpected error occurred. Please try again.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear field error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: [] }))
+      setErrors((prev) => ({ ...prev, [name]: [] }));
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <Alert variant="error">
-          {error}
-        </Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
-      {success && (
-        <Alert variant="success">
-          {success}
-        </Alert>
-      )}
+      {success && <Alert variant="success">{success}</Alert>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="space-y-2">
-          <label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+          <label
+            htmlFor="firstName"
+            className="text-sm font-medium text-gray-700"
+          >
             First Name
           </label>
           <Input
@@ -118,7 +112,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+          <label
+            htmlFor="lastName"
+            className="text-sm font-medium text-gray-700"
+          >
             Last Name
           </label>
           <Input
@@ -156,7 +153,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
         )}
         {formData.email !== user.email && (
           <p className="text-sm text-amber-600">
-            Changing your email will require verification of the new email address.
+            Changing your email will require verification of the new email
+            address.
           </p>
         )}
       </div>
@@ -181,13 +179,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
       </div>
 
       <div className="flex justify-end">
-        <Button
-          type="submit"
-          disabled={isLoading}
-        >
+        <Button type="submit" disabled={isLoading}>
           {isLoading ? 'Updating...' : 'Update Profile'}
         </Button>
       </div>
     </form>
-  )
+  );
 }

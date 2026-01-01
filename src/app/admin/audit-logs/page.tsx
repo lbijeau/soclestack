@@ -23,15 +23,15 @@ export default async function AuditLogsPage() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
           <div className="mb-8">
             <Link
               href="/admin"
-              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
+              className="mb-4 inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
             >
-              <ArrowLeft className="h-4 w-4 mr-1" />
+              <ArrowLeft className="mr-1 h-4 w-4" />
               Back to Admin Panel
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>

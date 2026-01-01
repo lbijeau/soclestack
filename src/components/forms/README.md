@@ -1,14 +1,17 @@
 # Forms Components
 
 ## Purpose
+
 This directory is currently empty but is intended to house reusable form components and form-related utilities that can be shared across different parts of the application.
 
 ## Contents
+
 Currently empty - prepared for future form component implementations.
 
 ## Planned Components
 
 ### Form Utilities (Future)
+
 ```typescript
 // Planned: Reusable form wrapper with validation
 export function Form({ children, onSubmit, validationSchema }: FormProps) {
@@ -20,15 +23,26 @@ export function Form({ children, onSubmit, validationSchema }: FormProps) {
 ```
 
 ### Field Components (Future)
+
 ```typescript
 // Planned: Reusable field components
-export function TextField({ name, label, validation, ...props }: TextFieldProps) {
+export function TextField({
+  name,
+  label,
+  validation,
+  ...props
+}: TextFieldProps) {
   // Field-specific validation
   // Error display
   // Label association
 }
 
-export function SelectField({ name, label, options, ...props }: SelectFieldProps) {
+export function SelectField({
+  name,
+  label,
+  options,
+  ...props
+}: SelectFieldProps) {
   // Dropdown field with validation
 }
 
@@ -38,6 +52,7 @@ export function CheckboxField({ name, label, ...props }: CheckboxFieldProps) {
 ```
 
 ### Form Patterns (Future)
+
 ```typescript
 // Planned: Common form patterns
 export function FormSection({ title, children }: FormSectionProps) {
@@ -50,25 +65,31 @@ export function FormActions({ children }: FormActionsProps) {
 ```
 
 ## Current Form Implementation
+
 Currently, form components are implemented directly in their respective feature directories:
+
 - **Authentication Forms**: `/components/auth/`
 - **Profile Forms**: `/components/profile/`
 - **Admin Forms**: Within `/components/admin/`
 
 ## Dependencies
+
 - **React**: For component state and lifecycle management
 - **@/components/ui/**: UI components for form styling
 - **@/lib/validations**: Validation schemas and utilities
 - **React Hook Form**: (Planned) For advanced form state management
 
 ## Integration Strategy
+
 When implemented, these components will:
+
 - **Standardize Form Patterns**: Consistent form behavior across the app
 - **Reduce Code Duplication**: Reusable form components
 - **Improve Validation**: Centralized validation logic
 - **Enhance Accessibility**: Consistent accessibility patterns
 
 ## Architecture Goals
+
 - **Composable**: Small, focused components that work together
 - **Accessible**: WCAG compliant form components
 - **Type Safe**: Full TypeScript integration
@@ -76,13 +97,16 @@ When implemented, these components will:
 - **Validated**: Built-in validation support
 
 ## Migration Plan
+
 Future development will move form logic from feature-specific components to this shared directory:
+
 1. **Extract Common Patterns**: Identify reusable form patterns
 2. **Create Base Components**: Build foundational form components
 3. **Migrate Existing Forms**: Update existing forms to use shared components
 4. **Add Advanced Features**: Implement advanced form features like conditional fields
 
 ## Examples of Future Usage
+
 ```typescript
 // Planned usage pattern
 import { Form, TextField, SelectField, FormActions } from '@/components/forms'
@@ -119,7 +143,9 @@ export function UserForm({ user, onSubmit }: UserFormProps) {
 ```
 
 ## Current Alternative
+
 Until shared form components are implemented, use the existing UI components directly:
+
 ```typescript
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

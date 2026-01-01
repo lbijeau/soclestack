@@ -1,22 +1,23 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ImpersonationBannerWrapper } from "@/components/admin/impersonation-banner-wrapper";
-import { SessionTimeoutWarning } from "@/components/session/session-timeout-warning";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
+import { ImpersonationBannerWrapper } from '@/components/admin/impersonation-banner-wrapper';
+import { SessionTimeoutWarning } from '@/components/session/session-timeout-warning';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "SocleStack - Next.js User Management",
-  description: "A complete Next.js application with Enterprise-grade-style user management features",
+  title: 'SocleStack - Next.js User Management',
+  description:
+    'A complete Next.js application with Enterprise-grade-style user management features',
 };
 
 export default function RootLayout({

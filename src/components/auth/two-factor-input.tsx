@@ -1,35 +1,40 @@
-'use client'
+'use client';
 
-import { useState, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Alert } from '@/components/ui/alert'
+import { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert } from '@/components/ui/alert';
 
 interface TwoFactorInputProps {
-  onSubmit: (code: string, isBackupCode: boolean) => Promise<void>
-  onCancel: () => void
-  isLoading: boolean
-  error?: string
+  onSubmit: (code: string, isBackupCode: boolean) => Promise<void>;
+  onCancel: () => void;
+  isLoading: boolean;
+  error?: string;
 }
 
-export function TwoFactorInput({ onSubmit, onCancel, isLoading, error }: TwoFactorInputProps) {
-  const [code, setCode] = useState('')
-  const [isBackupMode, setIsBackupMode] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+export function TwoFactorInput({
+  onSubmit,
+  onCancel,
+  isLoading,
+  error,
+}: TwoFactorInputProps) {
+  const [code, setCode] = useState('');
+  const [isBackupMode, setIsBackupMode] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus()
-  }, [isBackupMode])
+    inputRef.current?.focus();
+  }, [isBackupMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await onSubmit(code, isBackupMode)
-  }
+    e.preventDefault();
+    await onSubmit(code, isBackupMode);
+  };
 
   const toggleBackupMode = () => {
-    setIsBackupMode(!isBackupMode)
-    setCode('')
-  }
+    setIsBackupMode(!isBackupMode);
+    setCode('');
+  };
 
   return (
     <div className="space-y-4">
@@ -37,18 +42,14 @@ export function TwoFactorInput({ onSubmit, onCancel, isLoading, error }: TwoFact
         <h2 className="text-lg font-semibold">
           {isBackupMode ? 'Enter Backup Code' : 'Two-Factor Authentication'}
         </h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="mt-1 text-sm text-gray-600">
           {isBackupMode
             ? 'Enter one of your backup codes'
             : 'Enter the 6-digit code from your authenticator app'}
         </p>
       </div>
 
-      {error && (
-        <Alert variant="error">
-          {error}
-        </Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -80,7 +81,10 @@ export function TwoFactorInput({ onSubmit, onCancel, isLoading, error }: TwoFact
           </Button>
           <Button
             type="submit"
-            disabled={isLoading || (isBackupMode ? code.length !== 8 : code.length !== 6)}
+            disabled={
+              isLoading ||
+              (isBackupMode ? code.length !== 8 : code.length !== 6)
+            }
             className="flex-1"
             data-testid="2fa-submit"
           >
@@ -100,5 +104,5 @@ export function TwoFactorInput({ onSubmit, onCancel, isLoading, error }: TwoFact
         </button>
       </div>
     </div>
-  )
+  );
 }

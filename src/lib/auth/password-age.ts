@@ -12,7 +12,9 @@ export interface PasswordAgeStatus {
  * @param passwordChangedAt - When the password was last changed
  * @returns Status object with expiry information
  */
-export function checkPasswordAge(passwordChangedAt: Date | null): PasswordAgeStatus {
+export function checkPasswordAge(
+  passwordChangedAt: Date | null
+): PasswordAgeStatus {
   const { maxAgeDays, warningDays } = SECURITY_CONFIG.passwordPolicy;
 
   // If no password change date, treat as very old (needs change)
@@ -27,7 +29,9 @@ export function checkPasswordAge(passwordChangedAt: Date | null): PasswordAgeSta
 
   const now = new Date();
   const msPerDay = 24 * 60 * 60 * 1000;
-  const daysSinceChange = Math.floor((now.getTime() - passwordChangedAt.getTime()) / msPerDay);
+  const daysSinceChange = Math.floor(
+    (now.getTime() - passwordChangedAt.getTime()) / msPerDay
+  );
   const daysUntilExpiry = maxAgeDays - daysSinceChange;
 
   return {

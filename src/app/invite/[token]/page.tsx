@@ -1,118 +1,134 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Building2, Loader2, CheckCircle, XCircle, LogIn, UserPlus } from 'lucide-react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Building2,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  LogIn,
+  UserPlus,
+} from 'lucide-react';
+import Link from 'next/link';
 
 interface InviteDetails {
-  email: string
-  role: 'OWNER' | 'ADMIN' | 'MEMBER'
-  expiresAt: string
+  email: string;
+  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  expiresAt: string;
   organization: {
-    id: string
-    name: string
-    slug: string
-  }
-  invitedBy: string
+    id: string;
+    name: string;
+    slug: string;
+  };
+  invitedBy: string;
 }
 
 export default function InvitePage() {
-  const params = useParams()
-  const router = useRouter()
-  const token = params.token as string
+  const params = useParams();
+  const router = useRouter();
+  const token = params.token as string;
 
-  const [invite, setInvite] = useState<InviteDetails | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [accepting, setAccepting] = useState(false)
-  const [error, setError] = useState('')
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userEmail, setUserEmail] = useState('')
+  const [invite, setInvite] = useState<InviteDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
-    fetchInvite()
-    checkSession()
+    fetchInvite();
+    checkSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+  }, [token]);
 
   const fetchInvite = async () => {
     try {
-      const res = await fetch(`/api/invites/${token}`)
+      const res = await fetch(`/api/invites/${token}`);
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error?.message || 'Invalid invite')
+        const data = await res.json();
+        throw new Error(data.error?.message || 'Invalid invite');
       }
 
-      const data = await res.json()
-      setInvite(data.invite)
+      const data = await res.json();
+      setInvite(data.invite);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load invite')
+      setError(err instanceof Error ? err.message : 'Failed to load invite');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const checkSession = async () => {
     try {
-      const res = await fetch('/api/auth/session')
+      const res = await fetch('/api/auth/session');
       if (res.ok) {
-        const data = await res.json()
-        setIsLoggedIn(!!data.isLoggedIn)
-        setUserEmail(data.email || '')
+        const data = await res.json();
+        setIsLoggedIn(!!data.isLoggedIn);
+        setUserEmail(data.email || '');
       }
     } catch {
       // Not logged in
     }
-  }
+  };
 
   const handleAccept = async () => {
-    setAccepting(true)
-    setError('')
+    setAccepting(true);
+    setError('');
 
     try {
       const res = await fetch(`/api/invites/${token}/accept`, {
-        method: 'POST'
-      })
+        method: 'POST',
+      });
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error?.message || 'Failed to accept invite')
+        const data = await res.json();
+        throw new Error(data.error?.message || 'Failed to accept invite');
       }
 
       // Redirect to organization page
-      router.push('/organization')
+      router.push('/organization');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept invite')
-      setAccepting(false)
+      setError(err instanceof Error ? err.message : 'Failed to accept invite');
+      setAccepting(false);
     }
-  }
+  };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'OWNER': return 'bg-purple-100 text-purple-800'
-      case 'ADMIN': return 'bg-blue-100 text-blue-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'OWNER':
+        return 'bg-purple-100 text-purple-800';
+      case 'ADMIN':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
-    )
+    );
   }
 
   if (error && !invite) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
               <XCircle className="h-6 w-6 text-red-600" />
             </div>
             <CardTitle>Invalid Invitation</CardTitle>
@@ -125,18 +141,19 @@ export default function InvitePage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
-  if (!invite) return null
+  if (!invite) return null;
 
-  const emailMismatch = isLoggedIn && userEmail.toLowerCase() !== invite.email.toLowerCase()
+  const emailMismatch =
+    isLoggedIn && userEmail.toLowerCase() !== invite.email.toLowerCase();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="max-w-md w-full">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
             <Building2 className="h-6 w-6 text-blue-600" />
           </div>
           <CardTitle>You&apos;re Invited!</CardTitle>
@@ -147,7 +164,9 @@ export default function InvitePage() {
         <CardContent className="space-y-6">
           {/* Organization Info */}
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">{invite.organization.name}</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {invite.organization.name}
+            </h2>
             <div className="mt-2 flex items-center justify-center gap-2">
               <span className="text-gray-500">You will join as</span>
               <Badge className={getRoleBadgeColor(invite.role)}>
@@ -157,13 +176,13 @@ export default function InvitePage() {
           </div>
 
           {/* Invite Email */}
-          <div className="bg-gray-50 rounded-lg p-4 text-center">
+          <div className="rounded-lg bg-gray-50 p-4 text-center">
             <p className="text-sm text-gray-500">Invite sent to</p>
             <p className="font-medium">{invite.email}</p>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -172,11 +191,15 @@ export default function InvitePage() {
           {isLoggedIn ? (
             emailMismatch ? (
               <div className="space-y-4">
-                <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md text-sm">
-                  You are logged in as <strong>{userEmail}</strong>, but this invite was sent to{' '}
-                  <strong>{invite.email}</strong>. Please log in with the correct account.
+                <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+                  You are logged in as <strong>{userEmail}</strong>, but this
+                  invite was sent to <strong>{invite.email}</strong>. Please log
+                  in with the correct account.
                 </div>
-                <Link href={`/login?returnUrl=/invite/${token}`} className="block">
+                <Link
+                  href={`/login?returnUrl=/invite/${token}`}
+                  className="block"
+                >
                   <Button variant="outline" className="w-full">
                     <LogIn className="mr-2 h-4 w-4" />
                     Log in with different account
@@ -184,7 +207,11 @@ export default function InvitePage() {
                 </Link>
               </div>
             ) : (
-              <Button onClick={handleAccept} disabled={accepting} className="w-full">
+              <Button
+                onClick={handleAccept}
+                disabled={accepting}
+                className="w-full"
+              >
                 {accepting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -206,7 +233,10 @@ export default function InvitePage() {
                   Create Account & Join
                 </Button>
               </Link>
-              <Link href={`/login?returnUrl=/invite/${token}`} className="block">
+              <Link
+                href={`/login?returnUrl=/invite/${token}`}
+                className="block"
+              >
                 <Button variant="outline" className="w-full">
                   <LogIn className="mr-2 h-4 w-4" />
                   Already have an account? Log in
@@ -221,11 +251,11 @@ export default function InvitePage() {
             {new Date(invite.expiresAt).toLocaleDateString('en-US', {
               month: 'long',
               day: 'numeric',
-              year: 'numeric'
+              year: 'numeric',
             })}
           </p>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

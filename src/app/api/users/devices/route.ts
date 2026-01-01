@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { getCurrentUser } from '@/lib/auth'
-import { parseUserAgent } from '@/lib/utils/user-agent'
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
+import { parseUserAgent } from '@/lib/utils/user-agent';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 // GET /api/users/devices - Get user's trusted devices
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json(
         { error: { type: 'UNAUTHORIZED', message: 'Not authenticated' } },
         { status: 401 }
-      )
+      );
     }
 
     // Get remember me tokens (trusted devices)
@@ -32,14 +32,16 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         expiresAt: true,
       },
-    })
+    });
 
     // Get current device identifier from cookies
-    const currentSeries = request.cookies.get('remember_series')?.value
+    const currentSeries = request.cookies.get('remember_series')?.value;
 
     // Parse user agents and mark current device
     const devices = rememberMeTokens.map((token) => {
-      const deviceInfo = token.userAgent ? parseUserAgent(token.userAgent) : null
+      const deviceInfo = token.userAgent
+        ? parseUserAgent(token.userAgent)
+        : null;
       return {
         id: token.id,
         series: token.series,
@@ -50,15 +52,15 @@ export async function GET(request: NextRequest) {
         createdAt: token.createdAt,
         expiresAt: token.expiresAt,
         isCurrent: token.series === currentSeries,
-      }
-    })
+      };
+    });
 
-    return NextResponse.json({ devices })
+    return NextResponse.json({ devices });
   } catch (error) {
-    console.error('Failed to fetch devices:', error)
+    console.error('Failed to fetch devices:', error);
     return NextResponse.json(
       { error: { type: 'INTERNAL_ERROR', message: 'Failed to fetch devices' } },
       { status: 500 }
-    )
+    );
   }
 }

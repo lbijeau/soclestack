@@ -1,17 +1,20 @@
-'use client'
+'use client';
 
-import { Button } from '@/components/ui/button'
-import type { OAuthProvider } from '@/lib/auth/oauth/providers'
+import { Button } from '@/components/ui/button';
+import type { OAuthProvider } from '@/lib/auth/oauth/providers';
 
 interface OAuthButtonsProps {
-  enabledProviders: OAuthProvider[]
-  returnTo?: string
-  inviteToken?: string
-  isLoading?: boolean
-  mode?: 'login' | 'register' | 'link'
+  enabledProviders: OAuthProvider[];
+  returnTo?: string;
+  inviteToken?: string;
+  isLoading?: boolean;
+  mode?: 'login' | 'register' | 'link';
 }
 
-const providerConfig: Record<OAuthProvider, { name: string; icon: React.ReactNode; bgClass: string }> = {
+const providerConfig: Record<
+  OAuthProvider,
+  { name: string; icon: React.ReactNode; bgClass: string }
+> = {
   google: {
     name: 'Google',
     icon: (
@@ -49,7 +52,7 @@ const providerConfig: Record<OAuthProvider, { name: string; icon: React.ReactNod
     ),
     bgClass: 'bg-gray-900 text-white hover:bg-gray-800',
   },
-}
+};
 
 export function OAuthButtons({
   enabledProviders,
@@ -59,35 +62,35 @@ export function OAuthButtons({
   mode = 'login',
 }: OAuthButtonsProps) {
   if (enabledProviders.length === 0) {
-    return null
+    return null;
   }
 
   const handleOAuthClick = (provider: OAuthProvider) => {
-    const params = new URLSearchParams()
-    if (returnTo) params.set('returnTo', returnTo)
-    if (inviteToken) params.set('inviteToken', inviteToken)
-    if (mode === 'link') params.set('link', 'true')
+    const params = new URLSearchParams();
+    if (returnTo) params.set('returnTo', returnTo);
+    if (inviteToken) params.set('inviteToken', inviteToken);
+    if (mode === 'link') params.set('link', 'true');
 
-    const queryString = params.toString()
-    window.location.href = `/api/auth/oauth/${provider}${queryString ? `?${queryString}` : ''}`
-  }
+    const queryString = params.toString();
+    window.location.href = `/api/auth/oauth/${provider}${queryString ? `?${queryString}` : ''}`;
+  };
 
   const getButtonText = (provider: OAuthProvider) => {
-    const name = providerConfig[provider].name
+    const name = providerConfig[provider].name;
     switch (mode) {
       case 'register':
-        return `Sign up with ${name}`
+        return `Sign up with ${name}`;
       case 'link':
-        return `Link ${name}`
+        return `Link ${name}`;
       default:
-        return `Continue with ${name}`
+        return `Continue with ${name}`;
     }
-  }
+  };
 
   return (
     <div className="space-y-3">
       {enabledProviders.map((provider) => {
-        const config = providerConfig[provider]
+        const config = providerConfig[provider];
         return (
           <Button
             key={provider}
@@ -100,10 +103,10 @@ export function OAuthButtons({
             <span className="mr-2">{config.icon}</span>
             {getButtonText(provider)}
           </Button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 export function OAuthDivider() {
@@ -116,5 +119,5 @@ export function OAuthDivider() {
         <span className="bg-white px-2 text-gray-500">Or continue with</span>
       </div>
     </div>
-  )
+  );
 }

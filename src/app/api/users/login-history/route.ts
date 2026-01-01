@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { getCurrentUser } from '@/lib/auth'
-import { AuthError } from '@/types/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
+import { AuthError } from '@/types/auth';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
@@ -18,11 +18,11 @@ export async function GET(req: NextRequest) {
           } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
-    const { searchParams } = new URL(req.url)
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
+    const { searchParams } = new URL(req.url);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
     // Get login-related audit events for this user
     const loginEvents = await prisma.auditLog.findMany({
@@ -48,14 +48,14 @@ export async function GET(req: NextRequest) {
         metadata: true,
         createdAt: true,
       },
-    })
+    });
 
     // Parse metadata and format response
     const history = loginEvents.map((event) => {
-      let metadata: Record<string, unknown> = {}
+      let metadata: Record<string, unknown> = {};
       if (event.metadata) {
         try {
-          metadata = JSON.parse(event.metadata)
+          metadata = JSON.parse(event.metadata);
         } catch {
           // Ignore parse errors
         }
@@ -69,12 +69,12 @@ export async function GET(req: NextRequest) {
         userAgent: event.userAgent,
         reason: metadata.reason as string | undefined,
         createdAt: event.createdAt.toISOString(),
-      }
-    })
+      };
+    });
 
-    return NextResponse.json({ history })
+    return NextResponse.json({ history });
   } catch (error) {
-    console.error('Get login history error:', error)
+    console.error('Get login history error:', error);
     return NextResponse.json(
       {
         error: {
@@ -83,6 +83,6 @@ export async function GET(req: NextRequest) {
         } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }

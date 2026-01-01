@@ -1,17 +1,20 @@
 # Register API Route
 
 ## Purpose
+
 Handles user registration with email verification workflow. Creates new user accounts with secure password hashing and implements comprehensive validation and conflict checking.
 
 ## Contents
 
 ### `route.ts`
+
 **HTTP Method**: POST
 **Purpose**: Register new user accounts with email verification
 
 ## API Specification
 
 ### Request
+
 ```typescript
 POST /api/auth/register
 Content-Type: application/json
@@ -26,6 +29,7 @@ Content-Type: application/json
 ```
 
 ### Response (Success - 201)
+
 ```typescript
 {
   "message": "Registration successful. Please check your email to verify your account.",
@@ -45,6 +49,7 @@ Content-Type: application/json
 ### Error Responses
 
 #### Rate Limited (429)
+
 ```typescript
 {
   "error": {
@@ -55,6 +60,7 @@ Content-Type: application/json
 ```
 
 #### Validation Error (400)
+
 ```typescript
 {
   "error": {
@@ -69,6 +75,7 @@ Content-Type: application/json
 ```
 
 #### User Already Exists (409)
+
 ```typescript
 {
   "error": {
@@ -84,22 +91,26 @@ Content-Type: application/json
 ## Security Features
 
 ### Rate Limiting
+
 - **Limit**: 3 attempts per IP address
 - **Window**: 1 hour
 - **Key**: `register:{clientIP}`
 - **Purpose**: Prevent spam registrations and abuse
 
 ### Password Security
+
 - **Hashing**: bcrypt with automatic salt generation
 - **Storage**: Only hashed passwords stored in database
 - **Validation**: Password strength requirements enforced
 
 ### Email Verification
+
 - **Token Generation**: Secure random token for email verification
 - **Expiration**: 24-hour token lifetime
 - **Process**: User must verify email before account activation
 
 ### Conflict Detection
+
 - **Email Uniqueness**: Prevents duplicate email registrations
 - **Username Uniqueness**: Prevents duplicate usernames (if provided)
 - **Specific Errors**: Returns which field conflicts for better UX
@@ -107,6 +118,7 @@ Content-Type: application/json
 ## Business Logic
 
 ### Registration Flow
+
 1. **Rate Limit Check**: Verify IP hasn't exceeded registration attempts
 2. **Input Validation**: Validate all required and optional fields
 3. **Duplicate Check**: Verify email and username are unique
@@ -116,6 +128,7 @@ Content-Type: application/json
 7. **Email Notification**: Send verification email (TODO: implement)
 
 ### Data Handling
+
 - **Required Fields**: Email and password
 - **Optional Fields**: Username, firstName, lastName
 - **Default Role**: All new users start with 'USER' role
@@ -124,26 +137,31 @@ Content-Type: application/json
 ## Field Validation
 
 ### Email
+
 - Format validation (valid email syntax)
 - Uniqueness check across all users
 - Required field
 
 ### Password
+
 - Minimum length requirements
 - Complexity requirements (handled by validation schema)
 - Secure hashing before storage
 
 ### Username
+
 - Optional field
 - Uniqueness check if provided
 - Username format validation
 
 ### Profile Fields
+
 - firstName: Optional string
 - lastName: Optional string
 - No special validation beyond basic string rules
 
 ## Dependencies
+
 - **@/lib/validations**: `registerSchema` for input validation
 - **@/lib/security**: `hashPassword`, `generateResetToken` for security operations
 - **@/lib/db**: Prisma client for database operations
@@ -153,9 +171,10 @@ Content-Type: application/json
 ## Implementation Notes
 
 ### Email Verification (TODO)
+
 ```typescript
 // Current implementation logs token to console
-console.log(`Email verification token for ${email}: ${emailVerificationToken}`)
+console.log(`Email verification token for ${email}: ${emailVerificationToken}`);
 
 // Production implementation should:
 // 1. Send email with verification link
@@ -164,6 +183,7 @@ console.log(`Email verification token for ${email}: ${emailVerificationToken}`)
 ```
 
 ### Token Usage
+
 - **Storage**: `passwordResetToken` field (reused for email verification)
 - **Expiration**: `passwordResetExpires` field (24 hours from creation)
 - **Security**: Token should be used once and then invalidated
@@ -171,6 +191,7 @@ console.log(`Email verification token for ${email}: ${emailVerificationToken}`)
 ## Usage Example
 
 ### Client-side Implementation
+
 ```typescript
 async function register(userData: RegisterData) {
   const response = await fetch('/api/auth/register', {
@@ -179,19 +200,20 @@ async function register(userData: RegisterData) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(userData),
-  })
+  });
 
-  const data = await response.json()
+  const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error.message)
+    throw new Error(data.error.message);
   }
 
-  return data
+  return data;
 }
 ```
 
 ### Integration Points
+
 - **Registration Forms**: Used by `/app/register` and `/app/(auth)/register` pages
 - **Email Verification**: Tokens used by `/api/auth/verify-email` endpoint
 - **User Management**: Created users appear in admin user management interfaces

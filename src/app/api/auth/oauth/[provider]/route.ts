@@ -18,7 +18,9 @@ export async function GET(
   // Validate provider
   if (!isValidProvider(provider)) {
     return NextResponse.json(
-      { error: { code: 'INVALID_PROVIDER', message: 'Invalid OAuth provider' } },
+      {
+        error: { code: 'INVALID_PROVIDER', message: 'Invalid OAuth provider' },
+      },
       { status: 400 }
     );
   }
@@ -27,7 +29,12 @@ export async function GET(
   const config = getProviderConfig(provider);
   if (!config) {
     return NextResponse.json(
-      { error: { code: 'PROVIDER_NOT_CONFIGURED', message: 'OAuth provider not configured' } },
+      {
+        error: {
+          code: 'PROVIDER_NOT_CONFIGURED',
+          message: 'OAuth provider not configured',
+        },
+      },
       { status: 400 }
     );
   }
@@ -44,7 +51,12 @@ export async function GET(
     const session = await getSession();
     if (!session.userId) {
       return NextResponse.json(
-        { error: { code: 'UNAUTHORIZED', message: 'Must be logged in to link account' } },
+        {
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Must be logged in to link account',
+          },
+        },
         { status: 401 }
       );
     }
@@ -66,7 +78,12 @@ export async function GET(
 
   if (!authUrl) {
     return NextResponse.json(
-      { error: { code: 'BUILD_AUTH_URL_FAILED', message: 'Failed to build authorization URL' } },
+      {
+        error: {
+          code: 'BUILD_AUTH_URL_FAILED',
+          message: 'Failed to build authorization URL',
+        },
+      },
       { status: 500 }
     );
   }

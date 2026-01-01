@@ -1,18 +1,24 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert } from '@/components/ui/alert'
-import { Loader2, Link as LinkIcon, Unlink, AlertCircle } from 'lucide-react'
-import type { OAuthProvider } from '@/lib/auth/oauth/providers'
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
+import { Loader2, Link as LinkIcon, Unlink, AlertCircle } from 'lucide-react';
+import type { OAuthProvider } from '@/lib/auth/oauth/providers';
 
 interface OAuthAccount {
-  id: string
-  provider: string
-  email: string | null
-  createdAt: string
+  id: string;
+  provider: string;
+  email: string | null;
+  createdAt: string;
 }
 
 const providerIcons: Record<string, React.ReactNode> = {
@@ -45,95 +51,101 @@ const providerIcons: Record<string, React.ReactNode> = {
       />
     </svg>
   ),
-}
+};
 
 export function OAuthAccounts() {
-  const searchParams = useSearchParams()
-  const [accounts, setAccounts] = useState<OAuthAccount[]>([])
-  const [enabledProviders, setEnabledProviders] = useState<OAuthProvider[]>([])
-  const [hasPassword, setHasPassword] = useState(true)
-  const [loading, setLoading] = useState(true)
-  const [unlinking, setUnlinking] = useState<string | null>(null)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const searchParams = useSearchParams();
+  const [accounts, setAccounts] = useState<OAuthAccount[]>([]);
+  const [enabledProviders, setEnabledProviders] = useState<OAuthProvider[]>([]);
+  const [hasPassword, setHasPassword] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [unlinking, setUnlinking] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    fetchAccounts()
+    fetchAccounts();
 
     // Check for URL params (from OAuth callback)
-    const message = searchParams.get('message')
-    const errorParam = searchParams.get('error')
+    const message = searchParams.get('message');
+    const errorParam = searchParams.get('error');
     if (message === 'oauth_linked') {
-      setSuccess('OAuth account linked successfully!')
+      setSuccess('OAuth account linked successfully!');
     } else if (message === 'oauth_already_linked') {
-      setSuccess('This OAuth account is already linked to your account.')
+      setSuccess('This OAuth account is already linked to your account.');
     } else if (errorParam === 'oauth_already_linked') {
-      setError('This OAuth account is already linked to another user.')
+      setError('This OAuth account is already linked to another user.');
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('/api/auth/oauth/accounts')
-      if (!res.ok) throw new Error('Failed to fetch accounts')
-      const data = await res.json()
-      setAccounts(data.accounts)
-      setEnabledProviders(data.enabledProviders)
-      setHasPassword(data.hasPassword)
+      const res = await fetch('/api/auth/oauth/accounts');
+      if (!res.ok) throw new Error('Failed to fetch accounts');
+      const data = await res.json();
+      setAccounts(data.accounts);
+      setEnabledProviders(data.enabledProviders);
+      setHasPassword(data.hasPassword);
     } catch {
-      setError('Failed to load OAuth accounts')
+      setError('Failed to load OAuth accounts');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleUnlink = async (provider: string) => {
-    if (!confirm(`Are you sure you want to unlink your ${formatProvider(provider)} account?`)) {
-      return
+    if (
+      !confirm(
+        `Are you sure you want to unlink your ${formatProvider(provider)} account?`
+      )
+    ) {
+      return;
     }
 
-    setUnlinking(provider)
-    setError('')
-    setSuccess('')
+    setUnlinking(provider);
+    setError('');
+    setSuccess('');
 
     try {
       const res = await fetch(`/api/auth/oauth/accounts?provider=${provider}`, {
         method: 'DELETE',
-      })
+      });
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error?.message || 'Failed to unlink account')
+        const data = await res.json();
+        throw new Error(data.error?.message || 'Failed to unlink account');
       }
 
-      setAccounts(prev => prev.filter(a => a.provider !== provider))
-      setSuccess(`${formatProvider(provider)} account unlinked successfully`)
+      setAccounts((prev) => prev.filter((a) => a.provider !== provider));
+      setSuccess(`${formatProvider(provider)} account unlinked successfully`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlink account')
+      setError(err instanceof Error ? err.message : 'Failed to unlink account');
     } finally {
-      setUnlinking(null)
+      setUnlinking(null);
     }
-  }
+  };
 
   const handleLink = (provider: OAuthProvider) => {
-    window.location.href = `/api/auth/oauth/${provider}?link=true&returnTo=/profile/security`
-  }
+    window.location.href = `/api/auth/oauth/${provider}?link=true&returnTo=/profile/security`;
+  };
 
   const formatProvider = (provider: string) => {
-    return provider.charAt(0).toUpperCase() + provider.slice(1)
-  }
+    return provider.charAt(0).toUpperCase() + provider.slice(1);
+  };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-    })
-  }
+    });
+  };
 
-  const linkedProviders = accounts.map(a => a.provider)
-  const availableProviders = enabledProviders.filter(p => !linkedProviders.includes(p))
-  const canUnlink = hasPassword || accounts.length > 1
+  const linkedProviders = accounts.map((a) => a.provider);
+  const availableProviders = enabledProviders.filter(
+    (p) => !linkedProviders.includes(p)
+  );
+  const canUnlink = hasPassword || accounts.length > 1;
 
   if (loading) {
     return (
@@ -148,7 +160,7 @@ export function OAuthAccounts() {
           <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -172,16 +184,21 @@ export function OAuthAccounts() {
             {accounts.map((account) => (
               <div
                 key={account.id}
-                className="flex items-center justify-between p-4 border rounded-lg"
+                className="flex items-center justify-between rounded-lg border p-4"
               >
                 <div className="flex items-center gap-3">
                   <div className="text-gray-700">
-                    {providerIcons[account.provider] || <LinkIcon className="h-5 w-5" />}
+                    {providerIcons[account.provider] || (
+                      <LinkIcon className="h-5 w-5" />
+                    )}
                   </div>
                   <div>
-                    <div className="font-medium">{formatProvider(account.provider)}</div>
+                    <div className="font-medium">
+                      {formatProvider(account.provider)}
+                    </div>
                     <div className="text-sm text-gray-500">
-                      {account.email || 'Connected'} &middot; Linked {formatDate(account.createdAt)}
+                      {account.email || 'Connected'} &middot; Linked{' '}
+                      {formatDate(account.createdAt)}
                     </div>
                   </div>
                 </div>
@@ -190,13 +207,13 @@ export function OAuthAccounts() {
                   size="sm"
                   onClick={() => handleUnlink(account.provider)}
                   disabled={!canUnlink || unlinking === account.provider}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
                 >
                   {unlinking === account.provider ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      <Unlink className="h-4 w-4 mr-1" />
+                      <Unlink className="mr-1 h-4 w-4" />
                       Unlink
                     </>
                   )}
@@ -207,18 +224,21 @@ export function OAuthAccounts() {
         )}
 
         {!canUnlink && accounts.length > 0 && (
-          <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <p>
-              You cannot unlink your only sign-in method. Set a password first or link another account.
+              You cannot unlink your only sign-in method. Set a password first
+              or link another account.
             </p>
           </div>
         )}
 
         {/* Available providers to link */}
         {availableProviders.length > 0 && (
-          <div className="pt-4 border-t">
-            <p className="text-sm font-medium text-gray-700 mb-3">Link another account</p>
+          <div className="border-t pt-4">
+            <p className="mb-3 text-sm font-medium text-gray-700">
+              Link another account
+            </p>
             <div className="flex gap-3">
               {availableProviders.map((provider) => (
                 <Button
@@ -235,11 +255,11 @@ export function OAuthAccounts() {
         )}
 
         {accounts.length === 0 && availableProviders.length === 0 && (
-          <p className="text-center text-gray-500 py-4">
+          <p className="py-4 text-center text-gray-500">
             No OAuth providers are configured.
           </p>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

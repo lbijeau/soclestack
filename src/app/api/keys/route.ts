@@ -1,18 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth'
-import { prisma } from '@/lib/db'
-import { createApiKeySchema } from '@/lib/validations'
-import { generateApiKey, hasReachedKeyLimit, getActiveKeyCount, MAX_KEYS_PER_USER } from '@/lib/api-keys'
-import { logAuditEvent } from '@/lib/audit'
-import { AuthError } from '@/types/auth'
-import { SECURITY_CONFIG } from '@/lib/config/security'
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { createApiKeySchema } from '@/lib/validations';
+import {
+  generateApiKey,
+  hasReachedKeyLimit,
+  getActiveKeyCount,
+  MAX_KEYS_PER_USER,
+} from '@/lib/api-keys';
+import { logAuditEvent } from '@/lib/audit';
+import { AuthError } from '@/types/auth';
+import { SECURITY_CONFIG } from '@/lib/config/security';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 // GET /api/keys - List user's API keys
 export async function GET() {
   try {
-    const currentUser = await getCurrentUser()
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
@@ -22,7 +27,7 @@ export async function GET() {
           } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     const keys = await prisma.apiKey.findMany({
@@ -40,17 +45,17 @@ export async function GET() {
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
-    })
+    });
 
-    const count = keys.length
+    const count = keys.length;
 
     return NextResponse.json({
       keys,
       count,
       limit: MAX_KEYS_PER_USER,
-    })
+    });
   } catch (error) {
-    console.error('List API keys error:', error)
+    console.error('List API keys error:', error);
     return NextResponse.json(
       {
         error: {
@@ -59,7 +64,7 @@ export async function GET() {
         } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -67,8 +72,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting
-    const clientIP = getClientIP(req)
-    const { limit, windowMs } = SECURITY_CONFIG.rateLimits.apiKeyCreate
+    const clientIP = getClientIP(req);
+    const { limit, windowMs } = SECURITY_CONFIG.rateLimits.apiKeyCreate;
     if (isRateLimited(`apikey-create:${clientIP}`, limit, windowMs)) {
       return NextResponse.json(
         {
@@ -78,10 +83,10 @@ export async function POST(req: NextRequest) {
           } as AuthError,
         },
         { status: 429 }
-      )
+      );
     }
 
-    const currentUser = await getCurrentUser()
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
@@ -91,7 +96,7 @@ export async function POST(req: NextRequest) {
           } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     // Check key limit
@@ -104,11 +109,11 @@ export async function POST(req: NextRequest) {
           } as AuthError,
         },
         { status: 400 }
-      )
+      );
     }
 
-    const body = await req.json()
-    const validationResult = createApiKeySchema.safeParse(body)
+    const body = await req.json();
+    const validationResult = createApiKeySchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
         {
@@ -119,11 +124,11 @@ export async function POST(req: NextRequest) {
           } as AuthError,
         },
         { status: 400 }
-      )
+      );
     }
 
-    const { name, permission, expiresAt } = validationResult.data
-    const { key, keyHash, keyPrefix } = generateApiKey()
+    const { name, permission, expiresAt } = validationResult.data;
+    const { key, keyHash, keyPrefix } = generateApiKey();
 
     const apiKey = await prisma.apiKey.create({
       data: {
@@ -142,7 +147,7 @@ export async function POST(req: NextRequest) {
         expiresAt: true,
         createdAt: true,
       },
-    })
+    });
 
     // Log audit event
     await logAuditEvent({
@@ -155,19 +160,19 @@ export async function POST(req: NextRequest) {
         keyPrefix,
         permission,
       },
-    })
+    });
 
     // Get updated count
-    const count = await getActiveKeyCount(currentUser.id)
+    const count = await getActiveKeyCount(currentUser.id);
 
     return NextResponse.json({
       key, // Only returned on creation!
       ...apiKey,
       count,
       limit: MAX_KEYS_PER_USER,
-    })
+    });
   } catch (error) {
-    console.error('Create API key error:', error)
+    console.error('Create API key error:', error);
     return NextResponse.json(
       {
         error: {
@@ -176,6 +181,6 @@ export async function POST(req: NextRequest) {
         } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }

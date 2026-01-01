@@ -6,7 +6,10 @@ import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
 import { sendTwoFactorDisabledNotification } from '@/lib/email';
 import { z } from 'zod';
-import { assertNotImpersonating, ImpersonationBlockedError } from '@/lib/auth/impersonation';
+import {
+  assertNotImpersonating,
+  ImpersonationBlockedError,
+} from '@/lib/auth/impersonation';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 
 export const runtime = 'nodejs';
@@ -24,7 +27,12 @@ export async function POST(req: NextRequest) {
     const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorDisable;
     if (isRateLimited(`2fa-disable:${clientIP}`, limit, windowMs)) {
       return NextResponse.json(
-        { error: { type: 'AUTHORIZATION_ERROR', message: 'Too many requests. Please try again later.' } },
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Too many requests. Please try again later.',
+          },
+        },
         { status: 429 }
       );
     }
@@ -33,7 +41,9 @@ export async function POST(req: NextRequest) {
 
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
@@ -65,7 +75,12 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { role: true, twoFactorSecret: true, twoFactorEnabled: true, email: true },
+      select: {
+        role: true,
+        twoFactorSecret: true,
+        twoFactorEnabled: true,
+        email: true,
+      },
     });
 
     if (!user) {

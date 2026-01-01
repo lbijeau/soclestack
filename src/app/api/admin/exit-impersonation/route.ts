@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, getClientIP } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
-import { isImpersonating, getImpersonationDuration } from '@/lib/auth/impersonation';
+import {
+  isImpersonating,
+  getImpersonationDuration,
+} from '@/lib/auth/impersonation';
 
 export const runtime = 'nodejs';
 
@@ -14,7 +17,9 @@ export async function POST(req: NextRequest) {
     // Must be logged in
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
@@ -22,7 +27,9 @@ export async function POST(req: NextRequest) {
     // Must be impersonating
     if (!isImpersonating(session)) {
       return NextResponse.json(
-        { error: { type: 'FORBIDDEN', message: 'Not currently impersonating' } },
+        {
+          error: { type: 'FORBIDDEN', message: 'Not currently impersonating' },
+        },
         { status: 403 }
       );
     }
@@ -67,7 +74,12 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Exit impersonation error:', error);
     return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'Failed to exit impersonation' } },
+      {
+        error: {
+          type: 'SERVER_ERROR',
+          message: 'Failed to exit impersonation',
+        },
+      },
       { status: 500 }
     );
   }

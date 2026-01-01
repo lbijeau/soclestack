@@ -1,15 +1,15 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { getCurrentUser, isRateLimited } from '@/lib/auth'
-import { sendVerificationEmail } from '@/lib/email'
-import { generateResetToken } from '@/lib/security'
-import { AuthError } from '@/types/auth'
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
+import { sendVerificationEmail } from '@/lib/email';
+import { generateResetToken } from '@/lib/security';
+import { AuthError } from '@/types/auth';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 export async function POST() {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
@@ -20,7 +20,7 @@ export async function POST() {
           } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     if (user.emailVerified) {
@@ -32,26 +32,27 @@ export async function POST() {
           } as AuthError,
         },
         { status: 400 }
-      )
+      );
     }
 
     // Rate limit: 3 resend attempts per hour
-    const rateLimitKey = `resend-verification:${user.id}`
+    const rateLimitKey = `resend-verification:${user.id}`;
     if (isRateLimited(rateLimitKey, 3, 60 * 60 * 1000)) {
       return NextResponse.json(
         {
           error: {
             type: 'RATE_LIMIT_ERROR',
-            message: 'Too many verification emails sent. Please try again later.',
+            message:
+              'Too many verification emails sent. Please try again later.',
           } as AuthError,
         },
         { status: 429 }
-      )
+      );
     }
 
     // Generate new verification token
-    const verificationToken = await generateResetToken()
-    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    const verificationToken = await generateResetToken();
+    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Update user with new token (reusing passwordResetToken field for email verification)
     await prisma.user.update({
@@ -60,16 +61,20 @@ export async function POST() {
         passwordResetToken: verificationToken,
         passwordResetExpires: tokenExpiry,
       },
-    })
+    });
 
     // Send verification email
-    await sendVerificationEmail(user.email, verificationToken, user.firstName || user.username || undefined)
+    await sendVerificationEmail(
+      user.email,
+      verificationToken,
+      user.firstName || user.username || undefined
+    );
 
     return NextResponse.json({
       message: 'Verification email sent successfully',
-    })
+    });
   } catch (error) {
-    console.error('Resend verification error:', error)
+    console.error('Resend verification error:', error);
     return NextResponse.json(
       {
         error: {
@@ -78,6 +83,6 @@ export async function POST() {
         } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }

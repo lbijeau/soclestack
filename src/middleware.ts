@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { getSessionFromRequest } from '@/lib/auth-edge'
-import { securityHeaders, contentSecurityPolicy } from '@/lib/security-headers'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { getSessionFromRequest } from '@/lib/auth-edge';
+import { securityHeaders, contentSecurityPolicy } from '@/lib/security-headers';
 
 // Define protected routes and their required roles
 const protectedRoutes = {
@@ -16,76 +16,86 @@ const protectedRoutes = {
   '/organization': 'USER', // Org role checks happen at API level
   '/organization/members': 'USER',
   '/organization/invites': 'USER',
-} as const
+} as const;
 
 // Define auth routes that should redirect if already logged in
-const authRoutes = ['/login', '/register', '/forgot-password', '/reset-password']
+const authRoutes = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+];
 
 // Define OAuth routes that are public (part of auth flow)
-const oauthRoutes = ['/auth/oauth/complete', '/auth/oauth/link', '/auth/two-factor']
+const oauthRoutes = [
+  '/auth/oauth/complete',
+  '/auth/oauth/link',
+  '/auth/two-factor',
+];
 
 // Define public routes that don't require authentication
 // Note: /invite/[token] is public so unauthenticated users can view invites
-const publicRoutes = ['/', '/verify-email']
+const publicRoutes = ['/', '/verify-email'];
 
 // Define public API routes that don't require authentication
-const publicApiRoutes = ['/api/invites']
+const publicApiRoutes = ['/api/invites'];
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname } = request.nextUrl;
 
   // Apply security headers to all requests
-  const response = NextResponse.next()
+  const response = NextResponse.next();
 
   // Add security headers
   Object.entries(securityHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value)
-  })
+    response.headers.set(key, value);
+  });
 
   // Add Content Security Policy
-  response.headers.set('Content-Security-Policy', contentSecurityPolicy)
+  response.headers.set('Content-Security-Policy', contentSecurityPolicy);
 
   // Skip middleware for static files and API routes that don't need protection
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/invite/') || // Public invite pages
-    publicApiRoutes.some(route => pathname.startsWith(route)) ||
+    publicApiRoutes.some((route) => pathname.startsWith(route)) ||
     oauthRoutes.includes(pathname) || // OAuth flow pages
     pathname.includes('.') ||
     publicRoutes.includes(pathname)
   ) {
-    return response
+    return response;
   }
 
   try {
     // Get session
-    const session = await getSessionFromRequest(request)
-    const isAuthenticated = session.isLoggedIn && session.userId
+    const session = await getSessionFromRequest(request);
+    const isAuthenticated = session.isLoggedIn && session.userId;
 
     // Handle auth routes (redirect if already logged in)
     if (authRoutes.includes(pathname)) {
       if (isAuthenticated) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        return NextResponse.redirect(new URL('/dashboard', request.url));
       }
-      return response
+      return response;
     }
 
     // Check if route is protected
-    const requiredRole = protectedRoutes[pathname as keyof typeof protectedRoutes]
+    const requiredRole =
+      protectedRoutes[pathname as keyof typeof protectedRoutes];
 
     if (requiredRole) {
       // Route requires authentication
       if (!isAuthenticated) {
         // Redirect to login with return URL
-        const loginUrl = new URL('/login', request.url)
-        loginUrl.searchParams.set('returnUrl', pathname)
-        return NextResponse.redirect(loginUrl)
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('returnUrl', pathname);
+        return NextResponse.redirect(loginUrl);
       }
 
       // For API routes, we'll let the route handler check permissions
       if (pathname.startsWith('/api/')) {
-        return response
+        return response;
       }
 
       // For page routes, check role here if needed
@@ -93,23 +103,22 @@ export async function middleware(request: NextRequest) {
       // For now, we'll let the page components handle role checking
     }
 
-    return response
-
+    return response;
   } catch (error) {
-    console.error('Middleware error:', error)
+    console.error('Middleware error:', error);
 
     // If there's an error with the session, redirect to login for protected routes
-    const isProtectedRoute = Object.keys(protectedRoutes).some(route =>
+    const isProtectedRoute = Object.keys(protectedRoutes).some((route) =>
       pathname.startsWith(route)
-    )
+    );
 
     if (isProtectedRoute) {
-      const loginUrl = new URL('/login', request.url)
-      loginUrl.searchParams.set('returnUrl', pathname)
-      return NextResponse.redirect(loginUrl)
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('returnUrl', pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
-    return response
+    return response;
   }
 }
 
@@ -124,4 +133,4 @@ export const config = {
      */
     '/((?!api/auth|_next/static|_next/image|favicon.ico).*)',
   ],
-}
+};

@@ -1,46 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, hasRequiredRole } from '@/lib/auth'
-import { updateUserRoleSchema, updateUserStatusSchema } from '@/lib/validations'
-import { prisma } from '@/lib/db'
-import { AuthError } from '@/types/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser, hasRequiredRole } from '@/lib/auth';
+import {
+  updateUserRoleSchema,
+  updateUserStatusSchema,
+} from '@/lib/validations';
+import { prisma } from '@/lib/db';
+import { AuthError } from '@/types/auth';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 interface RouteParams {
   params: Promise<{
-    id: string
-  }>
+    id: string;
+  }>;
 }
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     // Check authentication
-    const currentUser = await getCurrentUser()
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated'
-          } as AuthError
+            message: 'Not authenticated',
+          } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
-    const { id } = await params
+    const { id } = await params;
 
     // Users can view their own profile, admins/moderators can view any profile
-    if (currentUser.id !== id && !hasRequiredRole(currentUser.role, 'MODERATOR')) {
+    if (
+      currentUser.id !== id &&
+      !hasRequiredRole(currentUser.role, 'MODERATOR')
+    ) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHORIZATION_ERROR',
-            message: 'Insufficient permissions'
-          } as AuthError
+            message: 'Insufficient permissions',
+          } as AuthError,
         },
         { status: 403 }
-      )
+      );
     }
 
     const user = await prisma.user.findUnique({
@@ -69,71 +75,70 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           orderBy: { createdAt: 'desc' },
         },
       },
-    })
+    });
 
     if (!user) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'User not found'
-          } as AuthError
+            message: 'User not found',
+          } as AuthError,
         },
         { status: 404 }
-      )
+      );
     }
 
-    return NextResponse.json({ user })
-
+    return NextResponse.json({ user });
   } catch (error) {
-    console.error('Get user error:', error)
+    console.error('Get user error:', error);
     return NextResponse.json(
       {
         error: {
           type: 'SERVER_ERROR',
-          message: 'An internal server error occurred'
-        } as AuthError
+          message: 'An internal server error occurred',
+        } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
     // Check authentication
-    const currentUser = await getCurrentUser()
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated'
-          } as AuthError
+            message: 'Not authenticated',
+          } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
-    const { id } = await params
-    const body = await req.json()
+    const { id } = await params;
+    const body = await req.json();
 
     // Find target user
     const targetUser = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true, email: true }
-    })
+      select: { id: true, role: true, email: true },
+    });
 
     if (!targetUser) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'User not found'
-          } as AuthError
+            message: 'User not found',
+          } as AuthError,
         },
         { status: 404 }
-      )
+      );
     }
 
     // Check if trying to update role
@@ -144,11 +149,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           {
             error: {
               type: 'AUTHORIZATION_ERROR',
-              message: 'Only administrators can change user roles'
-            } as AuthError
+              message: 'Only administrators can change user roles',
+            } as AuthError,
           },
           { status: 403 }
-        )
+        );
       }
 
       // Can't change own role
@@ -157,25 +162,25 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           {
             error: {
               type: 'AUTHORIZATION_ERROR',
-              message: 'You cannot change your own role'
-            } as AuthError
+              message: 'You cannot change your own role',
+            } as AuthError,
           },
           { status: 403 }
-        )
+        );
       }
 
-      const validationResult = updateUserRoleSchema.safeParse(body)
+      const validationResult = updateUserRoleSchema.safeParse(body);
       if (!validationResult.success) {
         return NextResponse.json(
           {
             error: {
               type: 'VALIDATION_ERROR',
               message: 'Invalid input data',
-              details: validationResult.error.flatten().fieldErrors
-            } as AuthError
+              details: validationResult.error.flatten().fieldErrors,
+            } as AuthError,
           },
           { status: 400 }
-        )
+        );
       }
 
       const updatedUser = await prisma.user.update({
@@ -193,13 +198,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           lastLoginAt: true,
           createdAt: true,
           updatedAt: true,
-        }
-      })
+        },
+      });
 
       return NextResponse.json({
         message: 'User role updated successfully',
-        user: updatedUser
-      })
+        user: updatedUser,
+      });
     }
 
     // Check if trying to update status
@@ -210,11 +215,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           {
             error: {
               type: 'AUTHORIZATION_ERROR',
-              message: 'Only administrators can change user status'
-            } as AuthError
+              message: 'Only administrators can change user status',
+            } as AuthError,
           },
           { status: 403 }
-        )
+        );
       }
 
       // Can't deactivate own account
@@ -223,25 +228,25 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           {
             error: {
               type: 'AUTHORIZATION_ERROR',
-              message: 'You cannot deactivate your own account'
-            } as AuthError
+              message: 'You cannot deactivate your own account',
+            } as AuthError,
           },
           { status: 403 }
-        )
+        );
       }
 
-      const validationResult = updateUserStatusSchema.safeParse(body)
+      const validationResult = updateUserStatusSchema.safeParse(body);
       if (!validationResult.success) {
         return NextResponse.json(
           {
             error: {
               type: 'VALIDATION_ERROR',
               message: 'Invalid input data',
-              details: validationResult.error.flatten().fieldErrors
-            } as AuthError
+              details: validationResult.error.flatten().fieldErrors,
+            } as AuthError,
           },
           { status: 400 }
-        )
+        );
       }
 
       const updatedUser = await prisma.user.update({
@@ -259,60 +264,59 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           lastLoginAt: true,
           createdAt: true,
           updatedAt: true,
-        }
-      })
+        },
+      });
 
       // If deactivating user, logout from all devices
       if (!validationResult.data.isActive) {
         await prisma.userSession.deleteMany({
-          where: { userId: id }
-        })
+          where: { userId: id },
+        });
       }
 
       return NextResponse.json({
         message: 'User status updated successfully',
-        user: updatedUser
-      })
+        user: updatedUser,
+      });
     }
 
     return NextResponse.json(
       {
         error: {
           type: 'VALIDATION_ERROR',
-          message: 'No valid update fields provided'
-        } as AuthError
+          message: 'No valid update fields provided',
+        } as AuthError,
       },
       { status: 400 }
-    )
-
+    );
   } catch (error) {
-    console.error('Update user error:', error)
+    console.error('Update user error:', error);
     return NextResponse.json(
       {
         error: {
           type: 'SERVER_ERROR',
-          message: 'An internal server error occurred'
-        } as AuthError
+          message: 'An internal server error occurred',
+        } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
     // Check authentication
-    const currentUser = await getCurrentUser()
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated'
-          } as AuthError
+            message: 'Not authenticated',
+          } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     // Only admins can delete users
@@ -321,14 +325,14 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         {
           error: {
             type: 'AUTHORIZATION_ERROR',
-            message: 'Only administrators can delete users'
-          } as AuthError
+            message: 'Only administrators can delete users',
+          } as AuthError,
         },
         { status: 403 }
-      )
+      );
     }
 
-    const { id } = await params
+    const { id } = await params;
 
     // Can't delete own account
     if (currentUser.id === id) {
@@ -336,50 +340,49 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         {
           error: {
             type: 'AUTHORIZATION_ERROR',
-            message: 'You cannot delete your own account'
-          } as AuthError
+            message: 'You cannot delete your own account',
+          } as AuthError,
         },
         { status: 403 }
-      )
+      );
     }
 
     // Check if user exists
     const targetUser = await prisma.user.findUnique({
       where: { id },
-      select: { id: true }
-    })
+      select: { id: true },
+    });
 
     if (!targetUser) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'User not found'
-          } as AuthError
+            message: 'User not found',
+          } as AuthError,
         },
         { status: 404 }
-      )
+      );
     }
 
     // Delete user (cascade will handle related records)
     await prisma.user.delete({
-      where: { id }
-    })
+      where: { id },
+    });
 
     return NextResponse.json({
-      message: 'User deleted successfully'
-    })
-
+      message: 'User deleted successfully',
+    });
   } catch (error) {
-    console.error('Delete user error:', error)
+    console.error('Delete user error:', error);
     return NextResponse.json(
       {
         error: {
           type: 'SERVER_ERROR',
-          message: 'An internal server error occurred'
-        } as AuthError
+          message: 'An internal server error occurred',
+        } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }

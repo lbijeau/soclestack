@@ -11,14 +11,20 @@ export interface LockoutStatus {
   remainingAttempts: number;
 }
 
-export async function checkAccountLocked(userId: string): Promise<LockoutStatus> {
+export async function checkAccountLocked(
+  userId: string
+): Promise<LockoutStatus> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { lockedUntil: true, failedLoginAttempts: true },
   });
 
   if (!user) {
-    return { isLocked: false, lockedUntil: null, remainingAttempts: maxFailedAttempts };
+    return {
+      isLocked: false,
+      lockedUntil: null,
+      remainingAttempts: maxFailedAttempts,
+    };
   }
 
   const now = new Date();
@@ -38,7 +44,11 @@ export async function checkAccountLocked(userId: string): Promise<LockoutStatus>
       where: { id: userId },
       data: { lockedUntil: null, failedLoginAttempts: 0 },
     });
-    return { isLocked: false, lockedUntil: null, remainingAttempts: maxFailedAttempts };
+    return {
+      isLocked: false,
+      lockedUntil: null,
+      remainingAttempts: maxFailedAttempts,
+    };
   }
 
   return {
@@ -59,7 +69,11 @@ export async function recordFailedAttempt(
   });
 
   if (!user) {
-    return { isLocked: false, lockedUntil: null, remainingAttempts: maxFailedAttempts };
+    return {
+      isLocked: false,
+      lockedUntil: null,
+      remainingAttempts: maxFailedAttempts,
+    };
   }
 
   const newAttempts = user.failedLoginAttempts + 1;

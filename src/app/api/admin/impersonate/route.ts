@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
     // Must be logged in
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
@@ -28,7 +30,12 @@ export async function POST(req: NextRequest) {
     // Cannot start impersonation while already impersonating
     if (isImpersonating(session)) {
       return NextResponse.json(
-        { error: { type: 'FORBIDDEN', message: 'Already impersonating a user. Exit first.' } },
+        {
+          error: {
+            type: 'FORBIDDEN',
+            message: 'Already impersonating a user. Exit first.',
+          },
+        },
         { status: 403 }
       );
     }
@@ -36,7 +43,12 @@ export async function POST(req: NextRequest) {
     // Must be ADMIN
     if (session.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: { type: 'AUTHORIZATION_ERROR', message: 'Admin access required' } },
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Admin access required',
+          },
+        },
         { status: 403 }
       );
     }
@@ -47,7 +59,13 @@ export async function POST(req: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { error: { type: 'VALIDATION_ERROR', message: 'Invalid request', details: result.error.flatten().fieldErrors } },
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'Invalid request',
+            details: result.error.flatten().fieldErrors,
+          },
+        },
         { status: 400 }
       );
     }
@@ -57,7 +75,9 @@ export async function POST(req: NextRequest) {
     // Cannot impersonate yourself
     if (targetUserId === session.userId) {
       return NextResponse.json(
-        { error: { type: 'FORBIDDEN', message: 'Cannot impersonate yourself' } },
+        {
+          error: { type: 'FORBIDDEN', message: 'Cannot impersonate yourself' },
+        },
         { status: 403 }
       );
     }
@@ -82,7 +102,12 @@ export async function POST(req: NextRequest) {
 
     if (!targetUser.isActive) {
       return NextResponse.json(
-        { error: { type: 'FORBIDDEN', message: 'Cannot impersonate inactive user' } },
+        {
+          error: {
+            type: 'FORBIDDEN',
+            message: 'Cannot impersonate inactive user',
+          },
+        },
         { status: 403 }
       );
     }
@@ -90,7 +115,12 @@ export async function POST(req: NextRequest) {
     // Cannot impersonate another ADMIN
     if (targetUser.role === 'ADMIN') {
       return NextResponse.json(
-        { error: { type: 'FORBIDDEN', message: 'Cannot impersonate another admin' } },
+        {
+          error: {
+            type: 'FORBIDDEN',
+            message: 'Cannot impersonate another admin',
+          },
+        },
         { status: 403 }
       );
     }
@@ -139,7 +169,12 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Impersonation error:', error);
     return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'Failed to start impersonation' } },
+      {
+        error: {
+          type: 'SERVER_ERROR',
+          message: 'Failed to start impersonation',
+        },
+      },
       { status: 500 }
     );
   }

@@ -16,7 +16,9 @@ export async function POST(
     // Check authentication
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
@@ -24,7 +26,12 @@ export async function POST(
     // Check admin role
     if (session.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: { type: 'AUTHORIZATION_ERROR', message: 'Admin access required' } },
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Admin access required',
+          },
+        },
         { status: 403 }
       );
     }

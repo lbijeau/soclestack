@@ -10,7 +10,9 @@ export interface TOTPSetupResult {
   manualEntryKey: string;
 }
 
-export async function generateTOTPSecret(email: string): Promise<TOTPSetupResult> {
+export async function generateTOTPSecret(
+  email: string
+): Promise<TOTPSetupResult> {
   const totp = new OTPAuth.TOTP({
     issuer,
     label: email,
