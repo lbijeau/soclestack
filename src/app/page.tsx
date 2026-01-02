@@ -28,7 +28,7 @@ export default async function HomePage() {
               Welcome to SocleStack
             </h1>
             <p className="mx-auto mb-8 max-w-3xl text-xl text-gray-600">
-              A complete Next.js application with Enterprise-grade-style user management
+              A complete Next.js application with Enterprise-grade user management
               features. Secure authentication, role-based access control, and
               modern React components.
             </p>
@@ -179,7 +179,7 @@ export default async function HomePage() {
               </h2>
               <p className="mb-8 text-xl text-gray-600">
                 This is a complete, production-ready Next.js application with
-                Enterprise-grade-style user management features. Everything from user
+                Enterprise-grade user management features. Everything from user
                 registration to admin panels is fully implemented and ready to
                 use.
               </p>
@@ -207,5 +207,5 @@ export default async function HomePage() {
 export const metadata = {
   title: 'SocleStack - Next.js User Management',
   description:
-    'A complete Next.js application with Enterprise-grade-style user management features',
+    'A complete Next.js application with Enterprise-grade user management features',
 };

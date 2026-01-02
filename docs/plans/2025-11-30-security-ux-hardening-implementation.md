@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Implement Audit Logging, Account Lockout, and Remember Me features for Enterprise-grade-style security.
+**Goal:** Implement Audit Logging, Account Lockout, and Remember Me features for Enterprise-grade security.
 
 **Architecture:** Three-layer approach: (1) Audit logging as foundation service, (2) Account lockout integrated into login flow, (3) Remember Me with rotating tokens. All changes build on existing iron-session + JWT authentication.
 

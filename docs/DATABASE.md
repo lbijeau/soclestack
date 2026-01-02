@@ -500,7 +500,7 @@ const exportLogs = await prisma.auditLog.findMany({
 
 ### RememberMeToken
 
-Implements "Remember Me" functionality with Enterprise-grade-style token theft detection.
+Implements "Remember Me" functionality with advanced token theft detection.
 
 **Table**: `remember_me_tokens`
 

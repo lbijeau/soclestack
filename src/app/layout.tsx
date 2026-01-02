@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'SocleStack - Next.js User Management',
   description:
-    'A complete Next.js application with Enterprise-grade-style user management features',
+    'A complete Next.js application with Enterprise-grade user management features',
 };
 
 export default function RootLayout({

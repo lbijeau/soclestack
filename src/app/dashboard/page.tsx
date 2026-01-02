@@ -204,9 +204,9 @@ export default async function DashboardPage() {
                     Hello World!
                   </h3>
                   <p className="mb-6 text-gray-600">
-                    You&apos;ve successfully logged into your SocleStack account.
-                    This is a complete Next.js application with Enterprise-grade-style
-                    user management features.
+                    You&apos;ve successfully logged into your SocleStack
+                    account. This is a complete Next.js application with
+                    Enterprise-grade user management features.
                   </p>
                   <div className="space-y-3">
                     <Link href="/profile">

@@ -5,7 +5,7 @@
 
 ## Project Goal
 
-Build a Next.js 14 application with Enterprise-grade-style user management features.
+Build a Next.js 14 application with Enterprise-grade user management features.
 
 ---
 
@@ -40,7 +40,7 @@ Build a Next.js 14 application with Enterprise-grade-style user management featu
 
 **Remember Me** (`src/lib/auth/remember-me.ts`)
 - 30-day persistent login sessions
-- Series:token rotation pattern (Enterprise-grade-style)
+- Series:token rotation pattern (Enterprise-grade)
 - Token theft detection - if stolen token is reused, ALL user sessions revoked
 - Timing-safe comparison to prevent timing attacks
 - Cookie: httpOnly, secure, sameSite=lax

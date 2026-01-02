@@ -1,6 +1,6 @@
 # SocleStack - Next.js User Management Application
 
-A complete Next.js 14 application with Enterprise-grade-style user management features, built with TypeScript, Prisma, and modern React components. "SocleStack" is the foundational block upon which your SaaS application is built.
+A complete Next.js 14 application with Enterprise-grade user management features, built with TypeScript, Prisma, and modern React components. "SocleStack" is the foundational block upon which your SaaS application is built.
 
 ## Features
 

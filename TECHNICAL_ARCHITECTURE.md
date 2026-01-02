@@ -2,7 +2,7 @@
 ## Next.js User Management System
 
 ### 1. Overview
-This document outlines the technical architecture for a Next.js web application with comprehensive user management capabilities, inspired by Enterprise-grade's user management patterns.
+This document outlines the technical architecture for a Next.js web application with comprehensive user management capabilities, inspired by established enterprise security patterns.
 
 ### 2. Technology Stack
 - **Frontend Framework**: Next.js 14+ with App Router

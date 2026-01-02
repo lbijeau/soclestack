@@ -6,7 +6,7 @@
 
 ## Overview
 
-This phase adds three Enterprise-grade-style security features to SocleStack:
+This phase adds three Enterprise-grade security features to SocleStack:
 
 | Feature | Purpose | Dependencies |
 |---------|---------|--------------|
