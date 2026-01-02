@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
-import { prisma } from '@/lib/db'
-import { AuthError } from '@/types/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { AuthError } from '@/types/auth';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 // Security events users should see in their activity log
 const USER_VISIBLE_ACTIONS = [
@@ -36,12 +36,12 @@ const USER_VISIBLE_ACTIONS = [
   'API_KEY_CREATED',
   'API_KEY_UPDATED',
   'API_KEY_REVOKED',
-]
+];
 
 // GET /api/users/activity - Get current user's activity log
 export async function GET(req: NextRequest) {
   try {
-    const currentUser = await getCurrentUser()
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
@@ -51,14 +51,17 @@ export async function GET(req: NextRequest) {
           } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     // Parse query params
-    const { searchParams } = new URL(req.url)
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
-    const offset = (page - 1) * limit
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(searchParams.get('limit') || '20', 10))
+    );
+    const offset = (page - 1) * limit;
 
     // Fetch activity logs for this user
     const [logs, total] = await Promise.all([
@@ -86,13 +89,13 @@ export async function GET(req: NextRequest) {
           action: { in: USER_VISIBLE_ACTIONS },
         },
       }),
-    ])
+    ]);
 
     // Parse metadata JSON
     const formattedLogs = logs.map((log) => ({
       ...log,
       metadata: log.metadata ? JSON.parse(log.metadata) : null,
-    }))
+    }));
 
     return NextResponse.json({
       logs: formattedLogs,
@@ -102,9 +105,9 @@ export async function GET(req: NextRequest) {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    console.error('Get activity log error:', error)
+    console.error('Get activity log error:', error);
     return NextResponse.json(
       {
         error: {
@@ -113,6 +116,6 @@ export async function GET(req: NextRequest) {
         } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }

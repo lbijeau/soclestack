@@ -1,22 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth'
-import { prisma } from '@/lib/db'
-import { updateApiKeySchema } from '@/lib/validations'
-import { logAuditEvent } from '@/lib/audit'
-import { AuthError } from '@/types/auth'
-import { SECURITY_CONFIG } from '@/lib/config/security'
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { updateApiKeySchema } from '@/lib/validations';
+import { logAuditEvent } from '@/lib/audit';
+import { AuthError } from '@/types/auth';
+import { SECURITY_CONFIG } from '@/lib/config/security';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 interface RouteParams {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }
 
 // GET /api/keys/[id] - Get single API key
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params
-    const currentUser = await getCurrentUser()
+    const { id } = await params;
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     const apiKey = await prisma.apiKey.findFirst({
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         lastUsedAt: true,
         createdAt: true,
       },
-    })
+    });
 
     if (!apiKey) {
       return NextResponse.json(
@@ -55,12 +55,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           } as AuthError,
         },
         { status: 404 }
-      )
+      );
     }
 
-    return NextResponse.json(apiKey)
+    return NextResponse.json(apiKey);
   } catch (error) {
-    console.error('Get API key error:', error)
+    console.error('Get API key error:', error);
     return NextResponse.json(
       {
         error: {
@@ -69,15 +69,15 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }
 
 // PATCH /api/keys/[id] - Update API key
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params
-    const currentUser = await getCurrentUser()
+    const { id } = await params;
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
@@ -87,7 +87,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     // Check key exists and belongs to user
@@ -97,7 +97,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         userId: currentUser.id,
         revokedAt: null,
       },
-    })
+    });
 
     if (!existingKey) {
       return NextResponse.json(
@@ -108,11 +108,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           } as AuthError,
         },
         { status: 404 }
-      )
+      );
     }
 
-    const body = await req.json()
-    const validationResult = updateApiKeySchema.safeParse(body)
+    const body = await req.json();
+    const validationResult = updateApiKeySchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
         {
@@ -123,15 +123,16 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           } as AuthError,
         },
         { status: 400 }
-      )
+      );
     }
 
-    const { name, permission, expiresAt } = validationResult.data
+    const { name, permission, expiresAt } = validationResult.data;
 
-    const updateData: Record<string, unknown> = {}
-    if (name !== undefined) updateData.name = name
-    if (permission !== undefined) updateData.permission = permission
-    if (expiresAt !== undefined) updateData.expiresAt = expiresAt ? new Date(expiresAt) : null
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (permission !== undefined) updateData.permission = permission;
+    if (expiresAt !== undefined)
+      updateData.expiresAt = expiresAt ? new Date(expiresAt) : null;
 
     const updatedKey = await prisma.apiKey.update({
       where: { id },
@@ -145,7 +146,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         lastUsedAt: true,
         createdAt: true,
       },
-    })
+    });
 
     // Log audit event
     await logAuditEvent({
@@ -157,11 +158,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         keyPrefix: existingKey.keyPrefix,
         changes: Object.keys(updateData),
       },
-    })
+    });
 
-    return NextResponse.json(updatedKey)
+    return NextResponse.json(updatedKey);
   } catch (error) {
-    console.error('Update API key error:', error)
+    console.error('Update API key error:', error);
     return NextResponse.json(
       {
         error: {
@@ -170,7 +171,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -178,8 +179,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
     // Rate limiting
-    const clientIP = getClientIP(req)
-    const { limit, windowMs } = SECURITY_CONFIG.rateLimits.apiKeyRevoke
+    const clientIP = getClientIP(req);
+    const { limit, windowMs } = SECURITY_CONFIG.rateLimits.apiKeyRevoke;
     if (isRateLimited(`apikey-revoke:${clientIP}`, limit, windowMs)) {
       return NextResponse.json(
         {
@@ -189,11 +190,11 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
           } as AuthError,
         },
         { status: 429 }
-      )
+      );
     }
 
-    const { id } = await params
-    const currentUser = await getCurrentUser()
+    const { id } = await params;
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
@@ -203,7 +204,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
           } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     // Check key exists and belongs to user
@@ -213,7 +214,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         userId: currentUser.id,
         revokedAt: null,
       },
-    })
+    });
 
     if (!existingKey) {
       return NextResponse.json(
@@ -224,14 +225,14 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
           } as AuthError,
         },
         { status: 404 }
-      )
+      );
     }
 
     // Soft delete by setting revokedAt
     await prisma.apiKey.update({
       where: { id },
       data: { revokedAt: new Date() },
-    })
+    });
 
     // Log audit event
     await logAuditEvent({
@@ -243,13 +244,13 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         keyName: existingKey.name,
         keyPrefix: existingKey.keyPrefix,
       },
-    })
+    });
 
     return NextResponse.json({
       message: 'API key revoked successfully',
-    })
+    });
   } catch (error) {
-    console.error('Revoke API key error:', error)
+    console.error('Revoke API key error:', error);
     return NextResponse.json(
       {
         error: {
@@ -258,6 +259,6 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }

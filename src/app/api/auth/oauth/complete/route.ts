@@ -6,18 +6,24 @@ import { generateSlug } from '@/lib/organization';
 import { verifyPendingOAuthToken } from '@/lib/auth/oauth';
 import { z } from 'zod';
 
-const completeOAuthSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
-  organizationName: z.string().min(2).max(100).optional(),
-  inviteToken: z.string().optional(),
-}).refine((data) => {
-  const hasOrgName = !!data.organizationName;
-  const hasInvite = !!data.inviteToken;
-  return hasOrgName !== hasInvite; // XOR: exactly one must be true
-}, {
-  message: 'You must either create a new organization or use an invite token',
-  path: ['organizationName'],
-});
+const completeOAuthSchema = z
+  .object({
+    token: z.string().min(1, 'Token is required'),
+    organizationName: z.string().min(2).max(100).optional(),
+    inviteToken: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const hasOrgName = !!data.organizationName;
+      const hasInvite = !!data.inviteToken;
+      return hasOrgName !== hasInvite; // XOR: exactly one must be true
+    },
+    {
+      message:
+        'You must either create a new organization or use an invite token',
+      path: ['organizationName'],
+    }
+  );
 
 export async function POST(req: NextRequest) {
   const ipAddress = getClientIP(req);
@@ -29,7 +35,13 @@ export async function POST(req: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: { type: 'VALIDATION_ERROR', message: 'Invalid input', details: validation.error.flatten().fieldErrors } },
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'Invalid input',
+            details: validation.error.flatten().fieldErrors,
+          },
+        },
         { status: 400 }
       );
     }
@@ -40,7 +52,12 @@ export async function POST(req: NextRequest) {
     const oauthData = await verifyPendingOAuthToken(token);
     if (!oauthData) {
       return NextResponse.json(
-        { error: { type: 'INVALID_TOKEN', message: 'OAuth session expired. Please try again.' } },
+        {
+          error: {
+            type: 'INVALID_TOKEN',
+            message: 'OAuth session expired. Please try again.',
+          },
+        },
         { status: 400 }
       );
     }
@@ -52,7 +69,13 @@ export async function POST(req: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: { type: 'CONFLICT', message: 'An account with this email already exists. Please log in instead.' } },
+        {
+          error: {
+            type: 'CONFLICT',
+            message:
+              'An account with this email already exists. Please log in instead.',
+          },
+        },
         { status: 409 }
       );
     }
@@ -69,7 +92,12 @@ export async function POST(req: NextRequest) {
 
     if (existingOAuth) {
       return NextResponse.json(
-        { error: { type: 'CONFLICT', message: 'This OAuth account is already linked to another user.' } },
+        {
+          error: {
+            type: 'CONFLICT',
+            message: 'This OAuth account is already linked to another user.',
+          },
+        },
         { status: 409 }
       );
     }
@@ -84,22 +112,39 @@ export async function POST(req: NextRequest) {
 
       if (!invite) {
         return NextResponse.json(
-          { error: { type: 'VALIDATION_ERROR', message: 'Invalid or expired invite token' } },
+          {
+            error: {
+              type: 'VALIDATION_ERROR',
+              message: 'Invalid or expired invite token',
+            },
+          },
           { status: 400 }
         );
       }
 
       if (invite.expiresAt < new Date()) {
         return NextResponse.json(
-          { error: { type: 'VALIDATION_ERROR', message: 'This invite has expired' } },
+          {
+            error: {
+              type: 'VALIDATION_ERROR',
+              message: 'This invite has expired',
+            },
+          },
           { status: 400 }
         );
       }
 
       // Verify email matches the invite
-      if (invite.email.toLowerCase() !== oauthData.profile.email.toLowerCase()) {
+      if (
+        invite.email.toLowerCase() !== oauthData.profile.email.toLowerCase()
+      ) {
         return NextResponse.json(
-          { error: { type: 'VALIDATION_ERROR', message: 'Your email does not match the invite' } },
+          {
+            error: {
+              type: 'VALIDATION_ERROR',
+              message: 'Your email does not match the invite',
+            },
+          },
           { status: 400 }
         );
       }
@@ -189,7 +234,12 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('OAuth registration error:', error);
     return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'An internal server error occurred' } },
+      {
+        error: {
+          type: 'SERVER_ERROR',
+          message: 'An internal server error occurred',
+        },
+      },
       { status: 500 }
     );
   }

@@ -1,22 +1,26 @@
 # User Management API Route (Individual User)
 
 ## Purpose
+
 Handles individual user operations including viewing user details, updating user roles, and managing user status. Supports both self-service operations and administrative management.
 
 ## Contents
 
 ### `route.ts`
+
 **HTTP Methods**: GET, PATCH
 **Purpose**: Individual user management and profile viewing
 
 ## API Specification
 
 ### Get User Details
+
 ```typescript
-GET /api/users/[id]
+GET / api / users / [id];
 ```
 
 #### Response (Success - 200)
+
 ```typescript
 {
   "user": {
@@ -45,6 +49,7 @@ GET /api/users/[id]
 ```
 
 ### Update User Role (Admin Only)
+
 ```typescript
 PATCH /api/users/[id]
 Content-Type: application/json
@@ -55,6 +60,7 @@ Content-Type: application/json
 ```
 
 ### Update User Status (Admin Only)
+
 ```typescript
 PATCH /api/users/[id]
 Content-Type: application/json
@@ -65,6 +71,7 @@ Content-Type: application/json
 ```
 
 #### Update Response (Success - 200)
+
 ```typescript
 {
   "message": "User updated successfully",
@@ -87,6 +94,7 @@ Content-Type: application/json
 ### Error Responses
 
 #### Not Authenticated (401)
+
 ```typescript
 {
   "error": {
@@ -97,6 +105,7 @@ Content-Type: application/json
 ```
 
 #### Insufficient Permissions (403)
+
 ```typescript
 {
   "error": {
@@ -107,6 +116,7 @@ Content-Type: application/json
 ```
 
 #### User Not Found (404)
+
 ```typescript
 {
   "error": {
@@ -117,6 +127,7 @@ Content-Type: application/json
 ```
 
 #### Invalid Self-Operation (400)
+
 ```typescript
 {
   "error": {
@@ -129,11 +140,13 @@ Content-Type: application/json
 ## Security & Authorization
 
 ### Access Control for GET
+
 - **Self-Access**: Users can view their own profile and sessions
 - **Admin/Moderator Access**: Can view any user's profile
 - **Data Scope**: Session data only shown to user themselves or admins
 
 ### Access Control for PATCH
+
 - **Admin Only**: Only administrators can modify user roles and status
 - **Self-Protection**: Users cannot modify their own role or status
 - **Role Hierarchy**: Maintains role hierarchy and prevents privilege escalation
@@ -141,16 +154,19 @@ Content-Type: application/json
 ## Features
 
 ### User Profile Viewing
+
 - **Complete Profile**: Shows all user profile information
 - **Session Management**: Displays active sessions for security monitoring
 - **Access Control**: Respects privacy and authorization rules
 
 ### Administrative Operations
+
 - **Role Management**: Update user roles (USER, MODERATOR, ADMIN)
 - **Status Management**: Activate/deactivate user accounts
 - **Audit Trail**: Updates include timestamp tracking
 
 ### Session Information
+
 - **Active Sessions**: Shows all active user sessions
 - **Security Details**: IP address and user agent for each session
 - **Expiration Tracking**: Session expiration times for management
@@ -158,6 +174,7 @@ Content-Type: application/json
 ## Business Logic
 
 ### GET Request Flow
+
 1. **Authentication Check**: Verify user is logged in
 2. **Authorization Check**: Verify access permissions (self or admin/moderator)
 3. **User Lookup**: Fetch user from database with session data
@@ -165,6 +182,7 @@ Content-Type: application/json
 5. **Response**: Return user profile and session information
 
 ### PATCH Request Flow
+
 1. **Authentication Check**: Verify user is logged in
 2. **Authorization Check**: Verify admin permissions
 3. **Input Validation**: Validate role or status update data
@@ -173,11 +191,13 @@ Content-Type: application/json
 6. **Response**: Return updated user information
 
 ### Security Safeguards
+
 - **Self-Protection**: Prevents administrators from accidentally modifying their own accounts
 - **Role Validation**: Ensures only valid roles can be assigned
 - **Status Validation**: Proper boolean validation for status updates
 
 ## Dependencies
+
 - **@/lib/auth**: `getCurrentUser`, `hasRequiredRole` for authentication
 - **@/lib/validations**: `updateUserRoleSchema`, `updateUserStatusSchema` for validation
 - **@/lib/db**: Prisma client for database operations
@@ -186,17 +206,19 @@ Content-Type: application/json
 ## Usage Examples
 
 ### Get User Profile
+
 ```typescript
 async function getUserProfile(userId: string) {
-  const response = await fetch(`/api/users/${userId}`)
+  const response = await fetch(`/api/users/${userId}`);
   if (!response.ok) {
-    throw new Error('Failed to fetch user profile')
+    throw new Error('Failed to fetch user profile');
   }
-  return response.json()
+  return response.json();
 }
 ```
 
 ### Update User Role (Admin)
+
 ```typescript
 async function updateUserRole(userId: string, newRole: string) {
   const response = await fetch(`/api/users/${userId}`, {
@@ -205,17 +227,18 @@ async function updateUserRole(userId: string, newRole: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ role: newRole }),
-  })
+  });
 
   if (!response.ok) {
-    throw new Error('Failed to update user role')
+    throw new Error('Failed to update user role');
   }
 
-  return response.json()
+  return response.json();
 }
 ```
 
 ### Deactivate User Account (Admin)
+
 ```typescript
 async function deactivateUser(userId: string) {
   const response = await fetch(`/api/users/${userId}`, {
@@ -224,13 +247,14 @@ async function deactivateUser(userId: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ isActive: false }),
-  })
+  });
 
-  return response.ok
+  return response.ok;
 }
 ```
 
 ### Admin User Management
+
 ```typescript
 function UserManagement({ userId }: { userId: string }) {
   const [user, setUser] = useState(null)
@@ -271,6 +295,7 @@ function UserManagement({ userId }: { userId: string }) {
 ```
 
 ## Integration Points
+
 - **User Profile Pages**: Display individual user profiles
 - **Admin Dashboard**: User management and administration
 - **User Settings**: Self-service profile viewing
@@ -278,6 +303,7 @@ function UserManagement({ userId }: { userId: string }) {
 - **Audit Logs**: User modification tracking
 
 ## Validation Rules
+
 - **Role Updates**: Only valid roles (USER, MODERATOR, ADMIN) allowed
 - **Status Updates**: Boolean validation for isActive field
 - **Self-Modification**: Users cannot modify their own role or status

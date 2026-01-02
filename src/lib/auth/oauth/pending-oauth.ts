@@ -17,7 +17,9 @@ export interface PendingOAuthPayload {
   inviteToken?: string; // Set when registering via invite
 }
 
-export async function createPendingOAuthToken(payload: PendingOAuthPayload): Promise<string> {
+export async function createPendingOAuthToken(
+  payload: PendingOAuthPayload
+): Promise<string> {
   const expiresAt = new Date(
     Date.now() + SECURITY_CONFIG.oauth.pendingLinkExpiryMinutes * 60 * 1000
   );
@@ -31,7 +33,9 @@ export async function createPendingOAuthToken(payload: PendingOAuthPayload): Pro
   return token;
 }
 
-export async function verifyPendingOAuthToken(token: string): Promise<PendingOAuthPayload | null> {
+export async function verifyPendingOAuthToken(
+  token: string
+): Promise<PendingOAuthPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload as unknown as PendingOAuthPayload;

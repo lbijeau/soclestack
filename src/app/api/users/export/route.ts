@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { getCurrentUser, isRateLimited } from '@/lib/auth'
-import { AuthError } from '@/types/auth'
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
+import { AuthError } from '@/types/auth';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
@@ -18,11 +18,11 @@ export async function GET() {
           } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     // Rate limit: 3 exports per day
-    const rateLimitKey = `data-export:${user.id}`
+    const rateLimitKey = `data-export:${user.id}`;
     if (isRateLimited(rateLimitKey, 3, 24 * 60 * 60 * 1000)) {
       return NextResponse.json(
         {
@@ -32,7 +32,7 @@ export async function GET() {
           } as AuthError,
         },
         { status: 429 }
-      )
+      );
     }
 
     // Fetch all user data
@@ -103,11 +103,11 @@ export async function GET() {
           },
         },
       },
-    })
+    });
 
     // Fetch audit logs (last 90 days)
-    const ninetyDaysAgo = new Date()
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
     const auditLogs = await prisma.auditLog.findMany({
       where: {
@@ -125,13 +125,13 @@ export async function GET() {
       },
       orderBy: { createdAt: 'desc' },
       take: 1000,
-    })
+    });
 
     // Parse metadata in audit logs
     const parsedAuditLogs = auditLogs.map((log) => ({
       ...log,
       metadata: log.metadata ? JSON.parse(log.metadata) : null,
-    }))
+    }));
 
     const exportData = {
       exportedAt: new Date().toISOString(),
@@ -143,10 +143,10 @@ export async function GET() {
         passwordResetToken: '[REDACTED]',
       },
       auditLogs: parsedAuditLogs,
-    }
+    };
 
     // Return as downloadable JSON
-    const jsonString = JSON.stringify(exportData, null, 2)
+    const jsonString = JSON.stringify(exportData, null, 2);
 
     return new NextResponse(jsonString, {
       status: 200,
@@ -154,9 +154,9 @@ export async function GET() {
         'Content-Type': 'application/json',
         'Content-Disposition': `attachment; filename="soclestack-data-export-${new Date().toISOString().split('T')[0]}.json"`,
       },
-    })
+    });
   } catch (error) {
-    console.error('Data export error:', error)
+    console.error('Data export error:', error);
     return NextResponse.json(
       {
         error: {
@@ -165,6 +165,6 @@ export async function GET() {
         } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }

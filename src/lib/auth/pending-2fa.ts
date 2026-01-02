@@ -17,14 +17,14 @@ export function createPending2FAToken(userId: string): string {
   }
 
   // Only include userId - no PII in the token
-  return jwt.sign(
-    { userId, type: 'pending_2fa' },
-    secret,
-    { expiresIn: `${pendingTokenExpiryMinutes}m` }
-  );
+  return jwt.sign({ userId, type: 'pending_2fa' }, secret, {
+    expiresIn: `${pendingTokenExpiryMinutes}m`,
+  });
 }
 
-export function verifyPending2FAToken(token: string): { userId: string } | null {
+export function verifyPending2FAToken(
+  token: string
+): { userId: string } | null {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error('JWT_SECRET is not defined');

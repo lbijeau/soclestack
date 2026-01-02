@@ -21,7 +21,12 @@ export async function POST(req: NextRequest) {
     const { limit, windowMs } = SECURITY_CONFIG.rateLimits.oauthLink;
     if (isRateLimited(`oauth-link:${ipAddress}`, limit, windowMs)) {
       return NextResponse.json(
-        { error: { type: 'AUTHORIZATION_ERROR', message: 'Too many requests. Please try again later.' } },
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Too many requests. Please try again later.',
+          },
+        },
         { status: 429 }
       );
     }
@@ -31,7 +36,13 @@ export async function POST(req: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: { type: 'VALIDATION_ERROR', message: 'Invalid input', details: validation.error.flatten().fieldErrors } },
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'Invalid input',
+            details: validation.error.flatten().fieldErrors,
+          },
+        },
         { status: 400 }
       );
     }
@@ -42,7 +53,12 @@ export async function POST(req: NextRequest) {
     const oauthData = await verifyPendingOAuthToken(token);
     if (!oauthData || !oauthData.existingUserId) {
       return NextResponse.json(
-        { error: { type: 'INVALID_TOKEN', message: 'OAuth session expired. Please try again.' } },
+        {
+          error: {
+            type: 'INVALID_TOKEN',
+            message: 'OAuth session expired. Please try again.',
+          },
+        },
         { status: 400 }
       );
     }
@@ -62,7 +78,13 @@ export async function POST(req: NextRequest) {
     // User must have a password to link
     if (!user.password) {
       return NextResponse.json(
-        { error: { type: 'NO_PASSWORD', message: 'This account was created with OAuth. Please log in with your original OAuth provider.' } },
+        {
+          error: {
+            type: 'NO_PASSWORD',
+            message:
+              'This account was created with OAuth. Please log in with your original OAuth provider.',
+          },
+        },
         { status: 400 }
       );
     }
@@ -97,7 +119,12 @@ export async function POST(req: NextRequest) {
 
     if (existingOAuth) {
       return NextResponse.json(
-        { error: { type: 'CONFLICT', message: 'This OAuth account is already linked to another user.' } },
+        {
+          error: {
+            type: 'CONFLICT',
+            message: 'This OAuth account is already linked to another user.',
+          },
+        },
         { status: 409 }
       );
     }
@@ -180,7 +207,12 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('OAuth link error:', error);
     return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'An internal server error occurred' } },
+      {
+        error: {
+          type: 'SERVER_ERROR',
+          message: 'An internal server error occurred',
+        },
+      },
       { status: 500 }
     );
   }

@@ -1,8 +1,8 @@
-import { HTMLAttributes, forwardRef } from 'react'
-import { clsx } from 'clsx'
+import { HTMLAttributes, forwardRef } from 'react';
+import { clsx } from 'clsx';
 
 interface BadgeProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'secondary' | 'destructive' | 'outline'
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline';
 }
 
 const Badge = forwardRef<HTMLDivElement, BadgeProps>(
@@ -22,10 +22,10 @@ const Badge = forwardRef<HTMLDivElement, BadgeProps>(
         )}
         {...props}
       />
-    )
+    );
   }
-)
+);
 
-Badge.displayName = 'Badge'
+Badge.displayName = 'Badge';
 
-export { Badge }
+export { Badge };

@@ -1,13 +1,13 @@
-'use client'
+'use client';
 
-import { useMemo } from 'react'
-import { calculatePasswordStrength } from '@/lib/utils/password-strength'
-import { Check, X } from 'lucide-react'
+import { useMemo } from 'react';
+import { calculatePasswordStrength } from '@/lib/utils/password-strength';
+import { Check, X } from 'lucide-react';
 
 interface PasswordStrengthMeterProps {
-  password: string
-  showRequirements?: boolean
-  showSuggestions?: boolean
+  password: string;
+  showRequirements?: boolean;
+  showSuggestions?: boolean;
 }
 
 export function PasswordStrengthMeter({
@@ -15,25 +15,28 @@ export function PasswordStrengthMeter({
   showRequirements = true,
   showSuggestions = true,
 }: PasswordStrengthMeterProps) {
-  const strength = useMemo(() => calculatePasswordStrength(password), [password])
+  const strength = useMemo(
+    () => calculatePasswordStrength(password),
+    [password]
+  );
 
   if (!password) {
-    return null
+    return null;
   }
 
   return (
     <div className="space-y-3">
       {/* Strength Bar */}
       <div className="space-y-1">
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500">Password Strength</span>
           <span
             className={`text-xs font-medium ${
               strength.score <= 1
                 ? 'text-red-600'
                 : strength.score === 2
-                ? 'text-yellow-600'
-                : 'text-green-600'
+                  ? 'text-yellow-600'
+                  : 'text-green-600'
             }`}
           >
             {strength.label}
@@ -73,16 +76,18 @@ export function PasswordStrengthMeter({
       )}
 
       {/* Suggestions */}
-      {showSuggestions && strength.suggestions.length > 0 && strength.score < 4 && (
-        <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-          <p className="font-medium mb-1">Suggestions:</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            {strength.suggestions.map((suggestion, index) => (
-              <li key={index}>{suggestion}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {showSuggestions &&
+        strength.suggestions.length > 0 &&
+        strength.score < 4 && (
+          <div className="rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-600">
+            <p className="mb-1 font-medium">Suggestions:</p>
+            <ul className="list-inside list-disc space-y-0.5">
+              {strength.suggestions.map((suggestion, index) => (
+                <li key={index}>{suggestion}</li>
+              ))}
+            </ul>
+          </div>
+        )}
     </div>
-  )
+  );
 }

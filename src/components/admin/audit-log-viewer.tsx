@@ -150,41 +150,44 @@ export function AuditLogViewer() {
   // Expanded rows for metadata
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const fetchLogs = useCallback(async (pageNum: number = 1) => {
-    setLoading(true);
-    setError('');
+  const fetchLogs = useCallback(
+    async (pageNum: number = 1) => {
+      setLoading(true);
+      setError('');
 
-    const params = new URLSearchParams();
-    params.set('page', pageNum.toString());
-    params.set('limit', '50');
-    if (category) params.set('category', category);
-    if (action) params.set('action', action);
-    if (userEmail) params.set('userEmail', userEmail);
-    if (fromDate) params.set('from', new Date(fromDate).toISOString());
-    if (toDate) {
-      const to = new Date(toDate);
-      to.setHours(23, 59, 59, 999);
-      params.set('to', to.toISOString());
-    }
-
-    try {
-      const response = await fetch(`/api/admin/audit-logs?${params}`);
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || 'Failed to fetch logs');
+      const params = new URLSearchParams();
+      params.set('page', pageNum.toString());
+      params.set('limit', '50');
+      if (category) params.set('category', category);
+      if (action) params.set('action', action);
+      if (userEmail) params.set('userEmail', userEmail);
+      if (fromDate) params.set('from', new Date(fromDate).toISOString());
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        params.set('to', to.toISOString());
       }
 
-      const data: AuditLogsResponse = await response.json();
-      setLogs(data.logs);
-      setTotal(data.total);
-      setPage(data.page);
-      setTotalPages(data.totalPages);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch logs');
-    } finally {
-      setLoading(false);
-    }
-  }, [category, action, userEmail, fromDate, toDate]);
+      try {
+        const response = await fetch(`/api/admin/audit-logs?${params}`);
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error?.message || 'Failed to fetch logs');
+        }
+
+        const data: AuditLogsResponse = await response.json();
+        setLogs(data.logs);
+        setTotal(data.total);
+        setPage(data.page);
+        setTotalPages(data.totalPages);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch logs');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [category, action, userEmail, fromDate, toDate]
+  );
 
   useEffect(() => {
     fetchLogs(1);
@@ -287,7 +290,14 @@ export function AuditLogViewer() {
       if (page <= 3) {
         pages.push(1, 2, 3, 4, '...', totalPages);
       } else if (page >= totalPages - 2) {
-        pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        pages.push(
+          1,
+          '...',
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages
+        );
       } else {
         pages.push(1, '...', page - 1, page, page + 1, '...', totalPages);
       }
@@ -306,7 +316,9 @@ export function AuditLogViewer() {
             onClick={() => fetchLogs(page)}
             disabled={loading}
           >
-            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
           <Button
@@ -315,7 +327,7 @@ export function AuditLogViewer() {
             onClick={() => handleExport('csv')}
             disabled={exporting || loading}
           >
-            <Download className="h-4 w-4 mr-1" />
+            <Download className="mr-1 h-4 w-4" />
             {exporting ? 'Exporting...' : 'CSV'}
           </Button>
           <Button
@@ -324,7 +336,7 @@ export function AuditLogViewer() {
             onClick={() => handleExport('json')}
             disabled={exporting || loading}
           >
-            <Download className="h-4 w-4 mr-1" />
+            <Download className="mr-1 h-4 w-4" />
             JSON
           </Button>
         </div>
@@ -333,16 +345,18 @@ export function AuditLogViewer() {
         {error && <Alert variant="error">{error}</Alert>}
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3 items-end p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-wrap items-end gap-3 rounded-lg bg-gray-50 p-4">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-gray-600">Category</label>
+            <label className="text-xs font-medium text-gray-600">
+              Category
+            </label>
             <select
               value={category}
               onChange={(e) => {
                 setCategory(e.target.value);
                 setAction(''); // Reset action when category changes
               }}
-              className="h-10 px-3 rounded-md border border-gray-200 bg-white text-sm"
+              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm"
             >
               <option value="">All categories</option>
               <option value="authentication">Authentication</option>
@@ -356,7 +370,7 @@ export function AuditLogViewer() {
             <select
               value={action}
               onChange={(e) => setAction(e.target.value)}
-              className="h-10 px-3 rounded-md border border-gray-200 bg-white text-sm min-w-[180px]"
+              className="h-10 min-w-[180px] rounded-md border border-gray-200 bg-white px-3 text-sm"
             >
               <option value="">All actions</option>
               {availableActions.map((a) => (
@@ -368,7 +382,9 @@ export function AuditLogViewer() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-gray-600">User Email</label>
+            <label className="text-xs font-medium text-gray-600">
+              User Email
+            </label>
             <Input
               type="text"
               placeholder="Search email..."
@@ -401,7 +417,11 @@ export function AuditLogViewer() {
           <Button onClick={handleApplyFilters} disabled={loading}>
             Apply
           </Button>
-          <Button variant="ghost" onClick={handleClearFilters} disabled={loading}>
+          <Button
+            variant="ghost"
+            onClick={handleClearFilters}
+            disabled={loading}
+          >
             Clear
           </Button>
         </div>
@@ -411,12 +431,24 @@ export function AuditLogViewer() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Timestamp</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">User</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Action</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Category</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">IP Address</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Details</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  Timestamp
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  User
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  Action
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  Category
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  IP Address
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
+                  Details
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -425,8 +457,8 @@ export function AuditLogViewer() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="border-b">
                     {Array.from({ length: 6 }).map((_, j) => (
-                      <td key={j} className="py-3 px-4">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                      <td key={j} className="px-4 py-3">
+                        <div className="h-4 animate-pulse rounded bg-gray-200" />
                       </td>
                     ))}
                   </tr>
@@ -441,26 +473,31 @@ export function AuditLogViewer() {
                 logs.map((log) => (
                   <>
                     <tr key={log.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {formatDate(log.createdAt)}
                       </td>
-                      <td className="py-3 px-4">
-                        {log.userEmail || <span className="text-gray-400">System</span>}
+                      <td className="px-4 py-3">
+                        {log.userEmail || (
+                          <span className="text-gray-400">System</span>
+                        )}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-800'
+                            ACTION_COLORS[log.action] ||
+                            'bg-gray-100 text-gray-800'
                           }`}
                         >
                           {ACTION_LABELS[log.action] || log.action}
                         </span>
                       </td>
-                      <td className="py-3 px-4 capitalize">{log.category}</td>
-                      <td className="py-3 px-4">
-                        {log.ipAddress || <span className="text-gray-400">&mdash;</span>}
+                      <td className="px-4 py-3 capitalize">{log.category}</td>
+                      <td className="px-4 py-3">
+                        {log.ipAddress || (
+                          <span className="text-gray-400">&mdash;</span>
+                        )}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-4 py-3">
                         {log.metadata ? (
                           <Button
                             variant="ghost"
@@ -477,8 +514,8 @@ export function AuditLogViewer() {
                     </tr>
                     {expandedRows.has(log.id) && log.metadata && (
                       <tr key={`${log.id}-metadata`} className="bg-gray-50">
-                        <td colSpan={6} className="py-3 px-4">
-                          <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                        <td colSpan={6} className="px-4 py-3">
+                          <pre className="overflow-x-auto rounded bg-gray-100 p-3 text-xs">
                             {JSON.stringify(log.metadata, null, 2)}
                           </pre>
                         </td>
@@ -493,9 +530,10 @@ export function AuditLogViewer() {
 
         {/* Pagination */}
         {totalPages > 0 && (
-          <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex items-center justify-between border-t pt-4">
             <div className="text-sm text-gray-600">
-              Showing {(page - 1) * 50 + 1}-{Math.min(page * 50, total)} of {total} results
+              Showing {(page - 1) * 50 + 1}-{Math.min(page * 50, total)} of{' '}
+              {total} results
             </div>
             <div className="flex items-center gap-1">
               <Button

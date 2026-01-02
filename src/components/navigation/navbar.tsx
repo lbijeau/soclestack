@@ -1,95 +1,98 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
-import { User, Settings, LogOut, Users } from 'lucide-react'
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
+import { QuickActionsMenu } from './quick-actions-menu';
+import { User, Settings, LogOut, Users } from 'lucide-react';
 
 interface User {
-  id: string
-  email: string
-  username?: string
-  firstName?: string
-  lastName: string
-  role: 'USER' | 'MODERATOR' | 'ADMIN'
+  id: string;
+  email: string;
+  username?: string;
+  firstName?: string;
+  lastName: string;
+  role: 'USER' | 'MODERATOR' | 'ADMIN';
 }
 
 interface Impersonation {
-  originalEmail: string
-  minutesRemaining: number
+  originalEmail: string;
+  minutesRemaining: number;
 }
 
 export function Navbar() {
-  const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [impersonation, setImpersonation] = useState<Impersonation | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [impersonation, setImpersonation] = useState<Impersonation | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchCurrentUser()
-  }, [])
+    fetchCurrentUser();
+  }, []);
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch('/api/auth/me')
+      const response = await fetch('/api/auth/me');
       if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-        setImpersonation(data.impersonation || null)
+        const data = await response.json();
+        setUser(data.user);
+        setImpersonation(data.impersonation || null);
       }
     } catch (error) {
-      console.error('Failed to fetch user:', error)
+      console.error('Failed to fetch user:', error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-      router.push('/login')
-      router.refresh()
+      await fetch('/api/auth/logout', { method: 'POST' });
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      router.push('/login');
+      router.refresh();
     } catch (error) {
-      console.error('Logout failed:', error)
+      console.error('Logout failed:', error);
     }
-  }
+  };
 
   const getDisplayName = () => {
     if (user?.firstName && user?.lastName) {
-      return `${user.firstName} ${user.lastName}`
+      return `${user.firstName} ${user.lastName}`;
     }
     if (user?.username) {
-      return user.username
+      return user.username;
     }
-    return user?.email || 'User'
-  }
+    return user?.email || 'User';
+  };
 
   if (isLoading) {
     return (
       <nav className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 justify-between">
             <div className="flex items-center">
-              <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
+              <div className="h-8 w-32 animate-pulse rounded bg-gray-200" />
             </div>
             <div className="flex items-center space-x-4">
-              <div className="h-8 w-20 bg-gray-200 rounded animate-pulse" />
+              <div className="h-8 w-20 animate-pulse rounded bg-gray-200" />
             </div>
           </div>
         </div>
       </nav>
-    )
+    );
   }
 
   if (!user) {
     return (
       <nav className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 justify-between">
             <div className="flex items-center">
               <Link href="/" className="text-xl font-bold text-gray-900">
                 SocleStack
@@ -106,7 +109,7 @@ export function Navbar() {
           </div>
         </div>
       </nav>
-    )
+    );
   }
 
   return (
@@ -119,63 +122,69 @@ export function Navbar() {
         />
       )}
       <nav className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 justify-between">
             <div className="flex items-center space-x-8">
-              <Link href="/dashboard" className="text-xl font-bold text-gray-900">
+              <Link
+                href="/dashboard"
+                className="text-xl font-bold text-gray-900"
+              >
                 SocleStack
               </Link>
 
-            <div className="hidden md:flex space-x-4">
-              <Link
-                href="/dashboard"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/profile"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Profile
-              </Link>
-              {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
+              <div className="hidden items-center space-x-1 md:flex">
                 <Link
-                  href="/admin"
-                  className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1"
+                  href="/dashboard"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
-                  <Users size={16} />
-                  <span>Admin</span>
+                  Dashboard
                 </Link>
-              )}
+                <Link
+                  href="/profile"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                >
+                  Profile
+                </Link>
+                {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center space-x-1 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                  >
+                    <Users size={16} />
+                    <span>Admin</span>
+                  </Link>
+                )}
+                <QuickActionsMenu userRole={user.role} />
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <User size={16} className="text-gray-500" />
-              <span className="text-sm text-gray-700">{getDisplayName()}</span>
-              {user.role !== 'USER' && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {user.role}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <User size={16} className="text-gray-500" />
+                <span className="text-sm text-gray-700">
+                  {getDisplayName()}
                 </span>
-              )}
-            </div>
+                {user.role !== 'USER' && (
+                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+                    {user.role}
+                  </span>
+                )}
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <Link href="/profile">
-                <Button variant="ghost" size="sm">
-                  <Settings size={16} />
+              <div className="flex items-center space-x-2">
+                <Link href="/profile">
+                  <Button variant="ghost" size="sm">
+                    <Settings size={16} />
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <LogOut size={16} />
                 </Button>
-              </Link>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut size={16} />
-              </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
     </>
-  )
+  );
 }

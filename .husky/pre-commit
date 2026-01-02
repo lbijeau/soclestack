@@ -1,0 +1,15 @@
+echo "🔍 Running pre-commit checks..."
+
+# Run ESLint
+echo "  → Running ESLint..."
+npm run lint || exit 1
+
+# Run TypeScript check
+echo "  → Running TypeScript check..."
+npx tsc --noEmit || exit 1
+
+# Run Prettier
+echo "  → Running Prettier..."
+npx prettier --write "src/**/*.{ts,tsx,js,jsx,json,css,md}" || exit 1
+
+echo "✅ Pre-commit checks passed!"

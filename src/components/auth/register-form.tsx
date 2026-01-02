@@ -1,22 +1,28 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Alert } from '@/components/ui/alert'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { PasswordStrengthMeter } from '@/components/ui/password-strength-meter'
-import { OAuthButtons, OAuthDivider } from './oauth-buttons'
-import { RegisterInput } from '@/lib/validations'
-import { AuthError } from '@/types/auth'
-import type { OAuthProvider } from '@/lib/auth/oauth/providers'
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert } from '@/components/ui/alert';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { PasswordStrengthMeter } from '@/components/ui/password-strength-meter';
+import { OAuthButtons, OAuthDivider } from './oauth-buttons';
+import { RegisterInput } from '@/lib/validations';
+import { AuthError } from '@/types/auth';
+import type { OAuthProvider } from '@/lib/auth/oauth/providers';
 
 export function RegisterForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const inviteToken = searchParams.get('token') || undefined
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('token') || undefined;
 
   const [formData, setFormData] = useState<RegisterInput>({
     email: '',
@@ -25,27 +31,27 @@ export function RegisterForm() {
     confirmPassword: '',
     firstName: '',
     lastName: '',
-  })
-  const [errors, setErrors] = useState<Record<string, string[]>>({})
-  const [error, setError] = useState<string>('')
-  const [success, setSuccess] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [enabledProviders, setEnabledProviders] = useState<OAuthProvider[]>([])
+  });
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [enabledProviders, setEnabledProviders] = useState<OAuthProvider[]>([]);
 
   useEffect(() => {
     // Fetch enabled OAuth providers
     fetch('/api/auth/oauth/accounts')
-      .then(res => res.json())
-      .then(data => setEnabledProviders(data.enabledProviders || []))
-      .catch(() => {})
-  }, [])
+      .then((res) => res.json())
+      .then((data) => setEnabledProviders(data.enabledProviders || []))
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-    setSuccess('')
-    setErrors({})
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+    setErrors({});
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -54,44 +60,43 @@ export function RegisterForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        const authError = data.error as AuthError
+        const authError = data.error as AuthError;
         if (authError.type === 'VALIDATION_ERROR' && authError.details) {
-          setErrors(authError.details)
+          setErrors(authError.details);
         } else {
-          setError(authError.message)
+          setError(authError.message);
         }
-        return
+        return;
       }
 
-      setSuccess(data.message)
+      setSuccess(data.message);
       // Optionally redirect to login after a delay
       setTimeout(() => {
-        router.push('/login')
-      }, 3000)
-
+        router.push('/login');
+      }, 3000);
     } catch {
-      setError('An unexpected error occurred. Please try again.')
+      setError('An unexpected error occurred. Please try again.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear field error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: [] }))
+      setErrors((prev) => ({ ...prev, [name]: [] }));
     }
-  }
+  };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader>
         <CardTitle>Create Account</CardTitle>
         <CardDescription>
@@ -124,7 +129,6 @@ export function RegisterForm() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label htmlFor="firstName" className="text-sm font-medium">
@@ -241,15 +245,13 @@ export function RegisterForm() {
               disabled={isLoading}
             />
             {errors.confirmPassword && (
-              <p className="text-sm text-red-600">{errors.confirmPassword[0]}</p>
+              <p className="text-sm text-red-600">
+                {errors.confirmPassword[0]}
+              </p>
             )}
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Creating account...' : 'Create Account'}
           </Button>
 
@@ -262,5 +264,5 @@ export function RegisterForm() {
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -19,7 +19,9 @@ export async function POST(
 
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
@@ -27,7 +29,12 @@ export async function POST(
     // Check admin role
     if (session.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: { type: 'AUTHORIZATION_ERROR', message: 'Admin access required' } },
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Admin access required',
+          },
+        },
         { status: 403 }
       );
     }
@@ -47,7 +54,12 @@ export async function POST(
 
     if (!targetUser.twoFactorEnabled) {
       return NextResponse.json(
-        { error: { type: 'BAD_REQUEST', message: '2FA is not enabled for this user' } },
+        {
+          error: {
+            type: 'BAD_REQUEST',
+            message: '2FA is not enabled for this user',
+          },
+        },
         { status: 400 }
       );
     }

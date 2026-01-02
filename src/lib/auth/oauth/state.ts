@@ -15,7 +15,9 @@ export interface OAuthStatePayload {
   inviteToken?: string; // Set when registering via invite
 }
 
-export async function generateOAuthState(payload: Omit<OAuthStatePayload, 'nonce'>): Promise<string> {
+export async function generateOAuthState(
+  payload: Omit<OAuthStatePayload, 'nonce'>
+): Promise<string> {
   const nonce = randomBytes(16).toString('hex');
   const expiresAt = new Date(
     Date.now() + SECURITY_CONFIG.oauth.stateTokenExpiryMinutes * 60 * 1000
@@ -30,7 +32,9 @@ export async function generateOAuthState(payload: Omit<OAuthStatePayload, 'nonce
   return token;
 }
 
-export async function verifyOAuthState(token: string): Promise<OAuthStatePayload | null> {
+export async function verifyOAuthState(
+  token: string
+): Promise<OAuthStatePayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload as unknown as OAuthStatePayload;

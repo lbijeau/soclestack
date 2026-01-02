@@ -15,21 +15,28 @@ export async function GET(req: NextRequest) {
 
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
 
     if (isImpersonating(session)) {
       return NextResponse.json(
-        { error: { type: 'FORBIDDEN', message: 'Cannot export audit logs while impersonating' } },
+        {
+          error: {
+            type: 'FORBIDDEN',
+            message: 'Cannot export audit logs while impersonating',
+          },
+        },
         { status: 403 }
       );
     }
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { role: true, organizationId: true, organizationRole: true }
+      select: { role: true, organizationId: true, organizationRole: true },
     });
 
     if (!user) {
@@ -51,7 +58,12 @@ export async function GET(req: NextRequest) {
 
     if (format !== 'csv' && format !== 'json') {
       return NextResponse.json(
-        { error: { type: 'VALIDATION_ERROR', message: 'Format must be csv or json' } },
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'Format must be csv or json',
+          },
+        },
         { status: 400 }
       );
     }
@@ -76,11 +88,19 @@ export async function GET(req: NextRequest) {
       if (orgScope && orgScope !== 'all') {
         where.user = { ...where.user, organizationId: orgScope };
       }
-    } else if (user.organizationId && hasOrgRole(user.organizationRole, 'ADMIN')) {
+    } else if (
+      user.organizationId &&
+      hasOrgRole(user.organizationRole, 'ADMIN')
+    ) {
       where.user = { ...where.user, organizationId: user.organizationId };
     } else {
       return NextResponse.json(
-        { error: { type: 'AUTHORIZATION_ERROR', message: 'Admin access required' } },
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Admin access required',
+          },
+        },
         { status: 403 }
       );
     }
@@ -121,7 +141,16 @@ export async function GET(req: NextRequest) {
     }
 
     // CSV format
-    const csvHeaders = ['ID', 'Timestamp', 'User Email', 'Action', 'Category', 'IP Address', 'User Agent', 'Metadata'];
+    const csvHeaders = [
+      'ID',
+      'Timestamp',
+      'User Email',
+      'Action',
+      'Category',
+      'IP Address',
+      'User Agent',
+      'Metadata',
+    ];
     const csvRows = logs.map((log) => [
       log.id,
       log.createdAt.toISOString(),
@@ -154,7 +183,9 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Audit log export error:', error);
     return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'Failed to export audit logs' } },
+      {
+        error: { type: 'SERVER_ERROR', message: 'Failed to export audit logs' },
+      },
       { status: 500 }
     );
   }

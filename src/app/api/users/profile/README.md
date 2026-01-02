@@ -1,17 +1,20 @@
 # User Profile API Route
 
 ## Purpose
+
 Handles user profile updates and password changes. Allows authenticated users to modify their own profile information and change their password with proper validation.
 
 ## Contents
 
 ### `route.ts`
+
 **HTTP Method**: PATCH
 **Purpose**: Update user profile information or change password
 
 ## API Specification
 
 ### Profile Update Request
+
 ```typescript
 PATCH /api/users/profile
 Content-Type: application/json
@@ -24,6 +27,7 @@ Content-Type: application/json
 ```
 
 ### Password Change Request
+
 ```typescript
 PATCH /api/users/profile
 Content-Type: application/json
@@ -37,6 +41,7 @@ Content-Type: application/json
 ### Response (Success - 200)
 
 #### Profile Update Success
+
 ```typescript
 {
   "message": "Profile updated successfully",
@@ -56,6 +61,7 @@ Content-Type: application/json
 ```
 
 #### Password Change Success
+
 ```typescript
 {
   "message": "Password changed successfully"
@@ -65,6 +71,7 @@ Content-Type: application/json
 ### Error Responses
 
 #### Not Authenticated (401)
+
 ```typescript
 {
   "error": {
@@ -75,6 +82,7 @@ Content-Type: application/json
 ```
 
 #### Validation Error (400)
+
 ```typescript
 {
   "error": {
@@ -89,6 +97,7 @@ Content-Type: application/json
 ```
 
 #### Wrong Current Password (400)
+
 ```typescript
 {
   "error": {
@@ -99,6 +108,7 @@ Content-Type: application/json
 ```
 
 #### Username Conflict (409)
+
 ```typescript
 {
   "error": {
@@ -114,12 +124,14 @@ Content-Type: application/json
 ## Features
 
 ### Profile Updates
+
 - **Editable Fields**: username, firstName, lastName
 - **Validation**: Input validation for all fields
 - **Uniqueness Check**: Ensures username uniqueness
 - **Real-time Response**: Returns updated user data
 
 ### Password Changes
+
 - **Current Password Verification**: Must provide correct current password
 - **Password Hashing**: New passwords are securely hashed
 - **Validation**: Password strength requirements enforced
@@ -128,17 +140,20 @@ Content-Type: application/json
 ## Security Features
 
 ### Authentication Required
+
 - **Session Check**: Must have valid session to access
 - **User Verification**: Verifies user exists and is active
 - **Self-Service Only**: Users can only update their own profile
 
 ### Password Security
+
 - **Current Password Verification**: Prevents unauthorized password changes
 - **Secure Hashing**: bcrypt with automatic salt generation
 - **No Password Exposure**: Passwords never returned in responses
 - **Validation**: Enforces password complexity requirements
 
 ### Data Validation
+
 - **Input Sanitization**: All inputs validated and sanitized
 - **Type Safety**: TypeScript ensures type correctness
 - **Business Rules**: Enforces username uniqueness and format rules
@@ -146,6 +161,7 @@ Content-Type: application/json
 ## Business Logic
 
 ### Profile Update Flow
+
 1. **Authentication Check**: Verify user is logged in
 2. **Input Validation**: Validate profile fields using schema
 3. **Uniqueness Check**: Verify username is available (if changed)
@@ -153,6 +169,7 @@ Content-Type: application/json
 5. **Response**: Return updated user profile
 
 ### Password Change Flow
+
 1. **Authentication Check**: Verify user is logged in
 2. **Input Validation**: Validate password change request
 3. **Current Password Verification**: Verify current password is correct
@@ -161,11 +178,13 @@ Content-Type: application/json
 6. **Response**: Confirm password change (no sensitive data)
 
 ### Conflict Resolution
+
 - **Username Conflicts**: Check username availability before update
 - **Error Handling**: Specific error messages for different validation failures
 - **Atomic Updates**: Database updates are atomic to prevent inconsistencies
 
 ## Dependencies
+
 - **@/lib/auth**: `getCurrentUser` for authentication
 - **@/lib/validations**: `updateProfileSchema`, `changePasswordSchema` for validation
 - **@/lib/security**: `hashPassword`, `verifyPassword` for password operations
@@ -175,11 +194,12 @@ Content-Type: application/json
 ## Usage Examples
 
 ### Update Profile Information
+
 ```typescript
 async function updateProfile(profileData: {
-  username?: string
-  firstName?: string
-  lastName?: string
+  username?: string;
+  firstName?: string;
+  lastName?: string;
 }) {
   const response = await fetch('/api/users/profile', {
     method: 'PATCH',
@@ -187,18 +207,19 @@ async function updateProfile(profileData: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(profileData),
-  })
+  });
 
   if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error.message)
+    const error = await response.json();
+    throw new Error(error.error.message);
   }
 
-  return response.json()
+  return response.json();
 }
 ```
 
 ### Change Password
+
 ```typescript
 async function changePassword(currentPassword: string, newPassword: string) {
   const response = await fetch('/api/users/profile', {
@@ -210,18 +231,19 @@ async function changePassword(currentPassword: string, newPassword: string) {
       currentPassword,
       newPassword,
     }),
-  })
+  });
 
   if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error.message)
+    const error = await response.json();
+    throw new Error(error.error.message);
   }
 
-  return response.json()
+  return response.json();
 }
 ```
 
 ### React Profile Form
+
 ```typescript
 function ProfileForm() {
   const [profile, setProfile] = useState({
@@ -250,6 +272,7 @@ function ProfileForm() {
 ```
 
 ### Password Change Form
+
 ```typescript
 function PasswordChangeForm() {
   const [passwords, setPasswords] = useState({
@@ -277,12 +300,14 @@ function PasswordChangeForm() {
 ```
 
 ## Integration Points
+
 - **Profile Pages**: Used by user profile management pages
 - **Settings Forms**: Integrated with user settings interfaces
 - **Account Security**: Password change functionality for security settings
 - **User Dashboard**: Profile editing within user dashboard
 
 ## Validation Rules
+
 - **Username**: Minimum 3 characters, alphanumeric and underscores allowed
 - **Names**: Optional fields, reasonable length limits
 - **Password**: Minimum 8 characters, complexity requirements

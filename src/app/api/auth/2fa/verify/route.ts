@@ -5,7 +5,10 @@ import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
 import { sendTwoFactorEnabledNotification } from '@/lib/email';
 import { z } from 'zod';
-import { assertNotImpersonating, ImpersonationBlockedError } from '@/lib/auth/impersonation';
+import {
+  assertNotImpersonating,
+  ImpersonationBlockedError,
+} from '@/lib/auth/impersonation';
 
 export const runtime = 'nodejs';
 
@@ -22,7 +25,9 @@ export async function POST(req: NextRequest) {
 
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }

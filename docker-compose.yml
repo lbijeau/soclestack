@@ -4,14 +4,24 @@ services:
   postgres:
     image: postgres:15
     container_name: soclestack-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: soclestack
-      POSTGRES_PASSWORD: soclestack123
-      POSTGRES_DB: soclestack
+      POSTGRES_USER: ${POSTGRES_USER:-soclestack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-soclestack123}
+      POSTGRES_DB: ${POSTGRES_DB:-soclestack}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U soclestack"]
       interval: 10s

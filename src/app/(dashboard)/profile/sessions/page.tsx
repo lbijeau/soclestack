@@ -1,27 +1,30 @@
-import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
-import { getSession } from '@/lib/auth'
-import { getUserActiveSessions, REMEMBER_ME_COOKIE_NAME } from '@/lib/auth/remember-me'
-import { SessionsList } from '@/components/profile/sessions-list'
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { getSession } from '@/lib/auth';
+import {
+  getUserActiveSessions,
+  REMEMBER_ME_COOKIE_NAME,
+} from '@/lib/auth/remember-me';
+import { SessionsList } from '@/components/profile/sessions-list';
 
 export default async function SessionsPage() {
-  const session = await getSession()
+  const session = await getSession();
 
   if (!session.isLoggedIn || !session.userId) {
-    redirect('/login')
+    redirect('/login');
   }
 
-  const sessions = await getUserActiveSessions(session.userId)
+  const sessions = await getUserActiveSessions(session.userId);
 
   // Get current session series from cookie to identify "this device"
-  const cookieStore = await cookies()
-  const rememberMeCookie = cookieStore.get(REMEMBER_ME_COOKIE_NAME)
-  let currentSeries: string | undefined
+  const cookieStore = await cookies();
+  const rememberMeCookie = cookieStore.get(REMEMBER_ME_COOKIE_NAME);
+  let currentSeries: string | undefined;
 
   if (rememberMeCookie?.value) {
-    const parts = rememberMeCookie.value.split(':')
+    const parts = rememberMeCookie.value.split(':');
     if (parts.length === 2) {
-      currentSeries = parts[0]
+      currentSeries = parts[0];
     }
   }
 
@@ -30,11 +33,11 @@ export default async function SessionsPage() {
     ...s,
     lastUsedAt: s.lastUsedAt.toISOString(),
     createdAt: s.createdAt.toISOString(),
-  }))
+  }));
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Active Sessions</h1>
+    <div className="mx-auto max-w-2xl p-6">
+      <h1 className="mb-6 text-2xl font-bold">Active Sessions</h1>
 
       <SessionsList
         sessions={serializedSessions}
@@ -42,5 +45,5 @@ export default async function SessionsPage() {
         currentSeries={currentSeries}
       />
     </div>
-  )
+  );
 }

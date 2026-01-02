@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, getClientIP } from '@/lib/auth';
-import { getUserActiveSessions, revokeRememberMeToken, revokeAllUserTokens } from '@/lib/auth/remember-me';
+import {
+  getUserActiveSessions,
+  revokeRememberMeToken,
+  revokeAllUserTokens,
+} from '@/lib/auth/remember-me';
 import { logAuditEvent } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -16,7 +20,9 @@ export async function GET(
 
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
@@ -52,7 +58,9 @@ export async function DELETE(
 
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
@@ -91,7 +99,12 @@ export async function DELETE(
     }
 
     return NextResponse.json(
-      { error: { type: 'VALIDATION_ERROR', message: 'Specify series or all=true' } },
+      {
+        error: {
+          type: 'VALIDATION_ERROR',
+          message: 'Specify series or all=true',
+        },
+      },
       { status: 400 }
     );
   } catch (error) {

@@ -1,30 +1,30 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Alert } from '@/components/ui/alert'
-import { PasswordStrengthMeter } from '@/components/ui/password-strength-meter'
-import { ChangePasswordInput } from '@/lib/validations'
-import { AuthError } from '@/types/auth'
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert } from '@/components/ui/alert';
+import { PasswordStrengthMeter } from '@/components/ui/password-strength-meter';
+import { ChangePasswordInput } from '@/lib/validations';
+import { AuthError } from '@/types/auth';
 
 export function PasswordChangeForm() {
   const [formData, setFormData] = useState<ChangePasswordInput>({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-  })
-  const [errors, setErrors] = useState<Record<string, string[]>>({})
-  const [error, setError] = useState<string>('')
-  const [success, setSuccess] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(false)
+  });
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-    setSuccess('')
-    setErrors({})
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+    setErrors({});
 
     try {
       const response = await fetch('/api/users/profile', {
@@ -33,61 +33,55 @@ export function PasswordChangeForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        const authError = data.error as AuthError
+        const authError = data.error as AuthError;
         if (authError.type === 'VALIDATION_ERROR' && authError.details) {
-          setErrors(authError.details)
+          setErrors(authError.details);
         } else {
-          setError(authError.message)
+          setError(authError.message);
         }
-        return
+        return;
       }
 
-      setSuccess(data.message)
+      setSuccess(data.message);
 
       // Reset form on success
       setFormData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
-      })
-
+      });
     } catch {
-      setError('An unexpected error occurred. Please try again.')
+      setError('An unexpected error occurred. Please try again.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear field error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: [] }))
+      setErrors((prev) => ({ ...prev, [name]: [] }));
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <Alert variant="error">
-          {error}
-        </Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
-      {success && (
-        <Alert variant="success">
-          {success}
-        </Alert>
-      )}
+      {success && <Alert variant="success">{success}</Alert>}
 
       <div className="space-y-2">
-        <label htmlFor="currentPassword" className="text-sm font-medium text-gray-700">
+        <label
+          htmlFor="currentPassword"
+          className="text-sm font-medium text-gray-700"
+        >
           Current Password
         </label>
         <Input
@@ -107,7 +101,10 @@ export function PasswordChangeForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="newPassword" className="text-sm font-medium text-gray-700">
+        <label
+          htmlFor="newPassword"
+          className="text-sm font-medium text-gray-700"
+        >
           New Password
         </label>
         <Input
@@ -128,7 +125,10 @@ export function PasswordChangeForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+        <label
+          htmlFor="confirmPassword"
+          className="text-sm font-medium text-gray-700"
+        >
           Confirm New Password
         </label>
         <Input
@@ -147,7 +147,7 @@ export function PasswordChangeForm() {
         )}
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+      <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
         <div className="flex">
           <div className="ml-3">
             <h3 className="text-sm font-medium text-amber-800">
@@ -155,8 +155,9 @@ export function PasswordChangeForm() {
             </h3>
             <div className="mt-2 text-sm text-amber-700">
               <p>
-                Changing your password will log you out from all other devices for security purposes.
-                You&apos;ll need to sign in again on those devices.
+                Changing your password will log you out from all other devices
+                for security purposes. You&apos;ll need to sign in again on
+                those devices.
               </p>
             </div>
           </div>
@@ -164,13 +165,10 @@ export function PasswordChangeForm() {
       </div>
 
       <div className="flex justify-end">
-        <Button
-          type="submit"
-          disabled={isLoading}
-        >
+        <Button type="submit" disabled={isLoading}>
           {isLoading ? 'Changing Password...' : 'Change Password'}
         </Button>
       </div>
     </form>
-  )
+  );
 }

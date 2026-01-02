@@ -1,153 +1,181 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Navbar } from '@/components/navigation/navbar'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Building2, Users, Mail, Settings, Trash2, Loader2 } from 'lucide-react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Navbar } from '@/components/navigation/navbar';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Building2,
+  Users,
+  Mail,
+  Settings,
+  Trash2,
+  Loader2,
+} from 'lucide-react';
+import Link from 'next/link';
 
 interface Organization {
-  id: string
-  name: string
-  slug: string
-  memberCount: number
-  role: 'OWNER' | 'ADMIN' | 'MEMBER'
-  createdAt: string
+  id: string;
+  name: string;
+  slug: string;
+  memberCount: number;
+  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  createdAt: string;
 }
 
 export default function OrganizationPage() {
-  const router = useRouter()
-  const [organization, setOrganization] = useState<Organization | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [name, setName] = useState('')
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const router = useRouter();
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    fetchOrganization()
+    fetchOrganization();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []);
 
   const fetchOrganization = async () => {
     try {
-      const res = await fetch('/api/organizations/current')
+      const res = await fetch('/api/organizations/current');
       if (res.status === 404) {
-        router.push('/dashboard')
-        return
+        router.push('/dashboard');
+        return;
       }
-      if (!res.ok) throw new Error('Failed to fetch organization')
-      const data = await res.json()
-      setOrganization(data.organization)
-      setName(data.organization.name)
+      if (!res.ok) throw new Error('Failed to fetch organization');
+      const data = await res.json();
+      setOrganization(data.organization);
+      setName(data.organization.name);
     } catch {
-      setError('Failed to load organization')
+      setError('Failed to load organization');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name.trim()) return
+    e.preventDefault();
+    if (!name.trim()) return;
 
-    setSaving(true)
-    setError('')
-    setSuccess('')
+    setSaving(true);
+    setError('');
+    setSuccess('');
 
     try {
       const res = await fetch('/api/organizations/current', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      })
+        body: JSON.stringify({ name }),
+      });
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error?.message || 'Failed to update organization')
+        const data = await res.json();
+        throw new Error(data.error?.message || 'Failed to update organization');
       }
 
-      const data = await res.json()
-      setOrganization(prev => prev ? { ...prev, name: data.organization.name } : null)
-      setSuccess('Organization updated successfully')
+      const data = await res.json();
+      setOrganization((prev) =>
+        prev ? { ...prev, name: data.organization.name } : null
+      );
+      setSuccess('Organization updated successfully');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update organization')
+      setError(
+        err instanceof Error ? err.message : 'Failed to update organization'
+      );
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this organization? This action cannot be undone. All members will be removed from the organization.')) {
-      return
+    if (
+      !confirm(
+        'Are you sure you want to delete this organization? This action cannot be undone. All members will be removed from the organization.'
+      )
+    ) {
+      return;
     }
 
-    setDeleting(true)
-    setError('')
+    setDeleting(true);
+    setError('');
 
     try {
       const res = await fetch('/api/organizations/current', {
-        method: 'DELETE'
-      })
+        method: 'DELETE',
+      });
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error?.message || 'Failed to delete organization')
+        const data = await res.json();
+        throw new Error(data.error?.message || 'Failed to delete organization');
       }
 
-      router.push('/dashboard')
+      router.push('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete organization')
-      setDeleting(false)
+      setError(
+        err instanceof Error ? err.message : 'Failed to delete organization'
+      );
+      setDeleting(false);
     }
-  }
+  };
 
-  const canEdit = organization?.role === 'OWNER' || organization?.role === 'ADMIN'
-  const canDelete = organization?.role === 'OWNER'
+  const canEdit =
+    organization?.role === 'OWNER' || organization?.role === 'ADMIN';
+  const canDelete = organization?.role === 'OWNER';
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="max-w-4xl mx-auto py-6 px-4">
+        <main className="mx-auto max-w-4xl px-4 py-6">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
         </main>
       </div>
-    )
+    );
   }
 
   if (!organization) {
-    return null
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <main className="max-w-4xl mx-auto py-6 px-4">
+      <main className="mx-auto max-w-4xl px-4 py-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Organization Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Organization Settings
+          </h1>
           <p className="mt-2 text-gray-600">
             Manage your organization settings and members.
           </p>
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           <Link href="/organization/members">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+            <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <Users className="h-8 w-8 text-blue-600" />
                   <div className="ml-4">
                     <div className="font-medium text-gray-900">Members</div>
-                    <div className="text-sm text-gray-500">{organization.memberCount} members</div>
+                    <div className="text-sm text-gray-500">
+                      {organization.memberCount} members
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -156,13 +184,17 @@ export default function OrganizationPage() {
 
           {canEdit && (
             <Link href="/organization/invites">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+              <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
                 <CardContent className="p-6">
                   <div className="flex items-center">
                     <Mail className="h-8 w-8 text-green-600" />
                     <div className="ml-4">
-                      <div className="font-medium text-gray-900">Invitations</div>
-                      <div className="text-sm text-gray-500">Manage invites</div>
+                      <div className="font-medium text-gray-900">
+                        Invitations
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Manage invites
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -176,7 +208,9 @@ export default function OrganizationPage() {
                 <Building2 className="h-8 w-8 text-purple-600" />
                 <div className="ml-4">
                   <div className="font-medium text-gray-900">Your Role</div>
-                  <div className="text-sm text-gray-500">{organization.role}</div>
+                  <div className="text-sm text-gray-500">
+                    {organization.role}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -196,19 +230,22 @@ export default function OrganizationPage() {
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+              <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 {error}
               </div>
             )}
             {success && (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm">
+              <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
                 {success}
               </div>
             )}
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Organization Name
                 </label>
                 <Input
@@ -221,7 +258,10 @@ export default function OrganizationPage() {
               </div>
 
               <div>
-                <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="slug"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   URL Slug
                 </label>
                 <Input
@@ -236,7 +276,10 @@ export default function OrganizationPage() {
               </div>
 
               <div>
-                <label htmlFor="created" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="created"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Created
                 </label>
                 <Input
@@ -249,7 +292,10 @@ export default function OrganizationPage() {
 
               {canEdit && (
                 <div className="pt-4">
-                  <Button type="submit" disabled={saving || name === organization.name}>
+                  <Button
+                    type="submit"
+                    disabled={saving || name === organization.name}
+                  >
                     {saving ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -280,7 +326,9 @@ export default function OrganizationPage() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">Delete Organization</p>
+                  <p className="font-medium text-gray-900">
+                    Delete Organization
+                  </p>
                   <p className="text-sm text-gray-500">
                     Permanently delete this organization and remove all members.
                   </p>
@@ -305,5 +353,5 @@ export default function OrganizationPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

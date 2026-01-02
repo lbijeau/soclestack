@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createUserSession, getClientIP } from '@/lib/auth';
 import { verifyTOTPCode } from '@/lib/auth/totp';
-import { verifyBackupCode, getRemainingBackupCodeCount } from '@/lib/auth/backup-codes';
+import {
+  verifyBackupCode,
+  getRemainingBackupCodeCount,
+} from '@/lib/auth/backup-codes';
 import { verifyPending2FAToken } from '@/lib/auth/pending-2fa';
 import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
@@ -36,7 +39,12 @@ export async function POST(req: NextRequest) {
     const pending = verifyPending2FAToken(pendingToken);
     if (!pending) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Session expired, please login again' } },
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'Session expired, please login again',
+          },
+        },
         { status: 401 }
       );
     }
@@ -123,10 +131,13 @@ export async function POST(req: NextRequest) {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       },
-      warnings: remainingBackupCodes <= 3 ? {
-        lowBackupCodes: true,
-        remainingBackupCodes,
-      } : undefined,
+      warnings:
+        remainingBackupCodes <= 3
+          ? {
+              lowBackupCodes: true,
+              remainingBackupCodes,
+            }
+          : undefined,
     });
   } catch (error) {
     console.error('2FA validate error:', error);

@@ -43,7 +43,12 @@ export async function GET() {
   } catch (error) {
     console.error('Get OAuth accounts error:', error);
     return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'An internal server error occurred' } },
+      {
+        error: {
+          type: 'SERVER_ERROR',
+          message: 'An internal server error occurred',
+        },
+      },
       { status: 500 }
     );
   }
@@ -69,7 +74,9 @@ export async function DELETE(req: NextRequest) {
 
     if (!provider) {
       return NextResponse.json(
-        { error: { type: 'VALIDATION_ERROR', message: 'Provider is required' } },
+        {
+          error: { type: 'VALIDATION_ERROR', message: 'Provider is required' },
+        },
         { status: 400 }
       );
     }
@@ -96,7 +103,13 @@ export async function DELETE(req: NextRequest) {
 
     if (!hasPassword && oauthAccountCount <= 1) {
       return NextResponse.json(
-        { error: { type: 'CANNOT_UNLINK', message: 'Cannot unlink your only authentication method. Set a password first.' } },
+        {
+          error: {
+            type: 'CANNOT_UNLINK',
+            message:
+              'Cannot unlink your only authentication method. Set a password first.',
+          },
+        },
         { status: 400 }
       );
     }
@@ -134,7 +147,12 @@ export async function DELETE(req: NextRequest) {
   } catch (error) {
     console.error('Unlink OAuth account error:', error);
     return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'An internal server error occurred' } },
+      {
+        error: {
+          type: 'SERVER_ERROR',
+          message: 'An internal server error occurred',
+        },
+      },
       { status: 500 }
     );
   }

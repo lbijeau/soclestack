@@ -1,12 +1,15 @@
 # Profile Components
 
 ## Purpose
+
 User profile management components that allow users to update their personal information and change their passwords. These components provide secure, validated forms for self-service account management.
 
 ## Contents
 
 ### `profile-form.tsx`
+
 **Purpose**: User profile information editing form
+
 - **Features**:
   - Edit username, first name, and last name
   - Real-time validation with error feedback
@@ -16,7 +19,9 @@ User profile management components that allow users to update their personal inf
   - Integration with profile update API
 
 ### `password-change-form.tsx`
+
 **Purpose**: Secure password change functionality
+
 - **Features**:
   - Current password verification
   - New password validation with strength indicators
@@ -28,12 +33,14 @@ User profile management components that allow users to update their personal inf
 ## Common Features
 
 ### Form Validation
+
 - **Client-Side Validation**: Real-time input validation
 - **Server-Side Integration**: API error handling and display
 - **Field-Specific Errors**: Granular error messaging
 - **Form-Level Feedback**: Success and general error messages
 
 ### User Experience
+
 - **Loading States**: Visual feedback during API operations
 - **Form Reset**: Clear sensitive data after operations
 - **Accessibility**: Proper form labels and ARIA attributes
@@ -42,37 +49,41 @@ User profile management components that allow users to update their personal inf
 ## Component Architecture
 
 ### Profile Form Props
+
 ```typescript
 interface ProfileFormProps {
-  user: User
-  onUpdate?: (updatedUser: User) => void
-  className?: string
+  user: User;
+  onUpdate?: (updatedUser: User) => void;
+  className?: string;
 }
 ```
 
 ### Password Form Props
+
 ```typescript
 interface PasswordChangeFormProps {
-  onSuccess?: () => void
-  className?: string
+  onSuccess?: () => void;
+  className?: string;
 }
 ```
 
 ### Form State Management
+
 ```typescript
 const [formData, setFormData] = useState({
   username: user.username || '',
   firstName: user.firstName || '',
-  lastName: user.lastName || ''
-})
-const [errors, setErrors] = useState<Record<string, string[]>>({})
-const [isLoading, setIsLoading] = useState(false)
-const [success, setSuccess] = useState('')
+  lastName: user.lastName || '',
+});
+const [errors, setErrors] = useState<Record<string, string[]>>({});
+const [isLoading, setIsLoading] = useState(false);
+const [success, setSuccess] = useState('');
 ```
 
 ## Usage Examples
 
 ### Profile Form Implementation
+
 ```typescript
 import { ProfileForm } from '@/components/profile/profile-form'
 
@@ -98,6 +109,7 @@ export default function ProfilePage() {
 ```
 
 ### Password Change Implementation
+
 ```typescript
 import { PasswordChangeForm } from '@/components/profile/password-change-form'
 
@@ -117,6 +129,7 @@ export default function SecurityPage() {
 ```
 
 ### Integrated Profile Management
+
 ```typescript
 function ProfileManagement({ user }: { user: User }) {
   return (
@@ -146,11 +159,12 @@ function ProfileManagement({ user }: { user: User }) {
 ## API Integration
 
 ### Profile Update
+
 ```typescript
 const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setIsLoading(true)
-  setErrors({})
+  e.preventDefault();
+  setIsLoading(true);
+  setErrors({});
 
   try {
     const response = await fetch('/api/users/profile', {
@@ -159,36 +173,37 @@ const handleSubmit = async (e: React.FormEvent) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(formData),
-    })
+    });
 
-    const data = await response.json()
+    const data = await response.json();
 
     if (!response.ok) {
-      const authError = data.error as AuthError
+      const authError = data.error as AuthError;
       if (authError.type === 'VALIDATION_ERROR' && authError.details) {
-        setErrors(authError.details)
+        setErrors(authError.details);
       } else {
-        setError(authError.message)
+        setError(authError.message);
       }
-      return
+      return;
     }
 
-    onUpdate?.(data.user)
-    setSuccess('Profile updated successfully')
+    onUpdate?.(data.user);
+    setSuccess('Profile updated successfully');
   } catch (error) {
-    setError('An error occurred while updating profile')
+    setError('An error occurred while updating profile');
   } finally {
-    setIsLoading(false)
+    setIsLoading(false);
   }
-}
+};
 ```
 
 ### Password Change
+
 ```typescript
 const handlePasswordChange = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setIsLoading(true)
-  setErrors({})
+  e.preventDefault();
+  setIsLoading(true);
+  setErrors({});
 
   try {
     const response = await fetch('/api/users/profile', {
@@ -200,42 +215,45 @@ const handlePasswordChange = async (e: React.FormEvent) => {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
       }),
-    })
+    });
 
     if (response.ok) {
       setFormData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
-      })
-      onSuccess?.()
-      setSuccess('Password changed successfully')
+      });
+      onSuccess?.();
+      setSuccess('Password changed successfully');
     } else {
-      const data = await response.json()
-      setError(data.error.message)
+      const data = await response.json();
+      setError(data.error.message);
     }
   } catch (error) {
-    setError('An error occurred while changing password')
+    setError('An error occurred while changing password');
   } finally {
-    setIsLoading(false)
+    setIsLoading(false);
   }
-}
+};
 ```
 
 ## Dependencies
 
 ### UI Components
+
 - **@/components/ui/button**: Form submission and action buttons
 - **@/components/ui/input**: Form input fields
 - **@/components/ui/alert**: Success and error messages
 - **@/components/ui/card**: Form container styling
 
 ### Utilities
+
 - **@/lib/validations**: Input validation schemas
 - **@/types/auth**: TypeScript type definitions
 - **@/types/user**: User-related types
 
 ### External Libraries
+
 - **React**: State management and form handling
 - **Next.js**: Client-side navigation
 - **clsx**: Conditional styling
@@ -243,11 +261,13 @@ const handlePasswordChange = async (e: React.FormEvent) => {
 ## Validation Features
 
 ### Profile Form Validation
+
 - **Username**: Minimum length, uniqueness check, format validation
 - **Names**: Optional fields with reasonable length limits
 - **Real-time Feedback**: Immediate validation on input change
 
 ### Password Validation
+
 - **Current Password**: Required for security verification
 - **New Password**: Strength requirements and complexity rules
 - **Confirmation**: Must match new password exactly
@@ -256,12 +276,14 @@ const handlePasswordChange = async (e: React.FormEvent) => {
 ## Security Considerations
 
 ### Password Change Security
+
 - **Current Password Verification**: Prevents unauthorized changes
 - **Secure Transmission**: HTTPS-only password submission
 - **Form Clearing**: Sensitive data cleared after submission
 - **Session Validation**: Requires active authenticated session
 
 ### Data Protection
+
 - **Input Sanitization**: Prevents XSS through validation
 - **CSRF Protection**: Secure form submission
 - **Rate Limiting**: API endpoints include rate limiting
@@ -270,6 +292,7 @@ const handlePasswordChange = async (e: React.FormEvent) => {
 ## User Experience Features
 
 ### Form Feedback
+
 ```typescript
 // Success state
 {success && (
@@ -294,6 +317,7 @@ const handlePasswordChange = async (e: React.FormEvent) => {
 ```
 
 ### Loading States
+
 ```typescript
 <Button
   type="submit"
@@ -305,17 +329,20 @@ const handlePasswordChange = async (e: React.FormEvent) => {
 ```
 
 ### Progressive Enhancement
+
 - **Client-Side Validation**: Immediate feedback for better UX
 - **Server-Side Fallback**: Works without JavaScript
 - **Graceful Degradation**: Basic functionality in all browsers
 
 ## Integration Points
+
 - **User Profile Pages**: Primary forms for profile management
 - **Settings Dashboard**: Integrated with user settings interface
 - **Account Security**: Password change for security settings
 - **Admin Interface**: Profile editing in administrative contexts
 
 ## Accessibility Features
+
 - **Form Labels**: Proper label associations for screen readers
 - **Error Announcements**: ARIA live regions for error messages
 - **Keyboard Navigation**: Full keyboard accessibility

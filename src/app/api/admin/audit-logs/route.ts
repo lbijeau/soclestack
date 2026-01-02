@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
     // Must be logged in
     if (!session.isLoggedIn || !session.userId) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
@@ -22,7 +24,12 @@ export async function GET(req: NextRequest) {
     // Cannot access while impersonating
     if (isImpersonating(session)) {
       return NextResponse.json(
-        { error: { type: 'FORBIDDEN', message: 'Cannot access audit logs while impersonating' } },
+        {
+          error: {
+            type: 'FORBIDDEN',
+            message: 'Cannot access audit logs while impersonating',
+          },
+        },
         { status: 403 }
       );
     }
@@ -30,7 +37,7 @@ export async function GET(req: NextRequest) {
     // Get user with organization info
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { role: true, organizationId: true, organizationRole: true }
+      select: { role: true, organizationId: true, organizationRole: true },
     });
 
     if (!user) {
@@ -48,7 +55,10 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get('from');
     const to = searchParams.get('to');
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 10000);
+    const limit = Math.min(
+      parseInt(searchParams.get('limit') || '50', 10),
+      10000
+    );
     const orgScope = searchParams.get('organizationId'); // 'all' for system admins to see everything
 
     // Build filters
@@ -72,13 +82,21 @@ export async function GET(req: NextRequest) {
         filters.organizationId = orgScope;
       }
       // If orgScope is 'all' or not specified, no filter applied (sees everything)
-    } else if (user.organizationId && hasOrgRole(user.organizationRole, 'ADMIN')) {
+    } else if (
+      user.organizationId &&
+      hasOrgRole(user.organizationRole, 'ADMIN')
+    ) {
       // Organization admin - can only see their org's logs
       filters.organizationId = user.organizationId;
     } else {
       // Not authorized to view audit logs
       return NextResponse.json(
-        { error: { type: 'AUTHORIZATION_ERROR', message: 'Admin access required' } },
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Admin access required',
+          },
+        },
         { status: 403 }
       );
     }
@@ -98,7 +116,9 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Audit logs error:', error);
     return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'Failed to fetch audit logs' } },
+      {
+        error: { type: 'SERVER_ERROR', message: 'Failed to fetch audit logs' },
+      },
       { status: 500 }
     );
   }

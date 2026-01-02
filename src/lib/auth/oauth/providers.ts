@@ -18,7 +18,10 @@ export interface OAuthUserProfile {
   avatarUrl: string | null;
 }
 
-const providers: Record<OAuthProvider, Omit<OAuthProviderConfig, 'clientId' | 'clientSecret'>> = {
+const providers: Record<
+  OAuthProvider,
+  Omit<OAuthProviderConfig, 'clientId' | 'clientSecret'>
+> = {
   google: {
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token',
@@ -33,7 +36,9 @@ const providers: Record<OAuthProvider, Omit<OAuthProviderConfig, 'clientId' | 'c
   },
 };
 
-export function getProviderConfig(provider: OAuthProvider): OAuthProviderConfig | null {
+export function getProviderConfig(
+  provider: OAuthProvider
+): OAuthProviderConfig | null {
   const baseConfig = providers[provider];
   if (!baseConfig) return null;
 

@@ -1,12 +1,15 @@
 # UI Components Library
 
 ## Purpose
+
 Reusable React UI components that form the design system foundation. Built with Tailwind CSS and TypeScript for consistency, accessibility, and type safety across the application.
 
 ## Contents
 
 ### `button.tsx`
+
 **Purpose**: Versatile button component with multiple variants and sizes
+
 - **Variants**: primary, secondary, destructive, ghost
 - **Sizes**: sm (small), md (medium), lg (large)
 - **Features**:
@@ -16,7 +19,9 @@ Reusable React UI components that form the design system foundation. Built with 
   - Customizable className prop for extensions
 
 ### `input.tsx`
+
 **Purpose**: Standardized form input component
+
 - **Features**:
   - Consistent styling across the application
   - Focus states and validation styling
@@ -24,7 +29,9 @@ Reusable React UI components that form the design system foundation. Built with 
   - forwardRef for form library compatibility
 
 ### `card.tsx`
+
 **Purpose**: Content container component with header and body sections
+
 - **Components**: Card, CardHeader, CardTitle, CardDescription, CardContent
 - **Features**:
   - Modular composition pattern
@@ -33,7 +40,9 @@ Reusable React UI components that form the design system foundation. Built with 
   - Responsive design support
 
 ### `alert.tsx`
+
 **Purpose**: Message display component for notifications and feedback
+
 - **Variants**: Default, destructive, success, warning
 - **Features**:
   - Icon integration capability
@@ -42,7 +51,9 @@ Reusable React UI components that form the design system foundation. Built with 
   - Dismissible variants support
 
 ### `badge.tsx`
+
 **Purpose**: Small status indicators and labels
+
 - **Variants**: default, secondary, destructive, outline
 - **Features**:
   - Compact information display
@@ -53,18 +64,21 @@ Reusable React UI components that form the design system foundation. Built with 
 ## Design System Principles
 
 ### Consistency
+
 - **Color Palette**: Standardized color scheme across all components
 - **Typography**: Consistent font sizing and weight hierarchy
 - **Spacing**: Uniform padding and margin patterns
 - **Border Radius**: Consistent rounding for visual harmony
 
 ### Accessibility
+
 - **Focus Management**: Visible focus indicators on all interactive elements
 - **ARIA Support**: Proper ARIA attributes for screen readers
 - **Keyboard Navigation**: Full keyboard accessibility
 - **Color Contrast**: WCAG compliant color combinations
 
 ### Composability
+
 - **forwardRef**: All components support ref forwarding
 - **Prop Extensions**: Components extend native HTML element props
 - **Flexible Styling**: className prop for custom styling
@@ -73,6 +87,7 @@ Reusable React UI components that form the design system foundation. Built with 
 ## Usage Examples
 
 ### Button Component
+
 ```typescript
 import { Button } from '@/components/ui/button'
 
@@ -94,6 +109,7 @@ import { Button } from '@/components/ui/button'
 ```
 
 ### Card Component
+
 ```typescript
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -109,6 +125,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 ```
 
 ### Alert Component
+
 ```typescript
 import { Alert } from '@/components/ui/alert'
 
@@ -129,6 +146,7 @@ import { Alert } from '@/components/ui/alert'
 ```
 
 ### Input Component
+
 ```typescript
 import { Input } from '@/components/ui/input'
 
@@ -150,6 +168,7 @@ import { Input } from '@/components/ui/input'
 ```
 
 ### Badge Component
+
 ```typescript
 import { Badge } from '@/components/ui/badge'
 
@@ -165,12 +184,14 @@ import { Badge } from '@/components/ui/badge'
 ## Styling Architecture
 
 ### Tailwind CSS Integration
+
 - **Utility Classes**: Comprehensive use of Tailwind utilities
 - **Custom Variants**: Component-specific styling patterns
 - **Responsive Design**: Mobile-first responsive utilities
 - **Dark Mode Ready**: Color schemes prepared for dark mode
 
 ### Component Variants
+
 ```typescript
 // Variant system pattern
 {
@@ -182,6 +203,7 @@ import { Badge } from '@/components/ui/badge'
 ```
 
 ### Size System
+
 ```typescript
 // Consistent sizing across components
 {
@@ -194,41 +216,47 @@ import { Badge } from '@/components/ui/badge'
 ## TypeScript Integration
 
 ### Prop Types
+
 ```typescript
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost'
-  size?: 'sm' | 'md' | 'lg'
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
 }
 ```
 
 ### forwardRef Pattern
+
 ```typescript
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', ...props }, ref) => {
     // Component implementation
   }
-)
+);
 ```
 
 ## Dependencies
+
 - **React**: Core React library with hooks and forwardRef
 - **clsx**: Conditional className composition
 - **Tailwind CSS**: Utility-first CSS framework
 - **TypeScript**: Type safety and IntelliSense
 
 ## Integration Points
+
 - **Form Components**: Used by all form-related components
 - **Page Components**: Building blocks for page layouts
 - **Authentication Forms**: Styling for auth workflows
 - **Admin Interfaces**: Consistent UI for admin panels
 
 ## Extension Patterns
+
 - **Compound Components**: Card component pattern for complex UI
 - **Variant Extensions**: Easy to add new variants to existing components
 - **Custom Styling**: className prop allows for component extensions
 - **Theme Customization**: Centralized color and spacing systems
 
 ## Performance Considerations
+
 - **Tree Shaking**: Components are individually exportable
 - **CSS Purging**: Tailwind CSS purges unused styles
 - **Bundle Size**: Minimal JavaScript footprint

@@ -1,26 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, hasRequiredRole } from '@/lib/auth'
-import { userListParamsSchema } from '@/lib/validations'
-import { prisma } from '@/lib/db'
-import { AuthError } from '@/types/auth'
-import { Prisma } from '@prisma/client'
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser, hasRequiredRole } from '@/lib/auth';
+import { userListParamsSchema } from '@/lib/validations';
+import { prisma } from '@/lib/db';
+import { AuthError } from '@/types/auth';
+import { Prisma } from '@prisma/client';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
     // Check authentication
-    const currentUser = await getCurrentUser()
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated'
-          } as AuthError
+            message: 'Not authenticated',
+          } as AuthError,
         },
         { status: 401 }
-      )
+      );
     }
 
     // Check authorization (only admins and moderators can list users)
@@ -29,33 +29,34 @@ export async function GET(req: NextRequest) {
         {
           error: {
             type: 'AUTHORIZATION_ERROR',
-            message: 'Insufficient permissions'
-          } as AuthError
+            message: 'Insufficient permissions',
+          } as AuthError,
         },
         { status: 403 }
-      )
+      );
     }
 
     // Parse query parameters
-    const { searchParams } = new URL(req.url)
-    const queryParams = Object.fromEntries(searchParams.entries())
+    const { searchParams } = new URL(req.url);
+    const queryParams = Object.fromEntries(searchParams.entries());
 
-    const validationResult = userListParamsSchema.safeParse(queryParams)
+    const validationResult = userListParamsSchema.safeParse(queryParams);
     if (!validationResult.success) {
       return NextResponse.json(
         {
           error: {
             type: 'VALIDATION_ERROR',
             message: 'Invalid query parameters',
-            details: validationResult.error.flatten().fieldErrors
-          } as AuthError
+            details: validationResult.error.flatten().fieldErrors,
+          } as AuthError,
         },
         { status: 400 }
-      )
+      );
     }
 
-    const { page, limit, search, role, isActive, sortBy, sortOrder } = validationResult.data
-    const locked = searchParams.get('locked') === 'true'
+    const { page, limit, search, role, isActive, sortBy, sortOrder } =
+      validationResult.data;
+    const locked = searchParams.get('locked') === 'true';
 
     // Build where clause
     const where: Prisma.UserWhereInput = {
@@ -65,15 +66,15 @@ export async function GET(req: NextRequest) {
           { username: { contains: search } },
           { firstName: { contains: search } },
           { lastName: { contains: search } },
-        ]
+        ],
       }),
       ...(role && { role }),
       ...(isActive !== undefined && { isActive }),
       ...(locked && { lockedUntil: { gt: new Date() } }),
-    }
+    };
 
     // Get total count
-    const totalUsers = await prisma.user.count({ where })
+    const totalUsers = await prisma.user.count({ where });
 
     // Get users
     const users = await prisma.user.findMany({
@@ -94,9 +95,9 @@ export async function GET(req: NextRequest) {
       orderBy: { [sortBy]: sortOrder },
       skip: (page - 1) * limit,
       take: limit,
-    })
+    });
 
-    const totalPages = Math.ceil(totalUsers / limit)
+    const totalPages = Math.ceil(totalUsers / limit);
 
     return NextResponse.json({
       users,
@@ -107,19 +108,18 @@ export async function GET(req: NextRequest) {
         totalPages,
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
-      }
-    })
-
+      },
+    });
   } catch (error) {
-    console.error('Get users error:', error)
+    console.error('Get users error:', error);
     return NextResponse.json(
       {
         error: {
           type: 'SERVER_ERROR',
-          message: 'An internal server error occurred'
-        } as AuthError
+          message: 'An internal server error occurred',
+        } as AuthError,
       },
       { status: 500 }
-    )
+    );
   }
 }

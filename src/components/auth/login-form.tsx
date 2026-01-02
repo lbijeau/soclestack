@@ -1,46 +1,52 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Alert } from '@/components/ui/alert'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { TwoFactorInput } from './two-factor-input'
-import { OAuthButtons, OAuthDivider } from './oauth-buttons'
-import { LoginInput } from '@/lib/validations'
-import { AuthError } from '@/types/auth'
-import type { OAuthProvider } from '@/lib/auth/oauth/providers'
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert } from '@/components/ui/alert';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { TwoFactorInput } from './two-factor-input';
+import { OAuthButtons, OAuthDivider } from './oauth-buttons';
+import { LoginInput } from '@/lib/validations';
+import { AuthError } from '@/types/auth';
+import type { OAuthProvider } from '@/lib/auth/oauth/providers';
 
 export function LoginForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const returnUrl = searchParams.get('returnUrl') || '/dashboard'
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
 
   const [formData, setFormData] = useState<LoginInput>({
     email: '',
     password: '',
     rememberMe: false,
-  })
-  const [errors, setErrors] = useState<Record<string, string[]>>({})
-  const [error, setError] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLocked, setIsLocked] = useState(false)
-  const [requires2FA, setRequires2FA] = useState(false)
-  const [pendingToken, setPendingToken] = useState<string | null>(null)
-  const [twoFactorError, setTwoFactorError] = useState('')
-  const [enabledProviders, setEnabledProviders] = useState<OAuthProvider[]>([])
+  });
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [twoFactorError, setTwoFactorError] = useState('');
+  const [enabledProviders, setEnabledProviders] = useState<OAuthProvider[]>([]);
 
   useEffect(() => {
     // Fetch enabled OAuth providers
     fetch('/api/auth/oauth/accounts')
-      .then(res => res.json())
-      .then(data => setEnabledProviders(data.enabledProviders || []))
-      .catch(() => {})
+      .then((res) => res.json())
+      .then((data) => setEnabledProviders(data.enabledProviders || []))
+      .catch(() => {});
 
     // Check for OAuth error from URL
-    const oauthError = searchParams.get('error')
+    const oauthError = searchParams.get('error');
     if (oauthError) {
       const errorMessages: Record<string, string> = {
         oauth_denied: 'OAuth authorization was denied',
@@ -50,16 +56,16 @@ export function LoginForm() {
         token_exchange_failed: 'Failed to complete OAuth authentication',
         profile_fetch_failed: 'Failed to fetch profile from OAuth provider',
         account_inactive: 'Your account is inactive. Please contact support.',
-      }
-      setError(errorMessages[oauthError] || 'OAuth authentication failed')
+      };
+      setError(errorMessages[oauthError] || 'OAuth authentication failed');
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-    setErrors({})
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setErrors({});
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -68,59 +74,58 @@ export function LoginForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        const authError = data.error as AuthError
+        const authError = data.error as AuthError;
         if (authError.type === 'VALIDATION_ERROR' && authError.details) {
-          setErrors(authError.details)
+          setErrors(authError.details);
         } else if (authError.type === 'ACCOUNT_LOCKED') {
-          setError(authError.message)
-          setIsLocked(true)
+          setError(authError.message);
+          setIsLocked(true);
         } else {
-          setError(authError.message)
+          setError(authError.message);
         }
-        return
+        return;
       }
 
       // Check if 2FA is required
       if (data.requiresTwoFactor) {
-        setRequires2FA(true)
-        setPendingToken(data.pendingToken)
-        return
+        setRequires2FA(true);
+        setPendingToken(data.pendingToken);
+        return;
       }
 
       // Store tokens (in a real app, you might want to use httpOnly cookies)
       if (data.tokens) {
-        localStorage.setItem('accessToken', data.tokens.accessToken)
-        localStorage.setItem('refreshToken', data.tokens.refreshToken)
+        localStorage.setItem('accessToken', data.tokens.accessToken);
+        localStorage.setItem('refreshToken', data.tokens.refreshToken);
       }
 
       // Redirect to return URL or dashboard
-      router.push(returnUrl)
-      router.refresh()
-
+      router.push(returnUrl);
+      router.refresh();
     } catch {
-      setError('An unexpected error occurred. Please try again.')
+      setError('An unexpected error occurred. Please try again.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear field error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: [] }))
+      setErrors((prev) => ({ ...prev, [name]: [] }));
     }
-  }
+  };
 
   const handle2FASubmit = async (code: string, isBackupCode: boolean) => {
-    setIsLoading(true)
-    setTwoFactorError('')
+    setIsLoading(true);
+    setTwoFactorError('');
 
     try {
       const response = await fetch('/api/auth/2fa/validate', {
@@ -133,47 +138,48 @@ export function LoginForm() {
           code,
           isBackupCode,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        setTwoFactorError(data.error?.message || 'Invalid code')
-        return
+        setTwoFactorError(data.error?.message || 'Invalid code');
+        return;
       }
 
       // Store tokens
       if (data.tokens) {
-        localStorage.setItem('accessToken', data.tokens.accessToken)
-        localStorage.setItem('refreshToken', data.tokens.refreshToken)
+        localStorage.setItem('accessToken', data.tokens.accessToken);
+        localStorage.setItem('refreshToken', data.tokens.refreshToken);
       }
 
       // Show warning if low on backup codes
       if (data.warnings?.lowBackupCodes) {
-        alert(`Warning: You only have ${data.warnings.remainingBackupCodes} backup codes remaining. Consider regenerating them.`)
+        alert(
+          `Warning: You only have ${data.warnings.remainingBackupCodes} backup codes remaining. Consider regenerating them.`
+        );
       }
 
       // Redirect
-      router.push(returnUrl)
-      router.refresh()
-
+      router.push(returnUrl);
+      router.refresh();
     } catch {
-      setTwoFactorError('An unexpected error occurred')
+      setTwoFactorError('An unexpected error occurred');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleCancel2FA = () => {
-    setRequires2FA(false)
-    setPendingToken(null)
-    setTwoFactorError('')
-    setFormData({ email: '', password: '', rememberMe: false })
-  }
+    setRequires2FA(false);
+    setPendingToken(null);
+    setTwoFactorError('');
+    setFormData({ email: '', password: '', rememberMe: false });
+  };
 
   if (requires2FA) {
     return (
-      <Card className="w-full max-w-md mx-auto">
+      <Card className="mx-auto w-full max-w-md">
         <CardHeader>
           <CardTitle>Two-Factor Authentication</CardTitle>
           <CardDescription>
@@ -189,11 +195,11 @@ export function LoginForm() {
           />
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader>
         <CardTitle>Sign In</CardTitle>
         <CardDescription>
@@ -229,8 +235,11 @@ export function LoginForm() {
           </>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
-
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          data-testid="login-form"
+        >
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
               Email
@@ -280,11 +289,19 @@ export function LoginForm() {
               type="checkbox"
               data-testid="remember-me-checkbox"
               checked={formData.rememberMe}
-              onChange={(e) => setFormData(prev => ({ ...prev, rememberMe: e.target.checked }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  rememberMe: e.target.checked,
+                }))
+              }
               disabled={isLoading}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+            <label
+              htmlFor="remember-me"
+              className="ml-2 block text-sm text-gray-900"
+            >
               Remember me
             </label>
           </div>
@@ -298,7 +315,7 @@ export function LoginForm() {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
 
-          <div className="text-center space-y-2">
+          <div className="space-y-2 text-center">
             <Link
               href="/forgot-password"
               className="text-sm text-blue-600 hover:text-blue-500"
@@ -308,7 +325,11 @@ export function LoginForm() {
             </Link>
             <div className="text-sm text-gray-600">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-blue-600 hover:text-blue-500" data-testid="register-link">
+              <Link
+                href="/register"
+                className="text-blue-600 hover:text-blue-500"
+                data-testid="register-link"
+              >
                 Sign up
               </Link>
             </div>
@@ -316,5 +337,5 @@ export function LoginForm() {
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }
