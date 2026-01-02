@@ -21,8 +21,7 @@ export const SESSION_WARNING_THRESHOLD_MS = 60 * 60 * 1000; // Show warning 1 ho
 // Session configuration
 const sessionOptions = {
   password: process.env.SESSION_SECRET!,
-  cookieName: 'soclestack-session',
-  cookieOptions: {
+      cookieName: 'soclestack-session',  cookieOptions: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax' as const,

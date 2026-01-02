@@ -260,9 +260,8 @@ class TestRunner {
   getEnvironmentVariables() {
     const baseUrl = {
       local: 'http://localhost:3000',
-      staging: 'https://staging.soclestack.com',
-      production: 'https://soclestack.com'
-    }[this.options.env];
+          staging: 'https://staging.soclestack.com',
+          production: 'https://soclestack.com'    }[this.options.env];
 
     return {
       BASE_URL: baseUrl,

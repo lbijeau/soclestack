@@ -361,7 +361,7 @@ CREATE TABLE api_keys (
 - `lastUsedAt` tracking for stale key identification
 
 #### API Key Format
-- Prefix: `lsk_` (soclestack key)
+- Prefix: `ssk_` (soclestack key)
 - Random: 32 bytes base64url encoded
 - Example: `lsk_x7Kp2mNqR9vBc4wL8yF6hJ3sD5tG0aE1`
 

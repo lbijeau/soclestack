@@ -1,4 +1,4 @@
-# Liteshell - Next.js User Management Application Makefile
+# SocleStack - Next.js User Management Application Makefile
 # Provides easy commands for development, testing, and deployment
 
 # Configuration
@@ -19,7 +19,7 @@ NC := \033[0m # No Color
 # Default command
 help: ## Show this help message
 	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(BLUE)║          Liteshell - User Management Application          ║$(NC)"
+	@echo "$(BLUE)║          SocleStack - User Management Application          ║$(NC)"
 	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	@echo "$(GREEN)Available commands:$(NC)"
