@@ -28,9 +28,9 @@ export default async function HomePage() {
               Welcome to SocleStack
             </h1>
             <p className="mx-auto mb-8 max-w-3xl text-xl text-gray-600">
-              A complete Next.js application with Enterprise-grade user management
-              features. Secure authentication, role-based access control, and
-              modern React components.
+              A complete Next.js application with Enterprise-grade user
+              management features. Secure authentication, role-based access
+              control, and modern React components.
             </p>
 
             {user ? (
