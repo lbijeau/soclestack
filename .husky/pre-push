@@ -3,12 +3,11 @@
 
 echo "🚀 Running pre-push checks..."
 
-# Run tests
-echo "  → Running tests..."
-npm run test || exit 1
-
-# Run build
+# Run build (includes TypeScript checking)
 echo "  → Running build..."
 npm run build || exit 1
+
+# Note: E2E tests (playwright) are run in CI, not pre-push
+# To run locally: npm run test
 
 echo "✅ Pre-push checks passed!"
