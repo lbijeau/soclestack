@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
+import { FieldError } from '@/components/ui/field-error';
 import { UpdateProfileInput } from '@/lib/validations';
 import { AuthError } from '@/types/auth';
 import { apiPatch } from '@/lib/api-client';
@@ -99,11 +100,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
             value={formData.firstName}
             onChange={handleChange}
             error={!!errors.firstName}
+            aria-describedby={errors.firstName ? 'firstName-error' : undefined}
             disabled={isLoading}
           />
-          {errors.firstName && (
-            <p className="text-sm text-red-600">{errors.firstName[0]}</p>
-          )}
+          <FieldError id="firstName-error" error={errors.firstName} />
         </div>
 
         <div className="space-y-2">
@@ -121,11 +121,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
             value={formData.lastName}
             onChange={handleChange}
             error={!!errors.lastName}
+            aria-describedby={errors.lastName ? 'lastName-error' : undefined}
             disabled={isLoading}
           />
-          {errors.lastName && (
-            <p className="text-sm text-red-600">{errors.lastName[0]}</p>
-          )}
+          <FieldError id="lastName-error" error={errors.lastName} />
         </div>
       </div>
 
@@ -141,11 +140,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
           value={formData.email}
           onChange={handleChange}
           error={!!errors.email}
+          aria-describedby={errors.email ? 'email-error' : undefined}
           disabled={isLoading}
         />
-        {errors.email && (
-          <p className="text-sm text-red-600">{errors.email[0]}</p>
-        )}
+        <FieldError id="email-error" error={errors.email} />
         {formData.email !== user.email && (
           <p className="text-sm text-amber-600">
             Changing your email will require verification of the new email
@@ -166,11 +164,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
           value={formData.username}
           onChange={handleChange}
           error={!!errors.username}
+          aria-describedby={errors.username ? 'username-error' : undefined}
           disabled={isLoading}
         />
-        {errors.username && (
-          <p className="text-sm text-red-600">{errors.username[0]}</p>
-        )}
+        <FieldError id="username-error" error={errors.username} />
       </div>
 
       <div className="flex justify-end">

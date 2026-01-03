@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
+import { FieldError } from '@/components/ui/field-error';
 import {
   Card,
   CardContent,
@@ -97,11 +98,10 @@ export function ForgotPasswordForm() {
               value={formData.email}
               onChange={handleChange}
               error={!!errors.email}
+              aria-describedby={errors.email ? 'email-error' : undefined}
               disabled={isLoading}
             />
-            {errors.email && (
-              <p className="text-sm text-red-600">{errors.email[0]}</p>
-            )}
+            <FieldError id="email-error" error={errors.email} />
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>

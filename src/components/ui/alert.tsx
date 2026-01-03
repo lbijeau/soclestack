@@ -18,8 +18,15 @@ const Alert = ({ variant = 'default', children, className }: AlertProps) => {
 
   const Icon = icons[variant];
 
+  // Use role="alert" for error/warning to announce to screen readers
+  const role = variant === 'error' || variant === 'warning' ? 'alert' : 'status';
+  // Use assertive for errors, polite for success/info
+  const ariaLive = variant === 'error' ? 'assertive' : 'polite';
+
   return (
     <div
+      role={role}
+      aria-live={ariaLive}
       className={clsx(
         'relative w-full rounded-lg border p-4',
         {
@@ -34,7 +41,7 @@ const Alert = ({ variant = 'default', children, className }: AlertProps) => {
     >
       <div className="flex">
         <div className="flex-shrink-0">
-          <Icon className="h-5 w-5" />
+          <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="ml-3">
           <div className="text-sm">{children}</div>

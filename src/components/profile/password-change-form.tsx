@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
+import { FieldError } from '@/components/ui/field-error';
 import { PasswordStrengthMeter } from '@/components/ui/password-strength-meter';
 import { ChangePasswordInput } from '@/lib/validations';
 import { AuthError } from '@/types/auth';
@@ -88,11 +89,12 @@ export function PasswordChangeForm() {
           value={formData.currentPassword}
           onChange={handleChange}
           error={!!errors.currentPassword}
+          aria-describedby={
+            errors.currentPassword ? 'currentPassword-error' : undefined
+          }
           disabled={isLoading}
         />
-        {errors.currentPassword && (
-          <p className="text-sm text-red-600">{errors.currentPassword[0]}</p>
-        )}
+        <FieldError id="currentPassword-error" error={errors.currentPassword} />
       </div>
 
       <div className="space-y-2">
@@ -111,11 +113,12 @@ export function PasswordChangeForm() {
           value={formData.newPassword}
           onChange={handleChange}
           error={!!errors.newPassword}
+          aria-describedby={
+            errors.newPassword ? 'newPassword-error' : undefined
+          }
           disabled={isLoading}
         />
-        {errors.newPassword && (
-          <p className="text-sm text-red-600">{errors.newPassword[0]}</p>
-        )}
+        <FieldError id="newPassword-error" error={errors.newPassword} />
         <PasswordStrengthMeter password={formData.newPassword} />
       </div>
 
@@ -135,11 +138,12 @@ export function PasswordChangeForm() {
           value={formData.confirmPassword}
           onChange={handleChange}
           error={!!errors.confirmPassword}
+          aria-describedby={
+            errors.confirmPassword ? 'confirmPassword-error' : undefined
+          }
           disabled={isLoading}
         />
-        {errors.confirmPassword && (
-          <p className="text-sm text-red-600">{errors.confirmPassword[0]}</p>
-        )}
+        <FieldError id="confirmPassword-error" error={errors.confirmPassword} />
       </div>
 
       <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
