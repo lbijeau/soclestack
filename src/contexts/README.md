@@ -60,11 +60,16 @@ import { apiClient } from '@/lib/api-client';
 
 export function DataComponent() {
   const [data, setData] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiClient.get('/api/data').then(setData);
+    apiClient
+      .get('/api/data')
+      .then(setData)
+      .catch(() => setError('Failed to load data'));
   }, []);
 
+  if (error) return <div>{error}</div>;
   return <div>{/* render data */}</div>;
 }
 ```
@@ -98,11 +103,11 @@ Consider adding React Context only if:
 
 If needed, these might be candidates:
 
-| Context | Use Case |
-|---------|----------|
-| ThemeContext | Dark/light mode toggle with instant UI updates |
-| NotificationContext | Global toast/alert management |
-| ModalContext | Centralized modal state management |
+| Context             | Use Case                                       |
+| ------------------- | ---------------------------------------------- |
+| ThemeContext        | Dark/light mode toggle with instant UI updates |
+| NotificationContext | Global toast/alert management                  |
+| ModalContext        | Centralized modal state management             |
 
 ## Dependencies
 
