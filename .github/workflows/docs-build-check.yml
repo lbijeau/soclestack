@@ -10,10 +10,12 @@ on:
       - 'package-lock.json'
       - 'typedoc.json'
       - 'tsconfig.json'
+      - '.github/workflows/docs-build-check.yml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
