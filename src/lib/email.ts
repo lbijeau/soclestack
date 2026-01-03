@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { DeviceInfo } from '@/lib/utils/user-agent';
 import { prisma } from '@/lib/db';
 import { env } from '@/lib/env';
+import log from '@/lib/logger';
 import {
   newDeviceAlertTemplate,
   accountLockedTemplate,
@@ -26,19 +27,21 @@ interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  // In development, just log to console
+  // In development, just log email details
   if (env.NODE_ENV !== 'production') {
-    console.log('=== EMAIL (DEV MODE) ===');
-    console.log('To:', options.to);
-    console.log('Subject:', options.subject);
-    console.log('HTML:', options.html.substring(0, 500) + '...');
-    console.log('========================');
+    log.debug('Email sent (dev mode)', {
+      to: options.to,
+      subject: options.subject,
+      htmlPreview: options.html.substring(0, 200),
+    });
     return true;
   }
 
   // In production, use Resend
   if (!resend) {
-    console.error('Email sending failed: RESEND_API_KEY not configured');
+    log.error('Email sending failed: RESEND_API_KEY not configured', {
+      category: 'email',
+    });
     return false;
   }
 
@@ -51,13 +54,14 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
 
     if (error) {
-      console.error('Email sending failed:', error);
+      log.email.failed('send', options.to, error.message);
       return false;
     }
 
+    log.email.sent('send', options.to);
     return true;
   } catch (error) {
-    console.error('Email sending error:', error);
+    log.email.failed('send', options.to, error instanceof Error ? error.message : 'Unknown error');
     return false;
   }
 }
