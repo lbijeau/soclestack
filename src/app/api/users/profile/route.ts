@@ -5,12 +5,14 @@ import {
   hashPassword,
   verifyPassword,
   generateResetToken,
+  hashResetToken,
 } from '@/lib/security';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import { rotateCsrfToken } from '@/lib/csrf';
-import { sendVerificationEmail } from '@/lib/email';
+import { sendVerificationEmail, sendEmailChangedNotification } from '@/lib/email';
+import { logAuditEvent } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -256,15 +258,36 @@ export async function PATCH(req: NextRequest) {
 
       if (updateData.email && updateData.email !== currentUser.email) {
         const verificationToken = await generateResetToken();
+        const hashedToken = await hashResetToken(verificationToken);
         const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
         finalUpdateData = {
           ...updateData,
           emailVerified: false,
           emailVerifiedAt: null,
-          emailVerificationToken: verificationToken,
+          emailVerificationToken: hashedToken,
           emailVerificationExpires: tokenExpiry,
         };
+
+        // Log the email change for security audit
+        logAuditEvent({
+          action: 'SECURITY_EMAIL_CHANGED',
+          category: 'security',
+          userId: currentUser.id,
+          metadata: {
+            oldEmail: currentUser.email,
+            newEmail: updateData.email,
+          },
+        }).catch((err) => console.error('Failed to log email change:', err));
+
+        // Notify old email address about the change (fire-and-forget)
+        sendEmailChangedNotification(
+          currentUser.email,
+          updateData.email,
+          new Date()
+        ).catch((err) =>
+          console.error('Failed to send email change notification:', err)
+        );
 
         // Send verification email to new address (fire-and-forget)
         sendVerificationEmail(
