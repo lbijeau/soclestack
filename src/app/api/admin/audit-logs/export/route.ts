@@ -4,10 +4,80 @@ import { prisma } from '@/lib/db';
 import { AuditAction, AuditCategory } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
 import { hasOrgRole } from '@/lib/organization';
+import log from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
-const MAX_EXPORT_ROWS = 10000;
+// Batch size for streaming - smaller batches = lower memory, more queries
+const BATCH_SIZE = 500;
+// Maximum total rows to export (safety limit)
+const MAX_EXPORT_ROWS = 100000;
+
+// Safe JSON parse helper - returns raw string if invalid JSON
+function safeJsonParse(str: string): unknown {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return str;
+  }
+}
+
+// CSV escape helper
+function escapeCsvField(field: string): string {
+  if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+    return `"${field.replace(/"/g, '""')}"`;
+  }
+  return field;
+}
+
+// Format a single audit log row as CSV
+function formatCsvRow(log: {
+  id: string;
+  createdAt: Date;
+  user: { email: string } | null;
+  action: string;
+  category: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  metadata: string | null;
+}): string {
+  const fields = [
+    log.id,
+    log.createdAt.toISOString(),
+    log.user?.email ?? '',
+    log.action,
+    log.category,
+    log.ipAddress ?? '',
+    log.userAgent ?? '',
+    log.metadata ?? '',
+  ];
+  return fields.map(escapeCsvField).join(',');
+}
+
+// Format a single audit log as JSON object
+function formatJsonRow(logEntry: {
+  id: string;
+  userId: string | null;
+  createdAt: Date;
+  user: { email: string } | null;
+  action: string;
+  category: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  metadata: string | null;
+}): object {
+  return {
+    id: logEntry.id,
+    userId: logEntry.userId,
+    userEmail: logEntry.user?.email ?? null,
+    action: logEntry.action,
+    category: logEntry.category,
+    ipAddress: logEntry.ipAddress,
+    userAgent: logEntry.userAgent,
+    metadata: logEntry.metadata ? safeJsonParse(logEntry.metadata) : null,
+    createdAt: logEntry.createdAt.toISOString(),
+  };
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -105,83 +175,118 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch logs with limit
-    const logs = await prisma.auditLog.findMany({
-      where,
-      include: {
-        user: {
-          select: { email: true },
-        },
+    const timestamp = new Date().toISOString().split('T')[0];
+    const encoder = new TextEncoder();
+
+    // Create streaming response
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          let cursor: string | undefined;
+          let totalExported = 0;
+          let isFirst = true;
+
+          // Write header/opening for format
+          if (format === 'csv') {
+            const csvHeaders = [
+              'ID',
+              'Timestamp',
+              'User Email',
+              'Action',
+              'Category',
+              'IP Address',
+              'User Agent',
+              'Metadata',
+            ];
+            controller.enqueue(encoder.encode(csvHeaders.join(',') + '\n'));
+          } else {
+            // JSON array opening
+            controller.enqueue(encoder.encode('[\n'));
+          }
+
+          // Fetch and stream in batches
+          while (totalExported < MAX_EXPORT_ROWS) {
+            const batch = await prisma.auditLog.findMany({
+              where,
+              include: {
+                user: {
+                  select: { email: true },
+                },
+              },
+              orderBy: { createdAt: 'desc' },
+              take: BATCH_SIZE,
+              ...(cursor && {
+                skip: 1,
+                cursor: { id: cursor },
+              }),
+            });
+
+            if (batch.length === 0) {
+              break;
+            }
+
+            // Process each row in the batch
+            for (const logEntry of batch) {
+              if (format === 'csv') {
+                controller.enqueue(
+                  encoder.encode(formatCsvRow(logEntry) + '\n')
+                );
+              } else {
+                const prefix = isFirst ? '  ' : ',\n  ';
+                controller.enqueue(
+                  encoder.encode(
+                    prefix + JSON.stringify(formatJsonRow(logEntry))
+                  )
+                );
+                isFirst = false;
+              }
+              totalExported++;
+            }
+
+            // Update cursor for next batch
+            cursor = batch[batch.length - 1].id;
+
+            // Log progress for large exports
+            if (totalExported % 10000 === 0 && totalExported > 0) {
+              log.debug('Audit log export progress', { totalExported, format });
+            }
+
+            // If we got fewer than BATCH_SIZE, we've reached the end
+            if (batch.length < BATCH_SIZE) {
+              break;
+            }
+          }
+
+          // Write closing for JSON format
+          if (format === 'json') {
+            // Only add newline before closing bracket if we wrote any rows
+            controller.enqueue(encoder.encode(isFirst ? ']\n' : '\n]\n'));
+          }
+
+          controller.close();
+        } catch (error) {
+          log.error('Streaming audit log export error', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          controller.error(error);
+        }
       },
-      orderBy: { createdAt: 'desc' },
-      take: MAX_EXPORT_ROWS,
     });
 
-    const timestamp = new Date().toISOString().split('T')[0];
+    const contentType = format === 'csv' ? 'text/csv' : 'application/json';
+    const extension = format;
 
-    if (format === 'json') {
-      const jsonData = logs.map((log) => ({
-        id: log.id,
-        userId: log.userId,
-        userEmail: log.user?.email ?? null,
-        action: log.action,
-        category: log.category,
-        ipAddress: log.ipAddress,
-        userAgent: log.userAgent,
-        metadata: log.metadata ? JSON.parse(log.metadata) : null,
-        createdAt: log.createdAt.toISOString(),
-      }));
-
-      return new NextResponse(JSON.stringify(jsonData, null, 2), {
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="audit-logs-${timestamp}.json"`,
-        },
-      });
-    }
-
-    // CSV format
-    const csvHeaders = [
-      'ID',
-      'Timestamp',
-      'User Email',
-      'Action',
-      'Category',
-      'IP Address',
-      'User Agent',
-      'Metadata',
-    ];
-    const csvRows = logs.map((log) => [
-      log.id,
-      log.createdAt.toISOString(),
-      log.user?.email ?? '',
-      log.action,
-      log.category,
-      log.ipAddress ?? '',
-      log.userAgent ?? '',
-      log.metadata ? log.metadata.replace(/"/g, '""') : '',
-    ]);
-
-    const escapeCsvField = (field: string) => {
-      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-        return `"${field}"`;
-      }
-      return field;
-    };
-
-    const csvContent = [
-      csvHeaders.join(','),
-      ...csvRows.map((row) => row.map(escapeCsvField).join(',')),
-    ].join('\n');
-
-    return new NextResponse(csvContent, {
+    return new Response(stream, {
       headers: {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="audit-logs-${timestamp}.csv"`,
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="audit-logs-${timestamp}.${extension}"`,
+        'Transfer-Encoding': 'chunked',
       },
     });
   } catch (error) {
-    console.error('Audit log export error:', error);
+    log.error('Audit log export error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return NextResponse.json(
       {
         error: { type: 'SERVER_ERROR', message: 'Failed to export audit logs' },
