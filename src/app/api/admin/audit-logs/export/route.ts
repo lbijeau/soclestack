@@ -246,6 +246,11 @@ export async function GET(req: NextRequest) {
             // Update cursor for next batch
             cursor = batch[batch.length - 1].id;
 
+            // Log progress for large exports
+            if (totalExported % 10000 === 0 && totalExported > 0) {
+              log.debug('Audit log export progress', { totalExported, format });
+            }
+
             // If we got fewer than BATCH_SIZE, we've reached the end
             if (batch.length < BATCH_SIZE) {
               break;
