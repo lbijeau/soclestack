@@ -2,9 +2,15 @@ import { SignJWT, jwtVerify } from 'jose';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import type { OAuthProvider, OAuthUserProfile } from './providers';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'pending-oauth-secret-change-me'
-);
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET environment variable is required for pending OAuth tokens'
+    );
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export interface PendingOAuthPayload {
   provider: OAuthProvider;
@@ -28,7 +34,7 @@ export async function createPendingOAuthToken(
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime(expiresAt)
     .setIssuedAt()
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 
   return token;
 }
@@ -37,7 +43,7 @@ export async function verifyPendingOAuthToken(
   token: string
 ): Promise<PendingOAuthPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return payload as unknown as PendingOAuthPayload;
   } catch {
     return null;
