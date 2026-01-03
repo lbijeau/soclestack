@@ -2,10 +2,7 @@ import { randomBytes } from 'crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import type { OAuthProvider } from './providers';
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'oauth-state-secret-change-me'
-);
+import { getJwtSecret } from './secrets';
 
 export interface OAuthStatePayload {
   provider: OAuthProvider;
@@ -27,7 +24,7 @@ export async function generateOAuthState(
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime(expiresAt)
     .setIssuedAt()
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 
   return token;
 }
@@ -36,7 +33,7 @@ export async function verifyOAuthState(
   token: string
 ): Promise<OAuthStatePayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return payload as unknown as OAuthStatePayload;
   } catch {
     return null;

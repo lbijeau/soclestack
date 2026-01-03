@@ -57,7 +57,9 @@ export async function generateAccessToken(payload: {
 }): Promise<string> {
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
-    throw new Error('JWT_SECRET is not defined');
+    throw new Error(
+      'JWT_SECRET environment variable is required. See .env.example for configuration.'
+    );
   }
 
   const crypto = await getCrypto();
@@ -81,7 +83,9 @@ export async function generateRefreshToken(payload: {
 }): Promise<string> {
   const refreshSecret = process.env.JWT_REFRESH_SECRET;
   if (!refreshSecret) {
-    throw new Error('JWT_REFRESH_SECRET is not defined');
+    throw new Error(
+      'JWT_REFRESH_SECRET environment variable is required. See .env.example for configuration.'
+    );
   }
 
   const crypto = await getCrypto();
@@ -101,7 +105,9 @@ export async function generateRefreshToken(payload: {
 export function verifyAccessToken(token: string): JWTPayload {
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
-    throw new Error('JWT_SECRET is not defined');
+    throw new Error(
+      'JWT_SECRET environment variable is required. See .env.example for configuration.'
+    );
   }
 
   try {
@@ -117,7 +123,9 @@ export function verifyAccessToken(token: string): JWTPayload {
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
   const refreshSecret = process.env.JWT_REFRESH_SECRET;
   if (!refreshSecret) {
-    throw new Error('JWT_REFRESH_SECRET is not defined');
+    throw new Error(
+      'JWT_REFRESH_SECRET environment variable is required. See .env.example for configuration.'
+    );
   }
 
   try {
