@@ -4,6 +4,7 @@ import { log } from '../logger';
 
 export type { RateLimiter, RateLimitResult, RateLimitHeaders } from './types';
 export { MemoryRateLimiter } from './memory';
+export { RedisRateLimiter } from './redis';
 
 let rateLimiterInstance: RateLimiter | null = null;
 

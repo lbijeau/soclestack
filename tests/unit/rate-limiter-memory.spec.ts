@@ -126,7 +126,9 @@ describe('MemoryRateLimiter', () => {
       expect(result.headers['X-RateLimit-Remaining']).toBe(5);
     });
 
-    it('should not include Retry-After even when at limit', async () => {
+    it('should not include Retry-After even when over limit', async () => {
+      // Make 2 requests to exceed limit of 1
+      await rateLimiter.check('test:key', 1, 60000);
       await rateLimiter.check('test:key', 1, 60000);
 
       const result = await rateLimiter.peek('test:key', 1, 60000);

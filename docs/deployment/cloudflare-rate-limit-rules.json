@@ -27,13 +27,25 @@
       }
     },
     {
-      "id": "password-reset-rate-limit",
-      "description": "Prevent password reset abuse and email enumeration",
+      "id": "password-reset-request-rate-limit",
+      "description": "Prevent password reset request abuse and email enumeration",
       "expression": "(http.request.uri.path eq \"/api/auth/forgot-password\" and http.request.method eq \"POST\")",
       "action": "block",
       "ratelimit": {
         "characteristics": ["ip.src"],
         "requests_per_period": 5,
+        "period": 3600,
+        "mitigation_timeout": 3600
+      }
+    },
+    {
+      "id": "password-reset-submission-rate-limit",
+      "description": "Prevent brute-force token guessing on password reset submissions",
+      "expression": "(http.request.uri.path eq \"/api/auth/reset-password\" and http.request.method eq \"POST\")",
+      "action": "block",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "requests_per_period": 10,
         "period": 3600,
         "mitigation_timeout": 3600
       }
