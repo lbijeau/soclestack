@@ -21,6 +21,7 @@ docs/
 ├── PROGRESS.md               # Project status and feature overview
 ├── TECHNICAL_ARCHITECTURE.md # System design and patterns
 ├── DATABASE.md               # Schema and data models
+├── MIGRATIONS.md             # Database migration guide
 ├── ENVIRONMENT.md            # Configuration reference
 ├── API_REFERENCE.md          # API endpoints overview
 ├── DOCUMENTATION_STATUS.md   # Documentation health metrics
@@ -59,6 +60,8 @@ Deep dive into system design, patterns, and implementation details.
 Complete database documentation including all tables, relationships, and migrations.
 
 **Covers:** Users, sessions, organizations, OAuth accounts, API keys, audit logs.
+
+**See also:** [Migrations Guide](./MIGRATIONS.md) - How to create and apply schema changes.
 
 ### [Environment Variables](./ENVIRONMENT.md)
 All configuration options with descriptions and examples.
