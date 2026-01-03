@@ -26,6 +26,9 @@ export const SECURITY_CONFIG = {
     stateCookieName: 'oauth_state',
   },
   rateLimits: {
+    login: { limit: 10, windowMs: 15 * 60 * 1000 }, // 10 per 15 minutes
+    register: { limit: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
+    forgotPassword: { limit: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
     apiKeyCreate: { limit: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
     apiKeyRevoke: { limit: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
     passwordChange: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour

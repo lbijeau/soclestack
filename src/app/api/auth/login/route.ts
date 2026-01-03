@@ -6,23 +6,29 @@ import { REMEMBER_ME_COOKIE_NAME } from '@/lib/auth/remember-me';
 import { CSRF_CONFIG } from '@/lib/csrf';
 import { getClientIP, getRateLimitInfo } from '@/lib/auth';
 import { setRateLimitHeaders } from '@/lib/rate-limit-headers';
+import { SECURITY_CONFIG } from '@/lib/config/security';
 
 export const runtime = 'nodejs';
 
-const LOGIN_LIMIT = 10;
-const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const { limit: LOGIN_LIMIT, windowMs: LOGIN_WINDOW_MS } = SECURITY_CONFIG.rateLimits.login;
 
 export async function POST(req: NextRequest) {
   try {
     const context = getRequestContext(req);
     const body = await req.json();
 
-    // Get rate limit info for headers
+    // Get rate limit key for headers (info retrieved after service call)
     const clientIP = getClientIP(req);
     const rateLimitKey = `login:${clientIP}`;
-    const rateLimitInfo = getRateLimitInfo(rateLimitKey, LOGIN_LIMIT, LOGIN_WINDOW_MS);
 
     const result = await login(body, context);
+
+    // Get rate limit info AFTER service call to reflect accurate remaining count
+    const rateLimitInfo = getRateLimitInfo(
+      rateLimitKey,
+      LOGIN_LIMIT,
+      LOGIN_WINDOW_MS
+    );
 
     // Handle 2FA required response
     if ('requiresTwoFactor' in result) {

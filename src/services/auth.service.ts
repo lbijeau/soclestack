@@ -132,8 +132,7 @@ export async function login(
 
   // Rate limiting
   const rateLimitKey = `login:${clientIP}`;
-  const loginLimit = 10;
-  const loginWindowMs = 15 * 60 * 1000;
+  const { limit: loginLimit, windowMs: loginWindowMs } = SECURITY_CONFIG.rateLimits.login;
   if (isRateLimited(rateLimitKey, loginLimit, loginWindowMs)) {
     throw new RateLimitError(
       'Too many login attempts. Please try again later.',
@@ -362,8 +361,7 @@ export async function register(
 
   // Rate limiting
   const rateLimitKey = `register:${clientIP}`;
-  const registerLimit = 3;
-  const registerWindowMs = 60 * 60 * 1000;
+  const { limit: registerLimit, windowMs: registerWindowMs } = SECURITY_CONFIG.rateLimits.register;
   if (isRateLimited(rateLimitKey, registerLimit, registerWindowMs)) {
     throw new RateLimitError(
       'Too many registration attempts. Please try again later.',

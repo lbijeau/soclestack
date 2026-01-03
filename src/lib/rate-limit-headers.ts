@@ -38,7 +38,10 @@ export interface RateLimitInfo {
  * });
  * ```
  */
-export function setRateLimitHeaders(headers: Headers, info: RateLimitInfo): void {
+export function setRateLimitHeaders(
+  headers: Headers,
+  info: RateLimitInfo
+): void {
   headers.set('X-RateLimit-Limit', String(info.limit));
   headers.set('X-RateLimit-Remaining', String(info.remaining));
   headers.set('X-RateLimit-Reset', String(info.reset));

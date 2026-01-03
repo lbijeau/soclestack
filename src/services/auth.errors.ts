@@ -5,6 +5,11 @@
  * Route handlers catch these and map to HTTP responses.
  */
 
+import type { RateLimitInfo } from '@/lib/rate-limit-headers';
+
+// Re-export for convenience
+export type { RateLimitInfo };
+
 /**
  * Base service error with type, message, status code, and optional details.
  */
@@ -83,15 +88,6 @@ export class AccountLockedError extends ServiceError {
     );
     this.name = 'AccountLockedError';
   }
-}
-
-/**
- * Rate limit info for setting headers
- */
-export interface RateLimitInfo {
-  limit: number;
-  remaining: number;
-  reset: number;
 }
 
 /**

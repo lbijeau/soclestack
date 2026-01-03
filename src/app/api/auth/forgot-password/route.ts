@@ -6,11 +6,12 @@ import {
   setRateLimitHeaders,
   createRateLimitResponse,
 } from '@/lib/rate-limit-headers';
+import { SECURITY_CONFIG } from '@/lib/config/security';
 
 export const runtime = 'nodejs';
 
-const FORGOT_PASSWORD_LIMIT = 3;
-const FORGOT_PASSWORD_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const { limit: FORGOT_PASSWORD_LIMIT, windowMs: FORGOT_PASSWORD_WINDOW_MS } =
+  SECURITY_CONFIG.rateLimits.forgotPassword;
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,13 +19,19 @@ export async function POST(req: NextRequest) {
     const clientIP = getClientIP(req);
     const rateLimitKey = `forgot-password:${clientIP}`;
 
-    const rateLimitInfo = getRateLimitInfo(
-      rateLimitKey,
-      FORGOT_PASSWORD_LIMIT,
-      FORGOT_PASSWORD_WINDOW_MS
-    );
-
-    if (isRateLimited(rateLimitKey, FORGOT_PASSWORD_LIMIT, FORGOT_PASSWORD_WINDOW_MS)) {
+    if (
+      isRateLimited(
+        rateLimitKey,
+        FORGOT_PASSWORD_LIMIT,
+        FORGOT_PASSWORD_WINDOW_MS
+      )
+    ) {
+      // Get rate limit info for error response (after isRateLimited call)
+      const rateLimitInfo = getRateLimitInfo(
+        rateLimitKey,
+        FORGOT_PASSWORD_LIMIT,
+        FORGOT_PASSWORD_WINDOW_MS
+      );
       return createRateLimitResponse(
         rateLimitInfo,
         'Too many password reset requests. Please try again later.'
@@ -33,6 +40,13 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const result = await requestPasswordReset(body);
+
+    // Get rate limit info AFTER processing to reflect accurate remaining count
+    const rateLimitInfo = getRateLimitInfo(
+      rateLimitKey,
+      FORGOT_PASSWORD_LIMIT,
+      FORGOT_PASSWORD_WINDOW_MS
+    );
 
     const response = NextResponse.json({ message: result.message });
     setRateLimitHeaders(response.headers, rateLimitInfo);

@@ -3,23 +3,29 @@ import { register } from '@/services/auth.service';
 import { getRequestContext, handleServiceError } from '@/lib/api-utils';
 import { getClientIP, getRateLimitInfo } from '@/lib/auth';
 import { setRateLimitHeaders } from '@/lib/rate-limit-headers';
+import { SECURITY_CONFIG } from '@/lib/config/security';
 
 export const runtime = 'nodejs';
 
-const REGISTER_LIMIT = 3;
-const REGISTER_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const { limit: REGISTER_LIMIT, windowMs: REGISTER_WINDOW_MS } = SECURITY_CONFIG.rateLimits.register;
 
 export async function POST(req: NextRequest) {
   try {
     const context = getRequestContext(req);
     const body = await req.json();
 
-    // Get rate limit info for headers
+    // Get rate limit key for headers (info retrieved after service call)
     const clientIP = getClientIP(req);
     const rateLimitKey = `register:${clientIP}`;
-    const rateLimitInfo = getRateLimitInfo(rateLimitKey, REGISTER_LIMIT, REGISTER_WINDOW_MS);
 
     const result = await register(body, context);
+
+    // Get rate limit info AFTER service call to reflect accurate remaining count
+    const rateLimitInfo = getRateLimitInfo(
+      rateLimitKey,
+      REGISTER_LIMIT,
+      REGISTER_WINDOW_MS
+    );
 
     const response = NextResponse.json(result, { status: 201 });
     setRateLimitHeaders(response.headers, rateLimitInfo);
