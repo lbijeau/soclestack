@@ -5,6 +5,7 @@ import { hashPassword, verifyPassword } from '@/lib/security';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { SECURITY_CONFIG } from '@/lib/config/security';
+import { rotateCsrfToken } from '@/lib/csrf';
 
 export const runtime = 'nodejs';
 
@@ -171,10 +172,13 @@ export async function PATCH(req: NextRequest) {
         },
       });
 
-      return NextResponse.json({
+      // Rotate CSRF token after password change
+      const response = NextResponse.json({
         message: 'Password changed successfully',
         user: updatedUser,
       });
+      rotateCsrfToken(response);
+      return response;
     } else {
       // Update profile information
       const validationResult = updateProfileSchema.safeParse(body);
