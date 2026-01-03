@@ -317,6 +317,6 @@ function PasswordChangeForm() {
 
 - [Profile Components](../../../../components/profile/README.md) - Profile and password forms
 - [Auth Library](../../../../lib/README.md) - Authentication utilities
-- [Security Events API](../security-events/README.md) - Security event logging
+- [Users API Route](../README.md) - User listing endpoint
 - [API Examples](../../../../../docs/API_EXAMPLES.md) - API usage patterns
 - [Technical Architecture](../../../../../docs/TECHNICAL_ARCHITECTURE.md) - System design

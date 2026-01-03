@@ -138,7 +138,6 @@ Roles are hierarchical with increasing permissions:
 ## Related Documentation
 
 - [Auth Library](../lib/README.md) - Authentication implementation using these types
-- [Validation Library](../lib/validations.ts) - Zod schemas complementing these types
 - [Auth Components](../components/auth/README.md) - Forms using authentication types
 - [Login API Route](../app/api/auth/login/README.md) - API using auth types
 - [Register API Route](../app/api/auth/register/README.md) - API using registration types
