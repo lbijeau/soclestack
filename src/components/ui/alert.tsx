@@ -19,7 +19,8 @@ const Alert = ({ variant = 'default', children, className }: AlertProps) => {
   const Icon = icons[variant];
 
   // Use role="alert" for error/warning to announce to screen readers
-  const role = variant === 'error' || variant === 'warning' ? 'alert' : 'status';
+  const role =
+    variant === 'error' || variant === 'warning' ? 'alert' : 'status';
   // Use assertive for errors, polite for success/info
   const ariaLive = variant === 'error' ? 'assertive' : 'polite';
 

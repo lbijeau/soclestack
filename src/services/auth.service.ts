@@ -11,7 +11,12 @@ import {
   requestPasswordResetSchema,
   resetPasswordSchema,
 } from '@/lib/validations';
-import { authenticateUser, createUserSession, isRateLimited } from '@/lib/auth';
+import {
+  authenticateUser,
+  createUserSession,
+  isRateLimited,
+  getRateLimitInfo,
+} from '@/lib/auth';
 import {
   checkAccountLocked,
   recordFailedAttempt,
@@ -127,9 +132,12 @@ export async function login(
 
   // Rate limiting
   const rateLimitKey = `login:${clientIP}`;
-  if (isRateLimited(rateLimitKey, 10, 15 * 60 * 1000)) {
+  const { limit: loginLimit, windowMs: loginWindowMs } =
+    SECURITY_CONFIG.rateLimits.login;
+  if (isRateLimited(rateLimitKey, loginLimit, loginWindowMs)) {
     throw new RateLimitError(
-      'Too many login attempts. Please try again later.'
+      'Too many login attempts. Please try again later.',
+      getRateLimitInfo(rateLimitKey, loginLimit, loginWindowMs)
     );
   }
 
@@ -354,9 +362,12 @@ export async function register(
 
   // Rate limiting
   const rateLimitKey = `register:${clientIP}`;
-  if (isRateLimited(rateLimitKey, 3, 60 * 60 * 1000)) {
+  const { limit: registerLimit, windowMs: registerWindowMs } =
+    SECURITY_CONFIG.rateLimits.register;
+  if (isRateLimited(rateLimitKey, registerLimit, registerWindowMs)) {
     throw new RateLimitError(
-      'Too many registration attempts. Please try again later.'
+      'Too many registration attempts. Please try again later.',
+      getRateLimitInfo(rateLimitKey, registerLimit, registerWindowMs)
     );
   }
 
@@ -654,8 +665,12 @@ export async function setup2FA(
 ): Promise<Setup2FAResult> {
   // Rate limiting
   const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorSetup;
-  if (isRateLimited(`2fa-setup:${context.clientIP}`, limit, windowMs)) {
-    throw new RateLimitError('Too many requests. Please try again later.');
+  const rateLimitKey = `2fa-setup:${context.clientIP}`;
+  if (isRateLimited(rateLimitKey, limit, windowMs)) {
+    throw new RateLimitError(
+      'Too many requests. Please try again later.',
+      getRateLimitInfo(rateLimitKey, limit, windowMs)
+    );
   }
 
   // Block 2FA setup while impersonating
@@ -775,8 +790,12 @@ export async function disable2FA(
 ): Promise<void> {
   // Rate limiting
   const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorDisable;
-  if (isRateLimited(`2fa-disable:${context.clientIP}`, limit, windowMs)) {
-    throw new RateLimitError('Too many requests. Please try again later.');
+  const rateLimitKey = `2fa-disable:${context.clientIP}`;
+  if (isRateLimited(rateLimitKey, limit, windowMs)) {
+    throw new RateLimitError(
+      'Too many requests. Please try again later.',
+      getRateLimitInfo(rateLimitKey, limit, windowMs)
+    );
   }
 
   // Block 2FA disable while impersonating
@@ -850,10 +869,26 @@ export interface RequestPasswordResetInput {
 /**
  * Request a password reset. Generates token and stores in database.
  * Always returns success to prevent email enumeration.
+ *
+ * @throws {RateLimitError} Too many password reset requests
+ * @throws {ValidationError} Invalid input
  */
 export async function requestPasswordReset(
-  input: RequestPasswordResetInput
+  input: RequestPasswordResetInput,
+  context: RequestContext
 ): Promise<{ message: string }> {
+  const { clientIP } = context;
+
+  // Rate limiting
+  const rateLimitKey = `forgot-password:${clientIP}`;
+  const { limit, windowMs } = SECURITY_CONFIG.rateLimits.forgotPassword;
+  if (isRateLimited(rateLimitKey, limit, windowMs)) {
+    throw new RateLimitError(
+      'Too many password reset requests. Please try again later.',
+      getRateLimitInfo(rateLimitKey, limit, windowMs)
+    );
+  }
+
   const validationResult = requestPasswordResetSchema.safeParse(input);
   if (!validationResult.success) {
     throw new ValidationError('Invalid input', {

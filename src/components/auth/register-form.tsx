@@ -247,7 +247,10 @@ export function RegisterForm() {
               }
               disabled={isLoading}
             />
-            <FieldError id="confirmPassword-error" error={errors.confirmPassword} />
+            <FieldError
+              id="confirmPassword-error"
+              error={errors.confirmPassword}
+            />
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>

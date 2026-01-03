@@ -5,6 +5,11 @@
  * Route handlers catch these and map to HTTP responses.
  */
 
+import type { RateLimitInfo } from '@/lib/rate-limit-headers';
+
+// Re-export for convenience
+export type { RateLimitInfo };
+
 /**
  * Base service error with type, message, status code, and optional details.
  */
@@ -89,9 +94,15 @@ export class AccountLockedError extends ServiceError {
  * Rate limit error - too many requests (429)
  */
 export class RateLimitError extends ServiceError {
-  constructor(message = 'Too many attempts. Please try again later.') {
+  public readonly rateLimitInfo?: RateLimitInfo;
+
+  constructor(
+    message = 'Too many attempts. Please try again later.',
+    rateLimitInfo?: RateLimitInfo
+  ) {
     super('RATE_LIMIT_ERROR', message, 429);
     this.name = 'RateLimitError';
+    this.rateLimitInfo = rateLimitInfo;
   }
 }
 

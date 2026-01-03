@@ -6,8 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ServiceError } from '@/services/auth.errors';
+import { ServiceError, RateLimitError } from '@/services/auth.errors';
 import { getClientIP } from './auth';
+import { setRateLimitHeaders } from './rate-limit-headers';
 
 /**
  * Request context passed to service functions.
@@ -46,7 +47,17 @@ export function handleServiceError(error: unknown): NextResponse {
       },
     };
 
-    return NextResponse.json(body, { status: error.statusCode });
+    const response = NextResponse.json(body, { status: error.statusCode });
+
+    // Add rate limit headers for rate limit errors
+    if (error instanceof RateLimitError && error.rateLimitInfo) {
+      setRateLimitHeaders(response.headers, {
+        ...error.rateLimitInfo,
+        remaining: 0,
+      });
+    }
+
+    return response;
   }
 
   // Log unexpected errors

@@ -1,35 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getClientIP, isRateLimited } from '@/lib/auth';
+import { getClientIP, getRateLimitInfo } from '@/lib/auth';
 import { requestPasswordReset } from '@/services/auth.service';
-import { handleServiceError } from '@/lib/api-utils';
+import { getRequestContext, handleServiceError } from '@/lib/api-utils';
+import { setRateLimitHeaders } from '@/lib/rate-limit-headers';
+import { SECURITY_CONFIG } from '@/lib/config/security';
 
 export const runtime = 'nodejs';
 
+const { limit: FORGOT_PASSWORD_LIMIT, windowMs: FORGOT_PASSWORD_WINDOW_MS } =
+  SECURITY_CONFIG.rateLimits.forgotPassword;
+
 export async function POST(req: NextRequest) {
+  // Get rate limit key upfront for use in both success and error paths
+  const clientIP = getClientIP(req);
+  const rateLimitKey = `forgot-password:${clientIP}`;
+
   try {
-    // Rate limiting
-    const clientIP = getClientIP(req);
-    const rateLimitKey = `forgot-password:${clientIP}`;
-
-    if (isRateLimited(rateLimitKey, 3, 60 * 60 * 1000)) {
-      // 3 attempts per hour
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message:
-              'Too many password reset requests. Please try again later.',
-          },
-        },
-        { status: 429 }
-      );
-    }
-
+    const context = getRequestContext(req);
     const body = await req.json();
-    const result = await requestPasswordReset(body);
 
-    return NextResponse.json({ message: result.message });
+    const result = await requestPasswordReset(body, context);
+
+    // Get rate limit info AFTER service call to reflect accurate remaining count
+    const rateLimitInfo = getRateLimitInfo(
+      rateLimitKey,
+      FORGOT_PASSWORD_LIMIT,
+      FORGOT_PASSWORD_WINDOW_MS
+    );
+
+    const response = NextResponse.json({ message: result.message });
+    setRateLimitHeaders(response.headers, rateLimitInfo);
+    return response;
   } catch (error) {
-    return handleServiceError(error);
+    // Add rate limit headers to error responses so clients know remaining attempts
+    const response = handleServiceError(error);
+    const rateLimitInfo = getRateLimitInfo(
+      rateLimitKey,
+      FORGOT_PASSWORD_LIMIT,
+      FORGOT_PASSWORD_WINDOW_MS
+    );
+    setRateLimitHeaders(response.headers, rateLimitInfo);
+    return response;
   }
 }
