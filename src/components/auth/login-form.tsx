@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
+import { FieldError } from '@/components/ui/field-error';
 import {
   Card,
   CardContent,
@@ -257,11 +258,7 @@ export function LoginForm() {
               disabled={isLoading}
               data-testid="email-input"
             />
-            {errors.email && (
-              <p id="email-error" className="text-sm text-red-600" role="alert">
-                {errors.email[0]}
-              </p>
-            )}
+            <FieldError id="email-error" error={errors.email} />
           </div>
 
           <div className="space-y-2">
@@ -281,11 +278,7 @@ export function LoginForm() {
               disabled={isLoading}
               data-testid="password-input"
             />
-            {errors.password && (
-              <p id="password-error" className="text-sm text-red-600" role="alert">
-                {errors.password[0]}
-              </p>
-            )}
+            <FieldError id="password-error" error={errors.password} />
           </div>
 
           <div className="flex items-center">

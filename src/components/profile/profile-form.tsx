@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
+import { FieldError } from '@/components/ui/field-error';
 import { UpdateProfileInput } from '@/lib/validations';
 import { AuthError } from '@/types/auth';
 import { apiPatch } from '@/lib/api-client';
@@ -102,11 +103,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
             aria-describedby={errors.firstName ? 'firstName-error' : undefined}
             disabled={isLoading}
           />
-          {errors.firstName && (
-            <p id="firstName-error" className="text-sm text-red-600" role="alert">
-              {errors.firstName[0]}
-            </p>
-          )}
+          <FieldError id="firstName-error" error={errors.firstName} />
         </div>
 
         <div className="space-y-2">
@@ -127,11 +124,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
             aria-describedby={errors.lastName ? 'lastName-error' : undefined}
             disabled={isLoading}
           />
-          {errors.lastName && (
-            <p id="lastName-error" className="text-sm text-red-600" role="alert">
-              {errors.lastName[0]}
-            </p>
-          )}
+          <FieldError id="lastName-error" error={errors.lastName} />
         </div>
       </div>
 
@@ -150,11 +143,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           aria-describedby={errors.email ? 'email-error' : undefined}
           disabled={isLoading}
         />
-        {errors.email && (
-          <p id="email-error" className="text-sm text-red-600" role="alert">
-            {errors.email[0]}
-          </p>
-        )}
+        <FieldError id="email-error" error={errors.email} />
         {formData.email !== user.email && (
           <p className="text-sm text-amber-600">
             Changing your email will require verification of the new email
@@ -178,11 +167,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           aria-describedby={errors.username ? 'username-error' : undefined}
           disabled={isLoading}
         />
-        {errors.username && (
-          <p id="username-error" className="text-sm text-red-600" role="alert">
-            {errors.username[0]}
-          </p>
-        )}
+        <FieldError id="username-error" error={errors.username} />
       </div>
 
       <div className="flex justify-end">
