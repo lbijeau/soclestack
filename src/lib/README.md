@@ -51,50 +51,58 @@ Core utility libraries that provide essential functionality across the applicati
 
 **Purpose**: Input validation schemas and utilities using [Zod](https://zod.dev/)
 
+Source: [validations.ts](./validations.ts)
+
 All schemas export TypeScript types via `z.infer<>` for type-safe usage.
 
 #### Authentication Schemas
 
-| Schema | Fields | Description |
-|--------|--------|-------------|
-| `loginSchema` | `email`, `password`, `rememberMe?` | User login validation |
+| Schema           | Fields                                                                                                              | Description                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `loginSchema`    | `email`, `password`, `rememberMe?`                                                                                  | User login validation                         |
 | `registerSchema` | `email`, `username?`, `password`, `confirmPassword`, `firstName?`, `lastName?`, `organizationName?`, `inviteToken?` | New user registration with organization logic |
 
 **Registration Rules:**
+
 - Password: min 8 chars, requires uppercase, lowercase, number, and special character (`@$!%*?&`)
 - Username: 3-20 chars, alphanumeric and underscores only
 - Organization: must provide either `organizationName` (create new) OR `inviteToken` (join existing) — not both, not neither
 
 #### Profile Schemas
 
-| Schema | Fields | Description |
-|--------|--------|-------------|
-| `updateProfileSchema` | `username?`, `firstName?`, `lastName?`, `email?` | Profile updates |
+| Schema                 | Fields                                              | Description                       |
+| ---------------------- | --------------------------------------------------- | --------------------------------- |
+| `updateProfileSchema`  | `username?`, `firstName?`, `lastName?`, `email?`    | Profile updates                   |
 | `changePasswordSchema` | `currentPassword`, `newPassword`, `confirmPassword` | Password change with confirmation |
 
 #### User Management Schemas (Admin)
 
-| Schema | Fields | Description |
-|--------|--------|-------------|
-| `userListParamsSchema` | `page`, `limit`, `search?`, `role?`, `isActive?`, `sortBy`, `sortOrder` | User list query params |
-| `updateUserRoleSchema` | `role` | Change user role (`USER`, `MODERATOR`, `ADMIN`) |
-| `updateUserStatusSchema` | `isActive` | Activate/deactivate user |
+| Schema                   | Fields                                                                  | Description                                     |
+| ------------------------ | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| `userListParamsSchema`   | `page`, `limit`, `search?`, `role?`, `isActive?`, `sortBy`, `sortOrder` | User list query params                          |
+| `updateUserRoleSchema`   | `role`                                                                  | Change user role (`USER`, `MODERATOR`, `ADMIN`) |
+| `updateUserStatusSchema` | `isActive`                                                              | Activate/deactivate user                        |
+
+**User List Defaults:**
+- `page`: 1, `limit`: 10 (max 100)
+- `sortBy`: `'createdAt'`, `sortOrder`: `'desc'`
 
 #### Password Reset Schemas
 
-| Schema | Fields | Description |
-|--------|--------|-------------|
-| `requestPasswordResetSchema` | `email` | Request password reset email |
-| `resetPasswordSchema` | `token`, `password`, `confirmPassword` | Reset with token validation |
+| Schema                       | Fields                                 | Description                  |
+| ---------------------------- | -------------------------------------- | ---------------------------- |
+| `requestPasswordResetSchema` | `email`                                | Request password reset email |
+| `resetPasswordSchema`        | `token`, `password`, `confirmPassword` | Reset with token validation  |
 
 #### API Key Schemas
 
-| Schema | Fields | Description |
-|--------|--------|-------------|
-| `createApiKeySchema` | `name`, `permission?`, `expiresAt?` | Create new API key |
+| Schema               | Fields                               | Description         |
+| -------------------- | ------------------------------------ | ------------------- |
+| `createApiKeySchema` | `name`, `permission?`, `expiresAt?`  | Create new API key  |
 | `updateApiKeySchema` | `name?`, `permission?`, `expiresAt?` | Update existing key |
 
 **API Key Rules:**
+
 - Name: 1-50 characters, required
 - Permission: `READ_ONLY` (default) or `READ_WRITE`
 - Expiration: optional, must be future date if provided
@@ -156,7 +164,11 @@ const users = await prisma.user.findMany();
 ### Validation
 
 ```typescript
-import { loginSchema, registerSchema, type LoginInput } from '@/lib/validations';
+import {
+  loginSchema,
+  registerSchema,
+  type LoginInput,
+} from '@/lib/validations';
 
 // Validate form data with error handling
 const result = loginSchema.safeParse(formData);
