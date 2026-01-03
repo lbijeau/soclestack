@@ -179,8 +179,8 @@ ENABLE_SOCIAL_LOGIN=true
 3. Copy the REST URL and token from the dashboard
 4. Add to `.env`:
    ```env
-   UPSTASH_REDIS_REST_URL="https://xxx.upstash.io"
-   UPSTASH_REDIS_REST_TOKEN="AXxxxx..."
+   UPSTASH_REDIS_REST_URL="https://your-database.upstash.io"
+   UPSTASH_REDIS_REST_TOKEN="AYourTokenHere..."
    ```
 
 **When to use Redis**:
