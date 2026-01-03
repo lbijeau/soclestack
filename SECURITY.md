@@ -6,8 +6,9 @@ We release patches for security vulnerabilities in the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+| 0.x.x   | :white_check_mark: |
+
+> **Note**: This project is in active development (pre-1.0). Security patches are applied to the latest version only.
 
 ## Reporting a Vulnerability
 
@@ -17,7 +18,11 @@ We take the security of SocleStack seriously. If you believe you have found a se
 
 ### How to Report
 
-Send an email to **security@soclestack.dev** with the following information:
+**Option 1**: Use [GitHub Security Advisories](https://github.com/lbijeau/soclestack/security/advisories/new) (recommended)
+
+**Option 2**: Open a private security report via GitHub's "Report a vulnerability" button
+
+Include the following information:
 
 1. **Description**: A clear description of the vulnerability
 2. **Steps to Reproduce**: Detailed steps to reproduce the issue

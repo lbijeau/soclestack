@@ -4,7 +4,7 @@ Thank you for considering contributing to SocleStack! This document provides gui
 
 ## Code of Conduct
 
-By participating in this project, you are expected to uphold our Code of Conduct. Please be respectful and constructive in all interactions.
+By participating in this project, you agree to abide by our standards of respectful and constructive interaction. We are committed to providing a welcoming environment for all contributors.
 
 ## Getting Started
 
@@ -97,6 +97,7 @@ Feature requests are welcome! Please include:
 
 4. **Ensure all checks pass**:
    ```bash
+   npm run format
    npm run lint
    npm run test:unit
    npx tsc --noEmit
