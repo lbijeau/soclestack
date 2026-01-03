@@ -11,12 +11,8 @@ import {
   requestPasswordResetSchema,
   resetPasswordSchema,
 } from '@/lib/validations';
-import {
-  authenticateUser,
-  createUserSession,
-  isRateLimited,
-  getRateLimitInfo,
-} from '@/lib/auth';
+import { authenticateUser, createUserSession } from '@/lib/auth';
+import { getRateLimiter } from '@/lib/rate-limiter';
 import {
   checkAccountLocked,
   recordFailedAttempt,
@@ -134,10 +130,20 @@ export async function login(
   const rateLimitKey = `login:${clientIP}`;
   const { limit: loginLimit, windowMs: loginWindowMs } =
     SECURITY_CONFIG.rateLimits.login;
-  if (isRateLimited(rateLimitKey, loginLimit, loginWindowMs)) {
+  const rateLimiter = await getRateLimiter();
+  const rateLimitResult = await rateLimiter.check(
+    rateLimitKey,
+    loginLimit,
+    loginWindowMs
+  );
+  if (rateLimitResult.limited) {
     throw new RateLimitError(
       'Too many login attempts. Please try again later.',
-      getRateLimitInfo(rateLimitKey, loginLimit, loginWindowMs)
+      {
+        limit: rateLimitResult.headers['X-RateLimit-Limit'],
+        remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
+        reset: rateLimitResult.headers['X-RateLimit-Reset'],
+      }
     );
   }
 
@@ -364,10 +370,20 @@ export async function register(
   const rateLimitKey = `register:${clientIP}`;
   const { limit: registerLimit, windowMs: registerWindowMs } =
     SECURITY_CONFIG.rateLimits.register;
-  if (isRateLimited(rateLimitKey, registerLimit, registerWindowMs)) {
+  const rateLimiter = await getRateLimiter();
+  const rateLimitResult = await rateLimiter.check(
+    rateLimitKey,
+    registerLimit,
+    registerWindowMs
+  );
+  if (rateLimitResult.limited) {
     throw new RateLimitError(
       'Too many registration attempts. Please try again later.',
-      getRateLimitInfo(rateLimitKey, registerLimit, registerWindowMs)
+      {
+        limit: rateLimitResult.headers['X-RateLimit-Limit'],
+        remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
+        reset: rateLimitResult.headers['X-RateLimit-Reset'],
+      }
     );
   }
 
@@ -666,11 +682,14 @@ export async function setup2FA(
   // Rate limiting
   const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorSetup;
   const rateLimitKey = `2fa-setup:${context.clientIP}`;
-  if (isRateLimited(rateLimitKey, limit, windowMs)) {
-    throw new RateLimitError(
-      'Too many requests. Please try again later.',
-      getRateLimitInfo(rateLimitKey, limit, windowMs)
-    );
+  const rateLimiter = await getRateLimiter();
+  const rateLimitResult = await rateLimiter.check(rateLimitKey, limit, windowMs);
+  if (rateLimitResult.limited) {
+    throw new RateLimitError('Too many requests. Please try again later.', {
+      limit: rateLimitResult.headers['X-RateLimit-Limit'],
+      remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
+      reset: rateLimitResult.headers['X-RateLimit-Reset'],
+    });
   }
 
   // Block 2FA setup while impersonating
@@ -791,11 +810,14 @@ export async function disable2FA(
   // Rate limiting
   const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorDisable;
   const rateLimitKey = `2fa-disable:${context.clientIP}`;
-  if (isRateLimited(rateLimitKey, limit, windowMs)) {
-    throw new RateLimitError(
-      'Too many requests. Please try again later.',
-      getRateLimitInfo(rateLimitKey, limit, windowMs)
-    );
+  const rateLimiter = await getRateLimiter();
+  const rateLimitResult = await rateLimiter.check(rateLimitKey, limit, windowMs);
+  if (rateLimitResult.limited) {
+    throw new RateLimitError('Too many requests. Please try again later.', {
+      limit: rateLimitResult.headers['X-RateLimit-Limit'],
+      remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
+      reset: rateLimitResult.headers['X-RateLimit-Reset'],
+    });
   }
 
   // Block 2FA disable while impersonating
@@ -882,10 +904,16 @@ export async function requestPasswordReset(
   // Rate limiting
   const rateLimitKey = `forgot-password:${clientIP}`;
   const { limit, windowMs } = SECURITY_CONFIG.rateLimits.forgotPassword;
-  if (isRateLimited(rateLimitKey, limit, windowMs)) {
+  const rateLimiter = await getRateLimiter();
+  const rateLimitResult = await rateLimiter.check(rateLimitKey, limit, windowMs);
+  if (rateLimitResult.limited) {
     throw new RateLimitError(
       'Too many password reset requests. Please try again later.',
-      getRateLimitInfo(rateLimitKey, limit, windowMs)
+      {
+        limit: rateLimitResult.headers['X-RateLimit-Limit'],
+        remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
+        reset: rateLimitResult.headers['X-RateLimit-Reset'],
+      }
     );
   }
 
