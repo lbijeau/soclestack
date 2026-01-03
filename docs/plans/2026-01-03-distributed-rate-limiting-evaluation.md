@@ -19,14 +19,15 @@ The current in-memory implementation is sufficient for most deployments. Edge pr
 
 ### Rate-Limited Operations
 
-| Operation | Limit | Window | Identifier |
-|-----------|-------|--------|------------|
-| Login attempts | 5 failures | 15 min | IP |
-| Registration | 3 | 1 hour | IP |
-| Password reset | 5 | 1 hour | IP |
-| 2FA setup/disable | 5 | 1 hour | User |
-| API key operations | 10 | 1 hour | User |
-| CSRF failures | 10 | 5 min | IP |
+| Operation | Limit | Window | Identifier | Source |
+|-----------|-------|--------|------------|--------|
+| Login attempts | 10 | 15 min | IP | `auth.service.ts:130` |
+| Account lockout | 5 failures | 15 min | User | `config/security.ts` |
+| Registration | 3 | 1 hour | IP | Issue #17 spec |
+| Password reset | 5 | 1 hour | IP | Issue #17 spec |
+| 2FA setup/disable | 5 | 1 hour | User | `config/security.ts` |
+| API key operations | 10 | 1 hour | User | `config/security.ts` |
+| CSRF failures | 10 | 5 min | IP | `config/security.ts` |
 
 ### Current Architecture
 
@@ -242,6 +243,13 @@ setInterval(() => {
 export interface RateLimiter {
   isLimited(key: string, limit: number, windowMs: number): Promise<boolean>;
   getRemainingAttempts(key: string, limit: number): Promise<number>;
+  getHeaders(key: string, limit: number): Promise<RateLimitHeaders>;
+}
+
+export interface RateLimitHeaders {
+  'X-RateLimit-Limit': number;
+  'X-RateLimit-Remaining': number;
+  'X-RateLimit-Reset': number;
 }
 
 // src/lib/rate-limiter/memory.ts
@@ -256,6 +264,44 @@ export const rateLimiter: RateLimiter =
     ? new RedisRateLimiter()
     : new MemoryRateLimiter();
 ```
+
+> **Breaking Change Note:** The current `isRateLimited()` function is synchronous.
+> The new interface uses `Promise<boolean>` to support async Redis operations.
+> All call sites will need to be updated to use `await`.
+
+---
+
+## Monitoring & Alerting
+
+### Recommended Metrics
+
+```mermaid
+flowchart LR
+    subgraph Metrics
+        A[rate_limit_hits_total] --> D[Dashboard]
+        B[rate_limit_blocked_total] --> D
+        C[rate_limit_near_limit] --> E[Alerts]
+    end
+
+    subgraph Actions
+        D --> F[Grafana/Datadog]
+        E --> G[PagerDuty/Slack]
+    end
+```
+
+### Key Metrics to Track
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `rate_limit_check_total` | Counter | Total rate limit checks |
+| `rate_limit_blocked_total` | Counter | Requests blocked by rate limit |
+| `rate_limit_remaining` | Gauge | Remaining attempts per key |
+
+### Alerting Rules
+
+1. **High block rate**: Alert if >10% of requests are rate-limited
+2. **Sustained abuse**: Alert if same IP blocked >100 times/hour
+3. **Memory growth**: Alert if rate limit store >10MB (in-memory only)
 
 ---
 
