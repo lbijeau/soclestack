@@ -6,6 +6,7 @@ import {
   AccountLockedError,
   RateLimitError,
   TokenExpiredError,
+  TokenInvalidError,
   NotFoundError,
   ConflictError,
 } from '@/services/auth.errors';
@@ -183,23 +184,41 @@ describe('Auth Service Functions', () => {
   });
 
   describe('setup2FA', () => {
+    it('should throw RateLimitError when rate limited', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(true);
+
+      await expect(setup2FA('user-id', mockContext)).rejects.toThrow(RateLimitError);
+    });
+
     it('should throw NotFoundError when user not found', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
-      await expect(setup2FA('user-id')).rejects.toThrow(NotFoundError);
+      await expect(setup2FA('user-id', mockContext)).rejects.toThrow(NotFoundError);
     });
 
     it('should throw ConflictError when 2FA already enabled', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         email: 'test@example.com',
         twoFactorEnabled: true,
       } as any);
 
-      await expect(setup2FA('user-id')).rejects.toThrow(ConflictError);
+      await expect(setup2FA('user-id', mockContext)).rejects.toThrow(ConflictError);
+    });
+
+    it('should throw ImpersonationBlockedError when impersonating', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
+      const impersonatingContext = { ...mockContext, isImpersonating: true };
+
+      await expect(setup2FA('user-id', impersonatingContext)).rejects.toThrow(
+        'This action is not allowed while impersonating a user'
+      );
     });
 
     it('should return QR code and backup codes on success', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         email: 'test@example.com',
@@ -213,7 +232,7 @@ describe('Auth Service Functions', () => {
       vi.mocked(generateBackupCodes).mockResolvedValue(['code1', 'code2']);
       vi.mocked(prisma.user.update).mockResolvedValue({} as any);
 
-      const result = await setup2FA('user-id');
+      const result = await setup2FA('user-id', mockContext);
 
       expect(result.qrCodeDataUrl).toBe('data:image/png;base64,...');
       expect(result.manualEntryKey).toBe('ABCD1234');
@@ -222,7 +241,16 @@ describe('Auth Service Functions', () => {
   });
 
   describe('disable2FA', () => {
+    it('should throw RateLimitError when rate limited', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(true);
+
+      await expect(disable2FA('user-id', '123456', mockContext)).rejects.toThrow(
+        RateLimitError
+      );
+    });
+
     it('should throw NotFoundError when user not found', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
       await expect(disable2FA('user-id', '123456', mockContext)).rejects.toThrow(
@@ -230,7 +258,17 @@ describe('Auth Service Functions', () => {
       );
     });
 
+    it('should throw ImpersonationBlockedError when impersonating', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
+      const impersonatingContext = { ...mockContext, isImpersonating: true };
+
+      await expect(disable2FA('user-id', '123456', impersonatingContext)).rejects.toThrow(
+        'This action is not allowed while impersonating a user'
+      );
+    });
+
     it('should throw AuthorizationError when admin tries to disable', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         role: 'ADMIN',
@@ -244,6 +282,7 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw ValidationError when 2FA not enabled', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         role: 'USER',
@@ -257,6 +296,7 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw AuthenticationError for invalid code', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         role: 'USER',
@@ -272,6 +312,7 @@ describe('Auth Service Functions', () => {
     });
 
     it('should disable 2FA on valid code', async () => {
+      vi.mocked(isRateLimited).mockReturnValue(false);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         role: 'USER',
@@ -323,11 +364,25 @@ describe('Auth Service Functions', () => {
       ).rejects.toThrow(ValidationError);
     });
 
-    it('should throw TokenExpiredError for invalid/expired token', async () => {
+    it('should throw TokenInvalidError for non-existent token', async () => {
       vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
 
       await expect(
         resetPassword({ token: 'invalid-token', password: 'ValidPassword123!', confirmPassword: 'ValidPassword123!' }, mockContext)
+      ).rejects.toThrow(TokenInvalidError);
+    });
+
+    it('should throw TokenExpiredError for expired token', async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue({
+        id: '1',
+        email: 'test@example.com',
+        password: 'old_hash',
+        passwordResetToken: 'hashed_reset_token',
+        passwordResetExpires: new Date('2020-01-01'), // Expired date
+      } as any);
+
+      await expect(
+        resetPassword({ token: 'expired-token', password: 'ValidPassword123!', confirmPassword: 'ValidPassword123!' }, mockContext)
       ).rejects.toThrow(TokenExpiredError);
     });
 
@@ -337,6 +392,7 @@ describe('Auth Service Functions', () => {
         email: 'test@example.com',
         password: 'old_hash',
         passwordResetToken: 'hashed_reset_token',
+        passwordResetExpires: new Date('2099-01-01'), // Future date
       } as any);
       vi.mocked(prisma.user.update).mockResolvedValue({} as any);
       vi.mocked(prisma.passwordHistory.create).mockResolvedValue({} as any);
@@ -355,10 +411,21 @@ describe('Auth Service Functions', () => {
       await expect(verifyEmail({ token: '' })).rejects.toThrow(ValidationError);
     });
 
-    it('should throw TokenExpiredError for invalid token', async () => {
+    it('should throw TokenInvalidError for non-existent token', async () => {
       vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
 
-      await expect(verifyEmail({ token: 'invalid' })).rejects.toThrow(TokenExpiredError);
+      await expect(verifyEmail({ token: 'invalid' })).rejects.toThrow(TokenInvalidError);
+    });
+
+    it('should throw TokenExpiredError for expired token', async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue({
+        id: '1',
+        email: 'test@example.com',
+        emailVerificationToken: 'hashed_reset_token',
+        emailVerificationExpires: new Date('2020-01-01'), // Expired date
+      } as any);
+
+      await expect(verifyEmail({ token: 'expired' })).rejects.toThrow(TokenExpiredError);
     });
 
     it('should verify email on valid token', async () => {
@@ -366,6 +433,7 @@ describe('Auth Service Functions', () => {
         id: '1',
         email: 'test@example.com',
         emailVerificationToken: 'hashed_reset_token',
+        emailVerificationExpires: new Date('2099-01-01'), // Future date
       } as any);
       vi.mocked(prisma.user.update).mockResolvedValue({} as any);
 

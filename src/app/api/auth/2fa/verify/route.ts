@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { verify2FASetup } from '@/services/auth.service';
 import { getRequestContext, handleServiceError } from '@/lib/api-utils';
-import {
-  assertNotImpersonating,
-  ImpersonationBlockedError,
-} from '@/lib/auth/impersonation';
+import { isImpersonating } from '@/lib/auth/impersonation';
 import { rotateCsrfToken } from '@/lib/csrf';
 import { z } from 'zod';
 
@@ -28,19 +25,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Block during impersonation
-    try {
-      assertNotImpersonating(session);
-    } catch (error) {
-      if (error instanceof ImpersonationBlockedError) {
-        return NextResponse.json(
-          { error: { type: 'FORBIDDEN', message: error.message } },
-          { status: 403 }
-        );
-      }
-      throw error;
-    }
-
     const body = await req.json();
     const validationResult = verifySchema.safeParse(body);
 
@@ -51,7 +35,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const context = getRequestContext(req);
+    const context = {
+      ...getRequestContext(req),
+      isImpersonating: isImpersonating(session),
+    };
     await verify2FASetup(session.userId, validationResult.data.code, context);
 
     // Rotate CSRF token after sensitive action

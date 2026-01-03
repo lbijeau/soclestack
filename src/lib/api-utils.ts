@@ -16,6 +16,8 @@ import { getClientIP } from './auth';
 export interface RequestContext {
   clientIP: string;
   userAgent?: string;
+  /** Whether the current session is impersonating another user */
+  isImpersonating?: boolean;
 }
 
 /**

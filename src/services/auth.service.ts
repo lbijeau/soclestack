@@ -22,6 +22,7 @@ import {
   createPending2FAToken,
   verifyPending2FAToken,
 } from '@/lib/auth/pending-2fa';
+import { ImpersonationBlockedError } from '@/lib/auth/impersonation';
 import { verifyTOTPCode, generateTOTPSecret } from '@/lib/auth/totp';
 import {
   verifyBackupCode,
@@ -640,10 +641,25 @@ export interface Setup2FAResult {
 /**
  * Start 2FA setup - generate secret, QR code, and backup codes.
  *
- * @throws {ValidationError} 2FA already enabled
+ * @throws {ImpersonationBlockedError} Cannot setup 2FA while impersonating
+ * @throws {ConflictError} 2FA already enabled
  * @throws {NotFoundError} User not found
  */
-export async function setup2FA(userId: string): Promise<Setup2FAResult> {
+export async function setup2FA(
+  userId: string,
+  context: RequestContext
+): Promise<Setup2FAResult> {
+  // Rate limiting
+  const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorSetup;
+  if (isRateLimited(`2fa-setup:${context.clientIP}`, limit, windowMs)) {
+    throw new RateLimitError('Too many requests. Please try again later.');
+  }
+
+  // Block 2FA setup while impersonating
+  if (context.isImpersonating) {
+    throw new ImpersonationBlockedError();
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { email: true, twoFactorEnabled: true },
@@ -683,6 +699,7 @@ export async function setup2FA(userId: string): Promise<Setup2FAResult> {
 /**
  * Verify 2FA setup with initial code and enable 2FA.
  *
+ * @throws {ImpersonationBlockedError} Cannot verify 2FA while impersonating
  * @throws {ValidationError} 2FA not set up or already enabled
  * @throws {AuthenticationError} Invalid code
  */
@@ -691,6 +708,11 @@ export async function verify2FASetup(
   code: string,
   context: RequestContext
 ): Promise<void> {
+  // Block 2FA verification while impersonating
+  if (context.isImpersonating) {
+    throw new ImpersonationBlockedError();
+  }
+
   const { clientIP, userAgent } = context;
 
   const user = await prisma.user.findUnique({
@@ -737,6 +759,8 @@ export async function verify2FASetup(
 /**
  * Disable 2FA.
  *
+ * @throws {ImpersonationBlockedError} Cannot disable 2FA while impersonating
+ * @throws {NotFoundError} User not found
  * @throws {ValidationError} 2FA not enabled
  * @throws {AuthenticationError} Invalid code
  * @throws {AuthorizationError} Admins cannot disable 2FA
@@ -746,6 +770,17 @@ export async function disable2FA(
   code: string,
   context: RequestContext
 ): Promise<void> {
+  // Rate limiting
+  const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorDisable;
+  if (isRateLimited(`2fa-disable:${context.clientIP}`, limit, windowMs)) {
+    throw new RateLimitError('Too many requests. Please try again later.');
+  }
+
+  // Block 2FA disable while impersonating
+  if (context.isImpersonating) {
+    throw new ImpersonationBlockedError();
+  }
+
   const { clientIP, userAgent } = context;
 
   const user = await prisma.user.findUnique({
@@ -870,7 +905,8 @@ export interface ResetPasswordInput {
  * Reset password using a valid reset token.
  *
  * @throws {ValidationError} Invalid input
- * @throws {TokenExpiredError} Token expired or invalid
+ * @throws {TokenInvalidError} Token not found
+ * @throws {TokenExpiredError} Token has expired
  */
 export async function resetPassword(
   input: ResetPasswordInput,
@@ -888,18 +924,20 @@ export async function resetPassword(
   // Hash the provided token to match against stored hash
   const hashedToken = await hashResetToken(token);
 
-  // Find user with this specific hashed token that hasn't expired
+  // First check if token exists at all
   const user = await prisma.user.findFirst({
     where: {
       passwordResetToken: hashedToken,
-      passwordResetExpires: {
-        gt: new Date(),
-      },
     },
   });
 
   if (!user) {
-    throw new TokenExpiredError('Invalid or expired reset token');
+    throw new TokenInvalidError('Invalid reset token');
+  }
+
+  // Check if token has expired
+  if (!user.passwordResetExpires || user.passwordResetExpires < new Date()) {
+    throw new TokenExpiredError('Reset token has expired');
   }
 
   // Hash new password
@@ -959,7 +997,8 @@ export interface VerifyEmailInput {
  * Verify an email address using the verification token.
  *
  * @throws {ValidationError} Token not provided
- * @throws {TokenExpiredError} Token expired or invalid
+ * @throws {TokenInvalidError} Token not found
+ * @throws {TokenExpiredError} Token has expired
  */
 export async function verifyEmail(input: VerifyEmailInput): Promise<void> {
   const { token } = input;
@@ -971,18 +1010,23 @@ export async function verifyEmail(input: VerifyEmailInput): Promise<void> {
   // Hash the provided token to match against stored hash
   const hashedToken = await hashResetToken(token);
 
-  // Find user with this specific hashed token that hasn't expired
+  // First check if token exists at all
   const user = await prisma.user.findFirst({
     where: {
       emailVerificationToken: hashedToken,
-      emailVerificationExpires: {
-        gt: new Date(),
-      },
     },
   });
 
   if (!user) {
-    throw new TokenExpiredError('Invalid or expired verification token');
+    throw new TokenInvalidError('Invalid verification token');
+  }
+
+  // Check if token has expired
+  if (
+    !user.emailVerificationExpires ||
+    user.emailVerificationExpires < new Date()
+  ) {
+    throw new TokenExpiredError('Verification token has expired');
   }
 
   // Update user as verified
