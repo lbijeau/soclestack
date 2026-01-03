@@ -1,7 +1,7 @@
 # Environment Variables Guide
 
 **Status**: Current
-**Last Updated**: 2026-01-01
+**Last Updated**: 2026-01-03
 **Maintainer**: Development Team
 
 Complete reference for all environment variables used in the SocleStack application.
@@ -161,6 +161,32 @@ ENABLE_SOCIAL_LOGIN=true
 |----------|----------|---------|-------------|
 | `RATE_LIMIT_MAX` | No | `100` | Max requests per window |
 | `RATE_LIMIT_WINDOW` | No | `900000` | Time window in ms (15 min) |
+
+### Redis (Distributed Rate Limiting)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `UPSTASH_REDIS_REST_URL` | No | - | Upstash Redis REST API URL |
+| `UPSTASH_REDIS_REST_TOKEN` | No | - | Upstash Redis REST API token |
+
+**Behavior**:
+- If both variables are set, Redis-based rate limiting is used (recommended for production)
+- If not set, falls back to in-memory rate limiting (single-instance only)
+
+**Setup**:
+1. Sign up at [upstash.com](https://upstash.com)
+2. Create a Redis database
+3. Copy the REST URL and token from the dashboard
+4. Add to `.env`:
+   ```env
+   UPSTASH_REDIS_REST_URL="https://xxx.upstash.io"
+   UPSTASH_REDIS_REST_TOKEN="AXxxxx..."
+   ```
+
+**When to use Redis**:
+- Multiple application instances (horizontal scaling)
+- Serverless deployments (Vercel, Cloudflare Workers)
+- Need consistent rate limiting across instances
 
 ---
 
@@ -522,6 +548,8 @@ Next.js loads environment variables in this order (later overrides earlier):
 | `TEST_ENV` | Test only | - | string | Test environment identifier |
 | `UPLOAD_ALLOWED_TYPES` | No | `image/jpeg,image/png,image/gif,application/pdf` | string | Allowed file MIME types |
 | `UPLOAD_MAX_SIZE` | No | `10485760` | number | Max file size (bytes) |
+| `UPSTASH_REDIS_REST_TOKEN` | No | - | string | Upstash Redis REST API token |
+| `UPSTASH_REDIS_REST_URL` | No | - | string | Upstash Redis REST API URL |
 
 ---
 
