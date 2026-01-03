@@ -11,7 +11,10 @@ import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import { rotateCsrfToken } from '@/lib/csrf';
-import { sendVerificationEmail, sendEmailChangedNotification } from '@/lib/email';
+import {
+  sendVerificationEmail,
+  sendEmailChangedNotification,
+} from '@/lib/email';
 import { logAuditEvent } from '@/lib/audit';
 import log from '@/lib/logger';
 
@@ -172,6 +175,9 @@ export async function PATCH(req: NextRequest) {
         },
       });
 
+      // Log password change
+      log.auth.passwordChanged(currentUser.id);
+
       // Logout from all other devices for security
       await prisma.userSession.deleteMany({
         where: {
@@ -279,7 +285,9 @@ export async function PATCH(req: NextRequest) {
             oldEmail: currentUser.email,
             newEmail: updateData.email,
           },
-        }).catch((err) => log.error('Failed to log email change', { error: err.message }));
+        }).catch((err) =>
+          log.error('Failed to log email change', { error: err.message })
+        );
 
         // Notify old email address about the change (fire-and-forget)
         sendEmailChangedNotification(
@@ -287,7 +295,7 @@ export async function PATCH(req: NextRequest) {
           updateData.email,
           new Date()
         ).catch((err) =>
-          log.email.failed('email_changed', currentUser.email, err.message)
+          log.email.failed('email_changed', currentUser.email, err)
         );
 
         // Send verification email to new address (fire-and-forget)
@@ -296,7 +304,7 @@ export async function PATCH(req: NextRequest) {
           verificationToken,
           currentUser.firstName || currentUser.username || undefined
         ).catch((err) =>
-          log.email.failed('verification', updateData.email!, err.message)
+          log.email.failed('verification', updateData.email!, err)
         );
       }
 
@@ -324,7 +332,9 @@ export async function PATCH(req: NextRequest) {
       });
     }
   } catch (error) {
-    log.error('Update profile error', { error: error instanceof Error ? error.message : 'Unknown error' });
+    log.error('Update profile error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return NextResponse.json(
       {
         error: {

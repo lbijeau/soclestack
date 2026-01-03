@@ -61,7 +61,11 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     log.email.sent('send', options.to);
     return true;
   } catch (error) {
-    log.email.failed('send', options.to, error instanceof Error ? error.message : 'Unknown error');
+    log.email.failed(
+      'send',
+      options.to,
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     return false;
   }
 }

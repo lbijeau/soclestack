@@ -10,6 +10,7 @@ const REDACT_PATHS = [
   'refreshToken',
   'resetToken',
   'verificationToken',
+  'backupCode',
   'secret',
   'apiKey',
   'authorization',
@@ -75,23 +76,67 @@ export const log = {
   // Authentication events
   auth: {
     login: (userId: string, email: string, ip?: string) =>
-      logger.info({ category: 'auth', action: 'login', userId, email: redactEmail(email), ip }, 'User logged in'),
+      logger.info(
+        {
+          category: 'auth',
+          action: 'login',
+          userId,
+          email: redactEmail(email),
+          ip,
+        },
+        'User logged in'
+      ),
     logout: (userId: string) =>
-      logger.info({ category: 'auth', action: 'logout', userId }, 'User logged out'),
+      logger.info(
+        { category: 'auth', action: 'logout', userId },
+        'User logged out'
+      ),
     register: (userId: string, email: string) =>
-      logger.info({ category: 'auth', action: 'register', userId, email: redactEmail(email) }, 'User registered'),
+      logger.info(
+        {
+          category: 'auth',
+          action: 'register',
+          userId,
+          email: redactEmail(email),
+        },
+        'User registered'
+      ),
     loginFailed: (email: string, reason: string, ip?: string) =>
-      logger.warn({ category: 'auth', action: 'login_failed', email: redactEmail(email), reason, ip }, 'Login failed'),
+      logger.warn(
+        {
+          category: 'auth',
+          action: 'login_failed',
+          email: redactEmail(email),
+          reason,
+          ip,
+        },
+        'Login failed'
+      ),
     passwordReset: (userId: string) =>
-      logger.info({ category: 'auth', action: 'password_reset', userId }, 'Password reset'),
+      logger.info(
+        { category: 'auth', action: 'password_reset', userId },
+        'Password reset'
+      ),
     passwordChanged: (userId: string) =>
-      logger.info({ category: 'auth', action: 'password_changed', userId }, 'Password changed'),
+      logger.info(
+        { category: 'auth', action: 'password_changed', userId },
+        'Password changed'
+      ),
     emailVerified: (userId: string) =>
-      logger.info({ category: 'auth', action: 'email_verified', userId }, 'Email verified'),
+      logger.info(
+        { category: 'auth', action: 'email_verified', userId },
+        'Email verified'
+      ),
     twoFactorEnabled: (userId: string) =>
-      logger.info({ category: 'auth', action: '2fa_enabled', userId }, '2FA enabled'),
+      logger.info(
+        { category: 'auth', action: '2fa_enabled', userId },
+        '2FA enabled'
+      ),
     twoFactorDisabled: (userId: string) =>
-      logger.info({ category: 'auth', action: '2fa_disabled', userId }, '2FA disabled'),
+      logger.info(
+        { category: 'auth', action: '2fa_disabled', userId },
+        '2FA disabled'
+      ),
   },
 
   // Security events
@@ -99,43 +144,95 @@ export const log = {
     suspiciousActivity: (msg: string, data?: object) =>
       logger.warn({ category: 'security', ...data }, msg),
     rateLimited: (ip: string, endpoint: string) =>
-      logger.warn({ category: 'security', action: 'rate_limited', ip, endpoint }, 'Rate limited'),
+      logger.warn(
+        { category: 'security', action: 'rate_limited', ip, endpoint },
+        'Rate limited'
+      ),
     accountLocked: (userId: string, reason: string) =>
-      logger.warn({ category: 'security', action: 'account_locked', userId, reason }, 'Account locked'),
+      logger.warn(
+        { category: 'security', action: 'account_locked', userId, reason },
+        'Account locked'
+      ),
     accountUnlocked: (userId: string) =>
-      logger.info({ category: 'security', action: 'account_unlocked', userId }, 'Account unlocked'),
+      logger.info(
+        { category: 'security', action: 'account_unlocked', userId },
+        'Account unlocked'
+      ),
     impersonationStart: (adminId: string, targetUserId: string) =>
       logger.warn(
-        { category: 'security', action: 'impersonation_start', adminId, targetUserId },
+        {
+          category: 'security',
+          action: 'impersonation_start',
+          adminId,
+          targetUserId,
+        },
         'Admin started impersonation'
       ),
     impersonationEnd: (adminId: string, targetUserId: string) =>
       logger.info(
-        { category: 'security', action: 'impersonation_end', adminId, targetUserId },
+        {
+          category: 'security',
+          action: 'impersonation_end',
+          adminId,
+          targetUserId,
+        },
         'Admin ended impersonation'
       ),
   },
 
   // API request logging
   api: {
-    request: (method: string, path: string, requestId: string, userId?: string) =>
-      logger.info({ category: 'api', method, path, requestId, userId }, 'API request'),
-    response: (method: string, path: string, status: number, duration: number, requestId: string) =>
+    request: (
+      method: string,
+      path: string,
+      requestId: string,
+      userId?: string
+    ) =>
+      logger.info(
+        { category: 'api', method, path, requestId, userId },
+        'API request'
+      ),
+    response: (
+      method: string,
+      path: string,
+      status: number,
+      duration: number,
+      requestId: string
+    ) =>
       logger.info(
         { category: 'api', method, path, status, duration, requestId },
         'API response'
       ),
     error: (method: string, path: string, error: string, requestId: string) =>
-      logger.error({ category: 'api', method, path, error, requestId }, 'API error'),
+      logger.error(
+        { category: 'api', method, path, error, requestId },
+        'API error'
+      ),
   },
 
   // Email logging
   email: {
     sent: (type: string, recipient: string) =>
-      logger.info({ category: 'email', action: 'sent', type, recipient: redactEmail(recipient) }, 'Email sent'),
-    failed: (type: string, recipient: string, error: string) =>
+      logger.info(
+        {
+          category: 'email',
+          action: 'sent',
+          type,
+          recipient: redactEmail(recipient),
+        },
+        'Email sent'
+      ),
+    failed: (type: string, recipient: string, error: string | Error) =>
       logger.error(
-        { category: 'email', action: 'failed', type, recipient: redactEmail(recipient), error },
+        {
+          category: 'email',
+          action: 'failed',
+          type,
+          recipient: redactEmail(recipient),
+          ...(error instanceof Error
+            ? { error: error.message, stack: error.stack }
+            : { error }),
+        },
         'Email failed'
       ),
   },
@@ -143,22 +240,42 @@ export const log = {
   // Database operations (for debugging)
   db: {
     query: (operation: string, table: string, duration?: number) =>
-      logger.debug({ category: 'db', operation, table, duration }, 'Database query'),
+      logger.debug(
+        { category: 'db', operation, table, duration },
+        'Database query'
+      ),
     error: (operation: string, table: string, error: string) =>
-      logger.error({ category: 'db', operation, table, error }, 'Database error'),
+      logger.error(
+        { category: 'db', operation, table, error },
+        'Database error'
+      ),
   },
 
   // Organization events
   org: {
     created: (orgId: string, name: string, ownerId: string) =>
-      logger.info({ category: 'org', action: 'created', orgId, name, ownerId }, 'Organization created'),
+      logger.info(
+        { category: 'org', action: 'created', orgId, name, ownerId },
+        'Organization created'
+      ),
     memberAdded: (orgId: string, userId: string, role: string) =>
-      logger.info({ category: 'org', action: 'member_added', orgId, userId, role }, 'Member added'),
+      logger.info(
+        { category: 'org', action: 'member_added', orgId, userId, role },
+        'Member added'
+      ),
     memberRemoved: (orgId: string, userId: string) =>
-      logger.info({ category: 'org', action: 'member_removed', orgId, userId }, 'Member removed'),
+      logger.info(
+        { category: 'org', action: 'member_removed', orgId, userId },
+        'Member removed'
+      ),
     inviteSent: (orgId: string, email: string) =>
       logger.info(
-        { category: 'org', action: 'invite_sent', orgId, email: redactEmail(email) },
+        {
+          category: 'org',
+          action: 'invite_sent',
+          orgId,
+          email: redactEmail(email),
+        },
         'Invite sent'
       ),
   },
@@ -168,7 +285,8 @@ export const log = {
 function redactEmail(email: string): string {
   if (!email || !email.includes('@')) return '[INVALID_EMAIL]';
   const [local, domain] = email.split('@');
-  const redactedLocal = local.length > 2 ? `${local[0]}***${local[local.length - 1]}` : '***';
+  const redactedLocal =
+    local.length > 2 ? `${local[0]}***${local[local.length - 1]}` : '***';
   return `${redactedLocal}@${domain}`;
 }
 

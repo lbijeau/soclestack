@@ -264,7 +264,9 @@ export async function login(
       deviceInfo,
       clientIP,
       new Date()
-    ).catch((err) => log.email.failed('new_device_alert', authenticatedUser.email, err.message));
+    ).catch((err) =>
+      log.email.failed('new_device_alert', authenticatedUser.email, err)
+    );
   }
 
   // Handle Remember Me
@@ -472,7 +474,7 @@ export async function register(
 
   // Send verification email (fire-and-forget)
   sendVerificationEmail(email, plainVerificationToken, firstName).catch((err) =>
-    log.email.failed('verification', email, err.message)
+    log.email.failed('verification', email, err)
   );
 
   // Return success result
@@ -753,7 +755,7 @@ export async function verify2FASetup(
 
   // Send notification (fire-and-forget)
   sendTwoFactorEnabledNotification(user.email).catch((err) =>
-    log.email.failed('2fa_enabled', user.email, err.message)
+    log.email.failed('2fa_enabled', user.email, err)
   );
 }
 
@@ -833,7 +835,7 @@ export async function disable2FA(
 
   // Send notification (fire-and-forget)
   sendTwoFactorDisabledNotification(user.email).catch((err) =>
-    log.email.failed('2fa_disabled', user.email, err.message)
+    log.email.failed('2fa_disabled', user.email, err)
   );
 }
 
@@ -889,7 +891,7 @@ export async function requestPasswordReset(
 
   // Send password reset email (fire-and-forget)
   sendPasswordResetEmail(email, resetToken, user.firstName ?? undefined).catch(
-    (err) => log.email.failed('password_reset', email, err.message)
+    (err) => log.email.failed('password_reset', email, err)
   );
 
   return { message };
@@ -980,7 +982,7 @@ export async function resetPassword(
 
   // Send notification (fire-and-forget)
   sendPasswordChangedNotification(user.email, new Date()).catch((err) =>
-    log.email.failed('password_changed', user.email, err.message)
+    log.email.failed('password_changed', user.email, err)
   );
 }
 
