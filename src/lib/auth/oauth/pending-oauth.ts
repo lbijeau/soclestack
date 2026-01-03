@@ -1,16 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import type { OAuthProvider, OAuthUserProfile } from './providers';
-
-function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error(
-      'JWT_SECRET environment variable is required for pending OAuth tokens'
-    );
-  }
-  return new TextEncoder().encode(secret);
-}
+import { getJwtSecret } from './secrets';
 
 export interface PendingOAuthPayload {
   provider: OAuthProvider;

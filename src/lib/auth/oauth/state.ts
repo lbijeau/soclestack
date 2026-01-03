@@ -2,16 +2,7 @@ import { randomBytes } from 'crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import type { OAuthProvider } from './providers';
-
-function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error(
-      'JWT_SECRET environment variable is required for OAuth state tokens'
-    );
-  }
-  return new TextEncoder().encode(secret);
-}
+import { getJwtSecret } from './secrets';
 
 export interface OAuthStatePayload {
   provider: OAuthProvider;
