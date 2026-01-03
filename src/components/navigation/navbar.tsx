@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
@@ -94,8 +95,18 @@ export function Navbar() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
             <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold text-gray-900">
-                SocleStack
+              <Link
+                href="/"
+                className="flex items-center space-x-2 text-xl font-bold text-gray-900"
+              >
+                <Image
+                  src="/images/logo.png"
+                  alt="SocleStack Logo"
+                  width={32}
+                  height={32}
+                  className="rounded"
+                />
+                <span>SocleStack</span>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -127,9 +138,16 @@ export function Navbar() {
             <div className="flex items-center space-x-8">
               <Link
                 href="/dashboard"
-                className="text-xl font-bold text-gray-900"
+                className="flex items-center space-x-2 text-xl font-bold text-gray-900"
               >
-                SocleStack
+                <Image
+                  src="/images/logo.png"
+                  alt="SocleStack Logo"
+                  width={32}
+                  height={32}
+                  className="rounded"
+                />
+                <span>SocleStack</span>
               </Link>
 
               <div className="hidden items-center space-x-1 md:flex">
