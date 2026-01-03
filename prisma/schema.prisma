@@ -5,10 +5,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// PostgreSQL for production, SQLite for local development
-// Set DATABASE_URL in .env to switch between them:
-//   SQLite:     file:./dev.db
-//   PostgreSQL: postgresql://user:password@host:5432/dbname
+// PostgreSQL database configuration
+// Use docker-compose up -d for local development
+// For production, set DATABASE_URL to your PostgreSQL connection string
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
