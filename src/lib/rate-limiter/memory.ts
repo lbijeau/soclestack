@@ -123,7 +123,7 @@ export class MemoryRateLimiter implements RateLimiter {
     const resetTimestamp = Math.floor(record.resetTime / 1000);
 
     return {
-      limited: record.count >= limit,
+      limited: record.count > limit,
       headers: this.buildHeaders(limit, remaining, resetTimestamp, false, now),
     };
   }

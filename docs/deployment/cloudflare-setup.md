@@ -79,20 +79,35 @@ Prevents mass account creation.
 
 **Rationale**: Legitimate users rarely need more than 3 registration attempts per hour. Hard block prevents bot registrations.
 
-### Rule 3: Password Reset Protection
+### Rule 3: Password Reset Request Protection
 
-Prevents email enumeration and spam.
+Prevents email enumeration and spam on forgot-password requests.
 
 | Setting | Value |
 |---------|-------|
-| **Rule name** | Password Reset Rate Limit |
+| **Rule name** | Password Reset Request Rate Limit |
 | **Expression** | `(http.request.uri.path eq "/api/auth/forgot-password" and http.request.method eq "POST")` |
 | **Characteristics** | IP |
 | **Requests** | 5 |
 | **Period** | 1 hour |
 | **Action** | Block |
 
-### Rule 4: Email Verification Resend
+### Rule 4: Password Reset Submission Protection
+
+Prevents brute-force token guessing on password reset submissions.
+
+| Setting | Value |
+|---------|-------|
+| **Rule name** | Password Reset Submission Rate Limit |
+| **Expression** | `(http.request.uri.path eq "/api/auth/reset-password" and http.request.method eq "POST")` |
+| **Characteristics** | IP |
+| **Requests** | 10 |
+| **Period** | 1 hour |
+| **Action** | Block |
+
+**Rationale**: Limits attempts to submit new passwords with reset tokens, preventing token brute-forcing.
+
+### Rule 5: Email Verification Resend
 
 Prevents verification email spam.
 
@@ -105,7 +120,7 @@ Prevents verification email spam.
 | **Period** | 1 hour |
 | **Action** | Block |
 
-### Rule 5: Account Unlock Protection
+### Rule 6: Account Unlock Protection
 
 Prevents unlock request abuse.
 

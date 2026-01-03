@@ -1,19 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock @upstash/redis before importing RedisRateLimiter
-const mockPipeline = {
-  incr: vi.fn().mockReturnThis(),
-  pttl: vi.fn().mockReturnThis(),
-  exec: vi.fn(),
-};
-
 const mockRedis = {
-  pipeline: vi.fn(() => mockPipeline),
+  eval: vi.fn(),
   get: vi.fn(),
   pttl: vi.fn(),
   del: vi.fn(),
-  expire: vi.fn(),
-  setex: vi.fn(),
 };
 
 vi.mock('@upstash/redis', () => ({
@@ -51,7 +43,7 @@ describe('RedisRateLimiter', () => {
 
   describe('check', () => {
     it('should allow requests within limit', async () => {
-      mockPipeline.exec.mockResolvedValue([1, 60000]); // count=1, ttl=60s
+      mockRedis.eval.mockResolvedValue([1, 60000]); // count=1, ttl=60s
 
       const result = await rateLimiter.check('test:key', 5, 60000);
 
@@ -62,7 +54,7 @@ describe('RedisRateLimiter', () => {
     });
 
     it('should block requests exceeding limit', async () => {
-      mockPipeline.exec.mockResolvedValue([6, 30000]); // count=6 (over limit of 5), ttl=30s
+      mockRedis.eval.mockResolvedValue([6, 30000]); // count=6 (over limit of 5), ttl=30s
 
       const result = await rateLimiter.check('test:key', 5, 60000);
 
@@ -71,33 +63,43 @@ describe('RedisRateLimiter', () => {
       expect(result.headers['Retry-After']).toBe(30); // 30s remaining
     });
 
-    it('should set expiry on first request', async () => {
-      mockPipeline.exec.mockResolvedValue([1, -1]); // count=1, no expiry set
-
-      await rateLimiter.check('test:key', 5, 60000);
-
-      expect(mockRedis.expire).toHaveBeenCalledWith('ratelimit:test:key', 60);
-    });
-
-    it('should handle race condition where key disappears', async () => {
-      mockPipeline.exec.mockResolvedValue([1, -2]); // count=1, key doesn't exist
-
-      await rateLimiter.check('test:key', 5, 60000);
-
-      expect(mockRedis.setex).toHaveBeenCalledWith('ratelimit:test:key', 60, 1);
-    });
-
     it('should use correct Redis key prefix', async () => {
-      mockPipeline.exec.mockResolvedValue([1, 60000]);
+      mockRedis.eval.mockResolvedValue([1, 60000]);
 
       await rateLimiter.check('login:192.168.1.1', 5, 60000);
 
-      expect(mockPipeline.incr).toHaveBeenCalledWith('ratelimit:login:192.168.1.1');
-      expect(mockPipeline.pttl).toHaveBeenCalledWith('ratelimit:login:192.168.1.1');
+      expect(mockRedis.eval).toHaveBeenCalledWith(
+        expect.stringContaining('INCR'),
+        ['ratelimit:login:192.168.1.1'],
+        [60]
+      );
+    });
+
+    it('should use atomic Lua script for increment and expiry', async () => {
+      mockRedis.eval.mockResolvedValue([1, 60000]);
+
+      await rateLimiter.check('test:key', 5, 60000);
+
+      // Verify eval was called with a Lua script containing INCR, PTTL, and EXPIRE
+      expect(mockRedis.eval).toHaveBeenCalledWith(
+        expect.stringContaining('INCR'),
+        expect.any(Array),
+        expect.any(Array)
+      );
+      expect(mockRedis.eval).toHaveBeenCalledWith(
+        expect.stringContaining('PTTL'),
+        expect.any(Array),
+        expect.any(Array)
+      );
+      expect(mockRedis.eval).toHaveBeenCalledWith(
+        expect.stringContaining('EXPIRE'),
+        expect.any(Array),
+        expect.any(Array)
+      );
     });
 
     it('should fail open on Redis error', async () => {
-      mockPipeline.exec.mockRejectedValue(new Error('Redis connection failed'));
+      mockRedis.eval.mockRejectedValue(new Error('Redis connection failed'));
 
       const result = await rateLimiter.check('test:key', 5, 60000);
 
@@ -114,7 +116,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.peek('test:key', 5, 60000);
 
       expect(result.headers['X-RateLimit-Remaining']).toBe(2);
-      expect(mockPipeline.incr).not.toHaveBeenCalled();
+      expect(mockRedis.eval).not.toHaveBeenCalled();
     });
 
     it('should return full limit for non-existent key', async () => {
@@ -125,6 +127,16 @@ describe('RedisRateLimiter', () => {
 
       expect(result.limited).toBe(false);
       expect(result.headers['X-RateLimit-Remaining']).toBe(5);
+    });
+
+    it('should indicate limited state when count exceeds limit', async () => {
+      mockRedis.get.mockResolvedValue(6); // Already over limit
+      mockRedis.pttl.mockResolvedValue(45000);
+
+      const result = await rateLimiter.peek('test:key', 5, 60000);
+
+      expect(result.limited).toBe(true);
+      expect(result.headers['X-RateLimit-Remaining']).toBe(0);
     });
 
     it('should fail open on Redis error', async () => {

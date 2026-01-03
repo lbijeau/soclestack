@@ -11,6 +11,23 @@ export class RedisRateLimiter implements RateLimiter {
   private redis: Redis;
   private readonly keyPrefix = 'ratelimit:';
 
+  /**
+   * Lua script for atomic increment with expiry.
+   * Returns [count, ttl_ms] where ttl_ms is the remaining TTL in milliseconds.
+   * Sets expiry on first request, ensuring atomicity.
+   */
+  private static readonly INCR_WITH_EXPIRY_SCRIPT = `
+    local key = KEYS[1]
+    local window_seconds = tonumber(ARGV[1])
+    local count = redis.call('INCR', key)
+    local ttl = redis.call('PTTL', key)
+    if ttl == -1 then
+      redis.call('EXPIRE', key, window_seconds)
+      ttl = window_seconds * 1000
+    end
+    return {count, ttl}
+  `;
+
   constructor() {
     this.redis = Redis.fromEnv();
   }
@@ -44,25 +61,14 @@ export class RedisRateLimiter implements RateLimiter {
     const redisKey = `${this.keyPrefix}${key}`;
 
     try {
-      // Use Redis pipeline for atomic increment + TTL check
-      const pipeline = this.redis.pipeline();
-      pipeline.incr(redisKey);
-      pipeline.pttl(redisKey);
+      // Use Lua script for atomic increment + expiry
+      const result = (await this.redis.eval(
+        RedisRateLimiter.INCR_WITH_EXPIRY_SCRIPT,
+        [redisKey],
+        [windowSeconds]
+      )) as [number, number];
 
-      const results = await pipeline.exec<[number, number]>();
-      const count = results[0];
-      let ttlMs = results[1];
-
-      // Set expiry on first request (TTL returns -1 if no expiry set)
-      if (ttlMs === -1) {
-        await this.redis.expire(redisKey, windowSeconds);
-        ttlMs = windowMs;
-      } else if (ttlMs === -2) {
-        // Key doesn't exist (race condition) - set with expiry
-        await this.redis.setex(redisKey, windowSeconds, 1);
-        ttlMs = windowMs;
-      }
-
+      const [count, ttlMs] = result;
       const limited = count > limit;
       const resetTimestamp = Math.floor((now + ttlMs) / 1000);
       const remaining = Math.max(0, limit - count);
@@ -115,7 +121,7 @@ export class RedisRateLimiter implements RateLimiter {
       const remaining = Math.max(0, limit - currentCount);
 
       return {
-        limited: currentCount >= limit,
+        limited: currentCount > limit,
         headers: this.buildHeaders(limit, remaining, resetTimestamp, false, undefined),
       };
     } catch (error) {
