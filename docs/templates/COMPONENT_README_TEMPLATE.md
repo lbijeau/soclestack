@@ -108,12 +108,13 @@ Description of the second key feature and how it works.
 - Follows design system tokens from `tailwind.config.ts`
 - Responsive breakpoints: `sm`, `md`, `lg`, `xl`
 
-### CSS Classes
+### Common Patterns
 
-| Class | Purpose |
-|-------|---------|
-| `.component-base` | Base styling |
-| `.component-variant` | Variant-specific styling |
+| Pattern | Example |
+|---------|---------|
+| Base container | `className="flex flex-col gap-4"` |
+| Responsive layout | `className="grid grid-cols-1 md:grid-cols-2"` |
+| Interactive states | `className="hover:bg-muted focus:ring-2"` |
 
 ## Accessibility Features
 
@@ -144,13 +145,20 @@ Description of the second key feature and how it works.
 ### With Authentication
 
 ```tsx
-import { useSession } from 'next-auth/react';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { apiClient } from '@/lib/api-client';
 import { ComponentName } from '@/components/[directory]';
 
 export function AuthenticatedExample() {
-  const { data: session } = useSession();
+  const [user, setUser] = useState(null);
 
-  if (!session) return null;
+  useEffect(() => {
+    apiClient.get('/api/auth/me').then(setUser).catch(() => {});
+  }, []);
+
+  if (!user) return null;
 
   return <ComponentName id="auth" />;
 }
@@ -180,9 +188,9 @@ Tests cover:
 
 ## Related Documentation
 
-- [API Documentation](../API_EXAMPLES.md)
-- [Security Guidelines](../SECURITY.md)
-- [Contributing Guide](../../CONTRIBUTING.md)
+- [API Documentation](../../../docs/API_EXAMPLES.md)
+- [Security Guidelines](../../../SECURITY.md)
+- [Contributing Guide](../../../CONTRIBUTING.md)
 
 ---
 
