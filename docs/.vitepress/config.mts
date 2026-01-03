@@ -9,6 +9,7 @@ export default withMermaid(
     cleanUrls: true,
     ignoreDeadLinks: 'localhostLinks',
     themeConfig: {
+      logo: '/logo.png',
       nav: [
         { text: 'Home', link: '/' },
         { text: 'Guide', link: '/PROGRESS' },
