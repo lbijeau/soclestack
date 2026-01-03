@@ -45,6 +45,11 @@ vi.mock('@/lib/auth', () => ({
   authenticateUser: vi.fn(),
   createUserSession: vi.fn(),
   isRateLimited: vi.fn(),
+  getRateLimitInfo: vi.fn().mockReturnValue({
+    limit: 10,
+    remaining: 0,
+    reset: Math.floor(Date.now() / 1000) + 900,
+  }),
 }));
 
 vi.mock('@/lib/auth/lockout', () => ({

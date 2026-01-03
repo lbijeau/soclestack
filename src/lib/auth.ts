@@ -14,6 +14,7 @@ import {
 } from './security';
 import { User, ApiKeyPermission, Role } from '@prisma/client';
 import { validateApiKey, isMethodAllowed } from './api-keys';
+import { log } from './logger';
 
 // ============================================================================
 // Session Configuration
@@ -441,9 +442,43 @@ export function hasRequiredRole(
   return userLevel >= requiredLevel;
 }
 
-// Rate limiting in-memory store (use Redis in production)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+// ============================================================================
+// Rate Limiting
+// ============================================================================
 
+// In-memory rate limit store (use Redis in production for distributed systems)
+export const rateLimitStore = new Map<
+  string,
+  { count: number; resetTime: number }
+>();
+
+// Cleanup expired entries every 60 seconds to prevent memory leaks
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    let cleanedCount = 0;
+    for (const [key, record] of rateLimitStore) {
+      if (now > record.resetTime) {
+        rateLimitStore.delete(key);
+        cleanedCount++;
+      }
+    }
+    if (cleanedCount > 0) {
+      log.debug('Rate limit cleanup', {
+        cleanedEntries: cleanedCount,
+        remainingEntries: rateLimitStore.size,
+      });
+    }
+  }, 60000);
+}
+
+/**
+ * Check if a key is rate limited.
+ * @param key - Unique identifier for rate limiting (e.g., "login:192.168.1.1")
+ * @param limit - Maximum number of requests allowed in the window
+ * @param windowMs - Time window in milliseconds
+ * @returns true if rate limited, false otherwise
+ */
 export function isRateLimited(
   key: string,
   limit: number,
@@ -458,11 +493,41 @@ export function isRateLimited(
   }
 
   if (record.count >= limit) {
+    // Log rate limit exceeded event
+    const [action, identifier] = key.split(':');
+    log.security.rateLimited(identifier || 'unknown', action || key);
     return true;
   }
 
   record.count++;
   return false;
+}
+
+/**
+ * Get current rate limit information for a key.
+ * Used for setting X-RateLimit-* headers.
+ */
+export function getRateLimitInfo(
+  key: string,
+  limit: number,
+  windowMs: number
+): { limit: number; remaining: number; reset: number } {
+  const now = Date.now();
+  const record = rateLimitStore.get(key);
+
+  if (!record || now > record.resetTime) {
+    return {
+      limit,
+      remaining: limit,
+      reset: Math.floor((now + windowMs) / 1000),
+    };
+  }
+
+  return {
+    limit,
+    remaining: Math.max(0, limit - record.count),
+    reset: Math.floor(record.resetTime / 1000),
+  };
 }
 
 // Extract IP address from request

@@ -86,12 +86,27 @@ export class AccountLockedError extends ServiceError {
 }
 
 /**
+ * Rate limit info for setting headers
+ */
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  reset: number;
+}
+
+/**
  * Rate limit error - too many requests (429)
  */
 export class RateLimitError extends ServiceError {
-  constructor(message = 'Too many attempts. Please try again later.') {
+  public readonly rateLimitInfo?: RateLimitInfo;
+
+  constructor(
+    message = 'Too many attempts. Please try again later.',
+    rateLimitInfo?: RateLimitInfo
+  ) {
     super('RATE_LIMIT_ERROR', message, 429);
     this.name = 'RateLimitError';
+    this.rateLimitInfo = rateLimitInfo;
   }
 }
 

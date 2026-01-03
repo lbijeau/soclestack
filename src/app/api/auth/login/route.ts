@@ -4,22 +4,34 @@ import { login } from '@/services/auth.service';
 import { getRequestContext, handleServiceError } from '@/lib/api-utils';
 import { REMEMBER_ME_COOKIE_NAME } from '@/lib/auth/remember-me';
 import { CSRF_CONFIG } from '@/lib/csrf';
+import { getClientIP, getRateLimitInfo } from '@/lib/auth';
+import { setRateLimitHeaders } from '@/lib/rate-limit-headers';
 
 export const runtime = 'nodejs';
+
+const LOGIN_LIMIT = 10;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 export async function POST(req: NextRequest) {
   try {
     const context = getRequestContext(req);
     const body = await req.json();
 
+    // Get rate limit info for headers
+    const clientIP = getClientIP(req);
+    const rateLimitKey = `login:${clientIP}`;
+    const rateLimitInfo = getRateLimitInfo(rateLimitKey, LOGIN_LIMIT, LOGIN_WINDOW_MS);
+
     const result = await login(body, context);
 
     // Handle 2FA required response
     if ('requiresTwoFactor' in result) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         requiresTwoFactor: result.requiresTwoFactor,
         pendingToken: result.pendingToken,
       });
+      setRateLimitHeaders(response.headers, rateLimitInfo);
+      return response;
     }
 
     // Set cookies
@@ -43,12 +55,14 @@ export async function POST(req: NextRequest) {
       CSRF_CONFIG.cookieOptions
     );
 
-    // Return success response
-    return NextResponse.json({
+    // Return success response with rate limit headers
+    const response = NextResponse.json({
       message: 'Login successful',
       user: result.user,
       tokens: result.tokens,
     });
+    setRateLimitHeaders(response.headers, rateLimitInfo);
+    return response;
   } catch (error) {
     return handleServiceError(error);
   }
