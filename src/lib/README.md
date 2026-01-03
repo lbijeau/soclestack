@@ -49,13 +49,71 @@ Core utility libraries that provide essential functionality across the applicati
 
 ### `validations.ts`
 
-**Purpose**: Input validation schemas and utilities
+**Purpose**: Input validation schemas and utilities using [Zod](https://zod.dev/)
 
-- Zod-based validation schemas
-- User registration and login validation
-- Email format validation
-- Password strength requirements
-- Form data sanitization
+All schemas export TypeScript types via `z.infer<>` for type-safe usage.
+
+#### Authentication Schemas
+
+| Schema | Fields | Description |
+|--------|--------|-------------|
+| `loginSchema` | `email`, `password`, `rememberMe?` | User login validation |
+| `registerSchema` | `email`, `username?`, `password`, `confirmPassword`, `firstName?`, `lastName?`, `organizationName?`, `inviteToken?` | New user registration with organization logic |
+
+**Registration Rules:**
+- Password: min 8 chars, requires uppercase, lowercase, number, and special character (`@$!%*?&`)
+- Username: 3-20 chars, alphanumeric and underscores only
+- Organization: must provide either `organizationName` (create new) OR `inviteToken` (join existing) — not both, not neither
+
+#### Profile Schemas
+
+| Schema | Fields | Description |
+|--------|--------|-------------|
+| `updateProfileSchema` | `username?`, `firstName?`, `lastName?`, `email?` | Profile updates |
+| `changePasswordSchema` | `currentPassword`, `newPassword`, `confirmPassword` | Password change with confirmation |
+
+#### User Management Schemas (Admin)
+
+| Schema | Fields | Description |
+|--------|--------|-------------|
+| `userListParamsSchema` | `page`, `limit`, `search?`, `role?`, `isActive?`, `sortBy`, `sortOrder` | User list query params |
+| `updateUserRoleSchema` | `role` | Change user role (`USER`, `MODERATOR`, `ADMIN`) |
+| `updateUserStatusSchema` | `isActive` | Activate/deactivate user |
+
+#### Password Reset Schemas
+
+| Schema | Fields | Description |
+|--------|--------|-------------|
+| `requestPasswordResetSchema` | `email` | Request password reset email |
+| `resetPasswordSchema` | `token`, `password`, `confirmPassword` | Reset with token validation |
+
+#### API Key Schemas
+
+| Schema | Fields | Description |
+|--------|--------|-------------|
+| `createApiKeySchema` | `name`, `permission?`, `expiresAt?` | Create new API key |
+| `updateApiKeySchema` | `name?`, `permission?`, `expiresAt?` | Update existing key |
+
+**API Key Rules:**
+- Name: 1-50 characters, required
+- Permission: `READ_ONLY` (default) or `READ_WRITE`
+- Expiration: optional, must be future date if provided
+
+#### Exported Types
+
+```typescript
+type LoginInput = z.infer<typeof loginSchema>;
+type RegisterInput = z.infer<typeof registerSchema>;
+type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+type UserListParams = z.infer<typeof userListParamsSchema>;
+type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
+type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;
+type RequestPasswordResetInput = z.infer<typeof requestPasswordResetSchema>;
+type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
+type UpdateApiKeyInput = z.infer<typeof updateApiKeySchema>;
+```
 
 ## Usage
 
@@ -98,12 +156,33 @@ const users = await prisma.user.findMany();
 ### Validation
 
 ```typescript
-import { loginSchema, registerSchema } from '@/lib/validations';
+import { loginSchema, registerSchema, type LoginInput } from '@/lib/validations';
 
-// Validate form data
+// Validate form data with error handling
 const result = loginSchema.safeParse(formData);
 if (result.success) {
+  const data: LoginInput = result.data;
   // Process valid data
+} else {
+  // Handle validation errors
+  const errors = result.error.flatten().fieldErrors;
+  // { email?: string[], password?: string[] }
+}
+
+// In API route handlers
+export async function POST(request: Request) {
+  const body = await request.json();
+  const result = registerSchema.safeParse(body);
+
+  if (!result.success) {
+    return Response.json(
+      { error: 'Validation failed', details: result.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  // result.data is fully typed
+  const { email, password, organizationName } = result.data;
 }
 ```
 
