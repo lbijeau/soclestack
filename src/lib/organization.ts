@@ -89,3 +89,27 @@ export function createInviteExpiry(): Date {
   date.setDate(date.getDate() + INVITE_EXPIRY_DAYS);
   return date;
 }
+
+/**
+ * Check if an admin user can access/manage a target user based on organization membership.
+ *
+ * Rules:
+ * - Platform super-admins (no organizationId) can access any user
+ * - Organization-bound admins can only access users in their organization
+ *
+ * @param adminOrgId - The admin's organizationId (null for platform super-admins)
+ * @param targetOrgId - The target user's organizationId
+ * @returns true if the admin can access the target user
+ */
+export function canAccessUserInOrg(
+  adminOrgId: string | null,
+  targetOrgId: string | null
+): boolean {
+  // Platform super-admins (no org) can access anyone
+  if (adminOrgId === null) {
+    return true;
+  }
+
+  // Organization-bound admins can only access users in their org
+  return adminOrgId === targetOrgId;
+}
