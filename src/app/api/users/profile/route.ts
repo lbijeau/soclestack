@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth';
 import { updateProfileSchema, changePasswordSchema } from '@/lib/validations';
-import { hashPassword, verifyPassword } from '@/lib/security';
+import {
+  hashPassword,
+  verifyPassword,
+  generateResetToken,
+} from '@/lib/security';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import { rotateCsrfToken } from '@/lib/csrf';
+import { sendVerificationEmail } from '@/lib/email';
 
 export const runtime = 'nodejs';
 
@@ -217,8 +222,6 @@ export async function PATCH(req: NextRequest) {
             { status: 409 }
           );
         }
-
-        // TODO: Send email verification
       }
 
       // Check if username is being changed and if it's already taken
@@ -243,11 +246,35 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
-      // If email is being changed, mark as unverified
-      const finalUpdateData =
-        updateData.email && updateData.email !== currentUser.email
-          ? { ...updateData, emailVerified: false, emailVerifiedAt: null }
-          : updateData;
+      // If email is being changed, mark as unverified and generate verification token
+      let finalUpdateData: typeof updateData & {
+        emailVerified?: boolean;
+        emailVerifiedAt?: null;
+        emailVerificationToken?: string;
+        emailVerificationExpires?: Date;
+      } = updateData;
+
+      if (updateData.email && updateData.email !== currentUser.email) {
+        const verificationToken = await generateResetToken();
+        const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        finalUpdateData = {
+          ...updateData,
+          emailVerified: false,
+          emailVerifiedAt: null,
+          emailVerificationToken: verificationToken,
+          emailVerificationExpires: tokenExpiry,
+        };
+
+        // Send verification email to new address (fire-and-forget)
+        sendVerificationEmail(
+          updateData.email,
+          verificationToken,
+          currentUser.firstName || currentUser.username || undefined
+        ).catch((err) =>
+          console.error('Failed to send verification email:', err)
+        );
+      }
 
       const updatedUser = await prisma.user.update({
         where: { id: currentUser.id },
