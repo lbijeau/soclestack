@@ -5,9 +5,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// PostgreSQL for production, SQLite for local development
+// Set DATABASE_URL in .env to switch between them:
+//   SQLite:     file:./dev.db
+//   PostgreSQL: postgresql://user:password@host:5432/dbname
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // For migrations with connection poolers (optional)
 }
 
 model User {
