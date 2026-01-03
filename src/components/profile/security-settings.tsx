@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { TwoFactorSetup } from './two-factor-setup';
+import { apiPost } from '@/lib/api-client';
 
 interface SecuritySettingsProps {
   twoFactorEnabled: boolean;
@@ -41,11 +42,7 @@ export function SecuritySettings({
     setError('');
 
     try {
-      const response = await fetch('/api/auth/2fa/disable', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: disableCode }),
-      });
+      const response = await apiPost('/api/auth/2fa/disable', { code: disableCode });
 
       const data = await response.json();
 

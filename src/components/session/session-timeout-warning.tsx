@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Clock, X, RefreshCw } from 'lucide-react';
+import { apiPost } from '@/lib/api-client';
 
 interface SessionStatus {
   isValid: boolean;
@@ -58,9 +59,7 @@ export function SessionTimeoutWarning() {
   const handleExtend = async () => {
     setIsExtending(true);
     try {
-      const response = await fetch('/api/auth/extend-session', {
-        method: 'POST',
-      });
+      const response = await apiPost('/api/auth/extend-session');
 
       if (response.ok) {
         setIsDismissed(false);

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { parseUserAgent } from '@/lib/utils/user-agent';
+import { apiDelete } from '@/lib/api-client';
 
 interface Session {
   id: string;
@@ -64,11 +65,8 @@ export function SessionsList({
     setError('');
 
     try {
-      const response = await fetch(
-        `/api/users/${userId}/sessions?series=${series}`,
-        {
-          method: 'DELETE',
-        }
+      const response = await apiDelete(
+        `/api/users/${userId}/sessions?series=${series}`
       );
 
       if (!response.ok) {
@@ -90,9 +88,7 @@ export function SessionsList({
     setError('');
 
     try {
-      const response = await fetch(`/api/users/${userId}/sessions?all=true`, {
-        method: 'DELETE',
-      });
+      const response = await apiDelete(`/api/users/${userId}/sessions?all=true`);
 
       if (!response.ok) {
         const data = await response.json();

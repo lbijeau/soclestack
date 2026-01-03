@@ -13,6 +13,7 @@ import {
 import { Alert } from '@/components/ui/alert';
 import { Loader2, Link as LinkIcon, Unlink, AlertCircle } from 'lucide-react';
 import type { OAuthProvider } from '@/lib/auth/oauth/providers';
+import { apiDelete } from '@/lib/api-client';
 
 interface OAuthAccount {
   id: string;
@@ -107,9 +108,7 @@ export function OAuthAccounts() {
     setSuccess('');
 
     try {
-      const res = await fetch(`/api/auth/oauth/accounts?provider=${provider}`, {
-        method: 'DELETE',
-      });
+      const res = await apiDelete(`/api/auth/oauth/accounts?provider=${provider}`);
 
       if (!res.ok) {
         const data = await res.json();

@@ -23,6 +23,7 @@ import { SECURITY_CONFIG } from '@/lib/config/security';
 import { prisma } from '@/lib/db';
 import { sendNewDeviceAlert, isKnownDevice } from '@/lib/email';
 import { parseUserAgent } from '@/lib/utils/user-agent';
+import { generateCsrfToken, CSRF_CONFIG } from '@/lib/csrf';
 
 export const runtime = 'nodejs';
 
@@ -240,6 +241,10 @@ export async function POST(req: NextRequest) {
         path: '/',
       });
     }
+
+    // Set CSRF token cookie
+    const csrfToken = generateCsrfToken();
+    cookieStore.set(CSRF_CONFIG.cookieName, csrfToken, CSRF_CONFIG.cookieOptions);
 
     // Return success response
     return NextResponse.json({

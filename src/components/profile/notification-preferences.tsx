@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { Loader2, Bell, Monitor, Lock, Shield } from 'lucide-react';
+import { apiPatch } from '@/lib/api-client';
 
 interface Preferences {
   notifyNewDevice: boolean;
@@ -92,11 +93,7 @@ export function NotificationPreferences() {
     const newValue = !preferences[key];
 
     try {
-      const response = await fetch('/api/users/notifications', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [key]: newValue }),
-      });
+      const response = await apiPatch('/api/users/notifications', { [key]: newValue });
 
       if (!response.ok) {
         const data = await response.json();

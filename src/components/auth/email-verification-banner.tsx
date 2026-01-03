@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Mail, X } from 'lucide-react';
+import { apiPost } from '@/lib/api-client';
 
 interface EmailVerificationBannerProps {
   email: string;
@@ -23,9 +24,7 @@ export function EmailVerificationBanner({
     setMessage(null);
 
     try {
-      const response = await fetch('/api/auth/resend-verification', {
-        method: 'POST',
-      });
+      const response = await apiPost('/api/auth/resend-verification');
 
       const data = await response.json();
 

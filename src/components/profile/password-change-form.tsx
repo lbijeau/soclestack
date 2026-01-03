@@ -7,6 +7,7 @@ import { Alert } from '@/components/ui/alert';
 import { PasswordStrengthMeter } from '@/components/ui/password-strength-meter';
 import { ChangePasswordInput } from '@/lib/validations';
 import { AuthError } from '@/types/auth';
+import { apiPatch } from '@/lib/api-client';
 
 export function PasswordChangeForm() {
   const [formData, setFormData] = useState<ChangePasswordInput>({
@@ -27,13 +28,7 @@ export function PasswordChangeForm() {
     setErrors({});
 
     try {
-      const response = await fetch('/api/users/profile', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await apiPatch('/api/users/profile', formData);
 
       const data = await response.json();
 

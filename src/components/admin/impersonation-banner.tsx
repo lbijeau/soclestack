@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { UserX, Clock } from 'lucide-react';
+import { apiPost } from '@/lib/api-client';
 
 interface ImpersonationBannerProps {
   originalEmail: string;
@@ -22,9 +23,7 @@ export function ImpersonationBanner({
   const handleExit = async () => {
     setIsExiting(true);
     try {
-      const response = await fetch('/api/admin/exit-impersonation', {
-        method: 'POST',
-      });
+      const response = await apiPost('/api/admin/exit-impersonation');
 
       if (response.ok) {
         router.push('/admin');

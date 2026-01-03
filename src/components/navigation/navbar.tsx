@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
 import { QuickActionsMenu } from './quick-actions-menu';
 import { User, Settings, LogOut, Users } from 'lucide-react';
+import { apiPost } from '@/lib/api-client';
 
 function Logo() {
   return (
@@ -65,7 +66,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await apiPost('/api/auth/logout');
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       router.push('/login');

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { createUserSession, getClientIP, isRateLimited } from '@/lib/auth';
@@ -6,6 +7,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { verifyPendingOAuthToken } from '@/lib/auth/oauth';
 import { z } from 'zod';
 import { SECURITY_CONFIG } from '@/lib/config/security';
+import { generateCsrfToken, CSRF_CONFIG } from '@/lib/csrf';
 
 const linkOAuthSchema = z.object({
   token: z.string().min(1, 'Token is required'),
@@ -194,6 +196,11 @@ export async function POST(req: NextRequest) {
       userAgent,
       metadata: { provider: oauthData.provider },
     });
+
+    // Set CSRF token cookie
+    const csrfToken = generateCsrfToken();
+    const cookieStore = await cookies();
+    cookieStore.set(CSRF_CONFIG.cookieName, csrfToken, CSRF_CONFIG.cookieOptions);
 
     return NextResponse.json({
       success: true,

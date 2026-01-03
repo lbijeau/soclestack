@@ -12,6 +12,7 @@ import {
   createPendingOAuthToken,
   type OAuthProvider,
 } from '@/lib/auth/oauth';
+import { generateCsrfToken, CSRF_CONFIG } from '@/lib/csrf';
 
 export async function GET(
   request: NextRequest,
@@ -275,6 +276,11 @@ async function handleExistingOAuthLogin(
     userAgent,
     metadata: { provider },
   });
+
+  // Set CSRF token cookie
+  const csrfToken = generateCsrfToken();
+  const cookieStore = await cookies();
+  cookieStore.set(CSRF_CONFIG.cookieName, csrfToken, CSRF_CONFIG.cookieOptions);
 
   return NextResponse.redirect(`${appUrl}${returnTo}`);
 }

@@ -17,6 +17,7 @@ import {
   X,
   CheckSquare,
 } from 'lucide-react';
+import { apiPatch, apiDelete, apiPost } from '@/lib/api-client';
 
 interface User {
   id: string;
@@ -126,13 +127,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     }
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
+      const response = await apiPatch(`/api/users/${userId}`, { role: newRole });
 
       if (!response.ok) {
         const data = await response.json();
@@ -153,13 +148,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     }
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isActive }),
-      });
+      const response = await apiPatch(`/api/users/${userId}`, { isActive });
 
       if (!response.ok) {
         const data = await response.json();
@@ -188,9 +177,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     }
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      });
+      const response = await apiDelete(`/api/users/${userId}`);
 
       if (!response.ok) {
         const data = await response.json();
@@ -251,13 +238,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     setSuccess('');
 
     try {
-      const response = await fetch('/api/admin/users/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userIds: Array.from(selectedUsers),
-          action,
-        }),
+      const response = await apiPost('/api/admin/users/bulk', {
+        userIds: Array.from(selectedUsers),
+        action,
       });
 
       const data = await response.json();

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
+import { apiPost } from '@/lib/api-client';
 
 interface TwoFactorSetupProps {
   onComplete: () => void;
@@ -31,9 +32,7 @@ export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/2fa/setup', {
-        method: 'POST',
-      });
+      const response = await apiPost('/api/auth/2fa/setup');
 
       const data = await response.json();
 
@@ -56,11 +55,7 @@ export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/2fa/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: verifyCode }),
-      });
+      const response = await apiPost('/api/auth/2fa/verify', { code: verifyCode });
 
       const data = await response.json();
 

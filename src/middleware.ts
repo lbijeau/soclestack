@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth-edge';
 import { securityHeaders, buildCSP } from '@/lib/security-headers';
+import {
+  requiresCsrfValidation,
+  isRouteExcludedFromCsrf,
+  hasValidApiKeyHeader,
+  validateCsrfRequest,
+  createCsrfErrorResponse,
+} from '@/lib/csrf';
 
 // Define protected routes and their required roles
 const protectedRoutes = {
@@ -60,6 +67,25 @@ export async function middleware(request: NextRequest) {
   // Add Content Security Policy with per-request nonce
   const isDev = process.env.NODE_ENV === 'development';
   response.headers.set('Content-Security-Policy', buildCSP(nonce, isDev));
+
+  // CSRF validation for state-changing requests
+  if (
+    pathname.startsWith('/api/') &&
+    requiresCsrfValidation(request.method) &&
+    !isRouteExcludedFromCsrf(pathname) &&
+    !hasValidApiKeyHeader(request)
+  ) {
+    const csrfResult = validateCsrfRequest(request);
+    if (!csrfResult.valid) {
+      console.warn(
+        `CSRF validation failed: ${csrfResult.error}`,
+        `path=${pathname}`,
+        `ip=${request.headers.get('x-forwarded-for') || 'unknown'}`,
+        `ua=${request.headers.get('user-agent') || 'unknown'}`
+      );
+      return createCsrfErrorResponse(csrfResult.error);
+    }
+  }
 
   // Skip middleware for static files and API routes that don't need protection
   if (
