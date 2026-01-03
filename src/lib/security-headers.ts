@@ -73,6 +73,3 @@ export function buildCSP(nonce: string, isDev: boolean = false): string {
   ].join('; ');
 }
 
-// Legacy static export for backward compatibility during migration
-// TODO: Remove once all consumers use buildCSP()
-export const contentSecurityPolicy = buildCSP('', false);

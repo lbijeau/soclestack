@@ -123,7 +123,7 @@ describe('JWT Token Generation and Verification', () => {
   describe('verifyAccessToken', () => {
     it('should verify a valid access token', async () => {
       const token = await generateAccessToken(testPayload);
-      const payload = verifyAccessToken(token);
+      const payload = await verifyAccessToken(token);
 
       expect(payload.sub).toBe(testPayload.userId);
       expect(payload.email).toBe(testPayload.email);
@@ -132,7 +132,7 @@ describe('JWT Token Generation and Verification', () => {
 
     it('should include jti (JWT ID) in payload', async () => {
       const token = await generateAccessToken(testPayload);
-      const payload = verifyAccessToken(token);
+      const payload = await verifyAccessToken(token);
 
       expect(payload.jti).toBeDefined();
       expect(typeof payload.jti).toBe('string');
@@ -140,7 +140,7 @@ describe('JWT Token Generation and Verification', () => {
 
     it('should include iat (issued at) in payload', async () => {
       const token = await generateAccessToken(testPayload);
-      const payload = verifyAccessToken(token);
+      const payload = await verifyAccessToken(token);
 
       expect(payload.iat).toBeDefined();
       expect(typeof payload.iat).toBe('number');
@@ -148,7 +148,7 @@ describe('JWT Token Generation and Verification', () => {
 
     it('should include exp (expiration) in payload', async () => {
       const token = await generateAccessToken(testPayload);
-      const payload = verifyAccessToken(token);
+      const payload = await verifyAccessToken(token);
 
       expect(payload.exp).toBeDefined();
       expect(typeof payload.exp).toBe('number');
@@ -159,8 +159,8 @@ describe('JWT Token Generation and Verification', () => {
     // Note: Testing expired token rejection requires time mocking or waiting.
     // Expired token behavior is covered by integration/e2e tests.
 
-    it('should throw for invalid token', () => {
-      expect(() => verifyAccessToken('invalid-token')).toThrow(
+    it('should throw for invalid token', async () => {
+      await expect(verifyAccessToken('invalid-token')).rejects.toThrow(
         'Invalid access token'
       );
     });
@@ -169,7 +169,7 @@ describe('JWT Token Generation and Verification', () => {
       const token = await generateAccessToken(testPayload);
       const tamperedToken = token.slice(0, -5) + 'XXXXX';
 
-      expect(() => verifyAccessToken(tamperedToken)).toThrow(
+      await expect(verifyAccessToken(tamperedToken)).rejects.toThrow(
         'Invalid access token'
       );
     });
@@ -188,14 +188,14 @@ describe('JWT Token Generation and Verification', () => {
   describe('verifyRefreshToken', () => {
     it('should verify a valid refresh token', async () => {
       const token = await generateRefreshToken({ userId: 'user-123' });
-      const payload = verifyRefreshToken(token);
+      const payload = await verifyRefreshToken(token);
 
       expect(payload.sub).toBe('user-123');
       expect(payload.jti).toBeDefined();
     });
 
-    it('should throw for invalid refresh token', () => {
-      expect(() => verifyRefreshToken('invalid-token')).toThrow(
+    it('should throw for invalid refresh token', async () => {
+      await expect(verifyRefreshToken('invalid-token')).rejects.toThrow(
         'Invalid refresh token'
       );
     });
@@ -203,7 +203,7 @@ describe('JWT Token Generation and Verification', () => {
     it('should not accept access token as refresh token', async () => {
       const accessToken = await generateAccessToken(testPayload);
 
-      expect(() => verifyRefreshToken(accessToken)).toThrow(
+      await expect(verifyRefreshToken(accessToken)).rejects.toThrow(
         'Invalid refresh token'
       );
     });
