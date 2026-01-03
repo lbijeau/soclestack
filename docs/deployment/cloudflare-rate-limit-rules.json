@@ -1,0 +1,81 @@
+{
+  "description": "SocleStack Authentication Rate Limiting Rules for Cloudflare WAF",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "login-rate-limit",
+      "description": "Protect login endpoint from brute force attacks",
+      "expression": "(http.request.uri.path eq \"/api/auth/login\" and http.request.method eq \"POST\")",
+      "action": "managed_challenge",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "requests_per_period": 10,
+        "period": 60,
+        "mitigation_timeout": 60
+      }
+    },
+    {
+      "id": "registration-rate-limit",
+      "description": "Prevent mass account creation",
+      "expression": "(http.request.uri.path eq \"/api/auth/register\" and http.request.method eq \"POST\")",
+      "action": "block",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "requests_per_period": 3,
+        "period": 3600,
+        "mitigation_timeout": 3600
+      }
+    },
+    {
+      "id": "password-reset-rate-limit",
+      "description": "Prevent password reset abuse and email enumeration",
+      "expression": "(http.request.uri.path eq \"/api/auth/forgot-password\" and http.request.method eq \"POST\")",
+      "action": "block",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "requests_per_period": 5,
+        "period": 3600,
+        "mitigation_timeout": 3600
+      }
+    },
+    {
+      "id": "verification-resend-rate-limit",
+      "description": "Prevent verification email spam",
+      "expression": "(http.request.uri.path eq \"/api/auth/resend-verification\" and http.request.method eq \"POST\")",
+      "action": "block",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "requests_per_period": 3,
+        "period": 3600,
+        "mitigation_timeout": 3600
+      }
+    },
+    {
+      "id": "account-unlock-rate-limit",
+      "description": "Prevent account unlock request abuse",
+      "expression": "(http.request.uri.path eq \"/api/auth/request-unlock\" and http.request.method eq \"POST\")",
+      "action": "block",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "requests_per_period": 3,
+        "period": 3600,
+        "mitigation_timeout": 3600
+      }
+    }
+  ],
+  "waf_settings": {
+    "security_level": "medium",
+    "challenge_passage": 1800,
+    "browser_integrity_check": true,
+    "managed_rulesets": [
+      "cloudflare_managed_ruleset",
+      "cloudflare_owasp_core_ruleset"
+    ],
+    "bot_fight_mode": true
+  },
+  "notes": {
+    "import_instructions": "These rules can be configured manually in Cloudflare Dashboard under Security > WAF > Rate limiting rules. For API-based configuration, use the Cloudflare API with the rulesets endpoint.",
+    "customization": "Adjust requests_per_period and period values based on your traffic patterns and security requirements.",
+    "monitoring": "After deployment, monitor Security > Events in Cloudflare Dashboard for false positives and adjust rules accordingly."
+  }
+}
