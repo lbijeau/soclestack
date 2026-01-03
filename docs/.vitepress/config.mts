@@ -7,7 +7,18 @@ export default withMermaid(
     description: "Enterprise-grade Next.js User Management System",
     base: '/soclestack/',
     cleanUrls: true,
-    ignoreDeadLinks: 'localhostLinks',
+    ignoreDeadLinks: [
+      // Localhost links (e.g., http://localhost:3000)
+      /localhost/,
+      // Root-level files that exist in repo but outside docs folder
+      /\.\.\/README/,
+      /\.\.\/CONTRIBUTING/,
+      /\.\.\/SECURITY/,
+      /\.\.\/CLAUDE/,
+      /\.\.\/\.\.\/\.\.\/docs\/API_EXAMPLES/,
+      /\.\.\/\.\.\/\.\.\/SECURITY/,
+      /\.\.\/\.\.\/\.\.\/CONTRIBUTING/,
+    ],
     themeConfig: {
       logo: {
         src: '/logo-navbar.svg',
