@@ -781,8 +781,6 @@ export async function disable2FA(
     throw new ImpersonationBlockedError();
   }
 
-  const { clientIP, userAgent } = context;
-
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -828,8 +826,8 @@ export async function disable2FA(
     action: 'AUTH_2FA_DISABLED',
     category: 'security',
     userId,
-    ipAddress: clientIP,
-    userAgent,
+    ipAddress: context.clientIP,
+    userAgent: context.userAgent,
   });
 
   // Send notification (fire-and-forget)

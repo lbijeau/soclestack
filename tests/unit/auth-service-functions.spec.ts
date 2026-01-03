@@ -107,6 +107,7 @@ import { generateBackupCodes, deleteAllBackupCodes } from '@/lib/auth/backup-cod
 import {
   login,
   setup2FA,
+  verify2FASetup,
   disable2FA,
   requestPasswordReset,
   resetPassword,
@@ -237,6 +238,73 @@ describe('Auth Service Functions', () => {
       expect(result.qrCodeDataUrl).toBe('data:image/png;base64,...');
       expect(result.manualEntryKey).toBe('ABCD1234');
       expect(result.backupCodes).toEqual(['code1', 'code2']);
+    });
+  });
+
+  describe('verify2FASetup', () => {
+    it('should throw ImpersonationBlockedError when impersonating', async () => {
+      const impersonatingContext = { ...mockContext, isImpersonating: true };
+
+      await expect(verify2FASetup('user-id', '123456', impersonatingContext)).rejects.toThrow(
+        'This action is not allowed while impersonating a user'
+      );
+    });
+
+    it('should throw ValidationError when 2FA setup not started', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      await expect(verify2FASetup('user-id', '123456', mockContext)).rejects.toThrow(
+        ValidationError
+      );
+    });
+
+    it('should throw ConflictError when 2FA already enabled', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: '1',
+        email: 'test@example.com',
+        twoFactorSecret: 'secret',
+        twoFactorEnabled: true,
+      } as any);
+
+      await expect(verify2FASetup('user-id', '123456', mockContext)).rejects.toThrow(
+        ConflictError
+      );
+    });
+
+    it('should throw AuthenticationError for invalid code', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: '1',
+        email: 'test@example.com',
+        twoFactorSecret: 'secret',
+        twoFactorEnabled: false,
+      } as any);
+      vi.mocked(verifyTOTPCode).mockReturnValue(false);
+
+      await expect(verify2FASetup('user-id', '123456', mockContext)).rejects.toThrow(
+        AuthenticationError
+      );
+    });
+
+    it('should enable 2FA on valid code', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: '1',
+        email: 'test@example.com',
+        twoFactorSecret: 'secret',
+        twoFactorEnabled: false,
+      } as any);
+      vi.mocked(verifyTOTPCode).mockReturnValue(true);
+      vi.mocked(prisma.user.update).mockResolvedValue({} as any);
+
+      await expect(verify2FASetup('user-id', '123456', mockContext)).resolves.toBeUndefined();
+
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            twoFactorEnabled: true,
+            twoFactorVerified: true,
+          }),
+        })
+      );
     });
   });
 
