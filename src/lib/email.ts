@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { DeviceInfo } from '@/lib/utils/user-agent';
 import { prisma } from '@/lib/db';
+import { env } from '@/lib/env';
 import {
   newDeviceAlertTemplate,
   accountLockedTemplate,
@@ -13,10 +14,8 @@ import {
 
 export { organizationInviteTemplate } from '@/lib/email/templates';
 
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
-const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@soclestack.com';
+const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+const EMAIL_FROM = env.EMAIL_FROM || 'noreply@soclestack.com';
 
 interface EmailOptions {
   to: string;
@@ -26,7 +25,7 @@ interface EmailOptions {
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   // In development, just log to console
-  if (process.env.NODE_ENV !== 'production') {
+  if (env.NODE_ENV !== 'production') {
     console.log('=== EMAIL (DEV MODE) ===');
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
@@ -113,7 +112,7 @@ export async function sendVerificationEmail(
   token: string,
   name?: string
 ): Promise<boolean> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = env.NEXT_PUBLIC_APP_URL;
   const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
   const { subject, html } = emailVerificationTemplate({
     verificationUrl,
@@ -128,7 +127,7 @@ export async function sendUnlockEmail(
   lockedUntil: Date,
   name?: string
 ): Promise<boolean> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = env.NEXT_PUBLIC_APP_URL;
   const unlockUrl = `${baseUrl}/unlock-account?token=${token}`;
   const { subject, html } = accountUnlockTemplate({
     unlockUrl,

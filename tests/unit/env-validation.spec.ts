@@ -1,120 +1,265 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+
+/**
+ * Environment validation tests.
+ *
+ * These tests verify the Zod-based environment variable validation
+ * implemented in src/lib/env.ts.
+ *
+ * We import the schemas directly from env.ts to ensure tests stay in sync
+ * with the actual validation logic.
+ */
+
 import {
-  validateRequiredEnvVars,
-  REQUIRED_ENV_VARS,
-} from '@/lib/config/security';
-import { getJwtSecret } from '@/lib/auth/oauth/secrets';
+  _serverEnvSchema as serverEnvSchema,
+  _clientEnvSchema as clientEnvSchema,
+} from '@/lib/env';
 
-describe('validateRequiredEnvVars', () => {
-  const originalEnv = process.env;
+describe('Environment Validation Schema', () => {
+  describe('Required variables', () => {
+    const validEnv = {
+      JWT_SECRET: 'a'.repeat(32),
+      JWT_REFRESH_SECRET: 'b'.repeat(32),
+      SESSION_SECRET: 'c'.repeat(32),
+      DATABASE_URL: 'postgresql://localhost:5432/test',
+      NODE_ENV: 'development',
+    };
 
-  beforeEach(() => {
-    vi.resetModules();
-    process.env = { ...originalEnv };
+    it('should accept valid configuration with all required vars', () => {
+      const result = serverEnvSchema.safeParse(validEnv);
+      expect(result.success).toBe(true);
+    });
+
+    it('should fail when JWT_SECRET is missing', () => {
+      const { JWT_SECRET, ...envWithoutJwtSecret } = validEnv;
+      const result = serverEnvSchema.safeParse(envWithoutJwtSecret);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((i) => i.path.includes('JWT_SECRET'))).toBe(
+          true
+        );
+      }
+    });
+
+    it('should fail when JWT_SECRET is too short', () => {
+      const result = serverEnvSchema.safeParse({
+        ...validEnv,
+        JWT_SECRET: 'short',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(
+          result.error.issues.some(
+            (i) =>
+              i.path.includes('JWT_SECRET') &&
+              i.message.includes('at least 32 characters')
+          )
+        ).toBe(true);
+      }
+    });
+
+    it('should fail when JWT_REFRESH_SECRET is missing', () => {
+      const { JWT_REFRESH_SECRET, ...envWithout } = validEnv;
+      const result = serverEnvSchema.safeParse(envWithout);
+      expect(result.success).toBe(false);
+    });
+
+    it('should fail when SESSION_SECRET is missing', () => {
+      const { SESSION_SECRET, ...envWithout } = validEnv;
+      const result = serverEnvSchema.safeParse(envWithout);
+      expect(result.success).toBe(false);
+    });
+
+    it('should fail when DATABASE_URL is missing', () => {
+      const { DATABASE_URL, ...envWithout } = validEnv;
+      const result = serverEnvSchema.safeParse(envWithout);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(
+          result.error.issues.some((i) => i.path.includes('DATABASE_URL'))
+        ).toBe(true);
+      }
+    });
   });
 
-  afterEach(() => {
-    process.env = originalEnv;
+  describe('Optional variables', () => {
+    const validEnv = {
+      JWT_SECRET: 'a'.repeat(32),
+      JWT_REFRESH_SECRET: 'b'.repeat(32),
+      SESSION_SECRET: 'c'.repeat(32),
+      DATABASE_URL: 'postgresql://localhost:5432/test',
+    };
+
+    it('should allow missing RESEND_API_KEY', () => {
+      const result = serverEnvSchema.safeParse(validEnv);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.RESEND_API_KEY).toBeUndefined();
+      }
+    });
+
+    it('should allow missing OAuth credentials', () => {
+      const result = serverEnvSchema.safeParse(validEnv);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.GOOGLE_CLIENT_ID).toBeUndefined();
+        expect(result.data.GITHUB_CLIENT_ID).toBeUndefined();
+      }
+    });
+
+    it('should accept valid OAuth credentials when provided', () => {
+      const result = serverEnvSchema.safeParse({
+        ...validEnv,
+        GOOGLE_CLIENT_ID: 'google-id',
+        GOOGLE_CLIENT_SECRET: 'google-secret',
+        GITHUB_CLIENT_ID: 'github-id',
+        GITHUB_CLIENT_SECRET: 'github-secret',
+      });
+      expect(result.success).toBe(true);
+    });
   });
 
-  it('should pass when all required env vars are set', () => {
-    process.env.JWT_SECRET = 'test-jwt-secret';
-    process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-    process.env.SESSION_SECRET = 'test-session-secret';
+  describe('OAuth pair validation', () => {
+    const validEnv = {
+      JWT_SECRET: 'a'.repeat(32),
+      JWT_REFRESH_SECRET: 'b'.repeat(32),
+      SESSION_SECRET: 'c'.repeat(32),
+      DATABASE_URL: 'postgresql://localhost:5432/test',
+    };
 
-    expect(() => validateRequiredEnvVars()).not.toThrow();
+    it('should fail when GOOGLE_CLIENT_ID is set without GOOGLE_CLIENT_SECRET', () => {
+      const result = serverEnvSchema.safeParse({
+        ...validEnv,
+        GOOGLE_CLIENT_ID: 'google-id',
+        // Missing GOOGLE_CLIENT_SECRET
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(
+          result.error.issues.some(
+            (i) =>
+              i.path.includes('GOOGLE_CLIENT_SECRET') &&
+              i.message.includes('required when GOOGLE_CLIENT_ID is set')
+          )
+        ).toBe(true);
+      }
+    });
+
+    it('should fail when GITHUB_CLIENT_ID is set without GITHUB_CLIENT_SECRET', () => {
+      const result = serverEnvSchema.safeParse({
+        ...validEnv,
+        GITHUB_CLIENT_ID: 'github-id',
+        // Missing GITHUB_CLIENT_SECRET
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(
+          result.error.issues.some(
+            (i) =>
+              i.path.includes('GITHUB_CLIENT_SECRET') &&
+              i.message.includes('required when GITHUB_CLIENT_ID is set')
+          )
+        ).toBe(true);
+      }
+    });
+
+    it('should allow CLIENT_SECRET without CLIENT_ID', () => {
+      // This is fine - extra secrets don't cause issues
+      const result = serverEnvSchema.safeParse({
+        ...validEnv,
+        GOOGLE_CLIENT_SECRET: 'secret-without-id',
+      });
+      expect(result.success).toBe(true);
+    });
   });
 
-  it('should throw when JWT_SECRET is missing', () => {
-    process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-    process.env.SESSION_SECRET = 'test-session-secret';
-    delete process.env.JWT_SECRET;
+  describe('NODE_ENV validation', () => {
+    const validEnv = {
+      JWT_SECRET: 'a'.repeat(32),
+      JWT_REFRESH_SECRET: 'b'.repeat(32),
+      SESSION_SECRET: 'c'.repeat(32),
+      DATABASE_URL: 'postgresql://localhost:5432/test',
+    };
 
-    expect(() => validateRequiredEnvVars()).toThrow('JWT_SECRET');
-    expect(() => validateRequiredEnvVars()).toThrow(
-      'Missing required environment variables'
-    );
+    it('should default NODE_ENV to development', () => {
+      const result = serverEnvSchema.safeParse(validEnv);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.NODE_ENV).toBe('development');
+      }
+    });
+
+    it('should accept production NODE_ENV', () => {
+      const result = serverEnvSchema.safeParse({
+        ...validEnv,
+        NODE_ENV: 'production',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.NODE_ENV).toBe('production');
+      }
+    });
+
+    it('should accept test NODE_ENV', () => {
+      const result = serverEnvSchema.safeParse({
+        ...validEnv,
+        NODE_ENV: 'test',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.NODE_ENV).toBe('test');
+      }
+    });
+
+    it('should reject invalid NODE_ENV', () => {
+      const result = serverEnvSchema.safeParse({
+        ...validEnv,
+        NODE_ENV: 'staging',
+      });
+      expect(result.success).toBe(false);
+    });
   });
 
-  it('should throw when JWT_REFRESH_SECRET is missing', () => {
-    process.env.JWT_SECRET = 'test-jwt-secret';
-    process.env.SESSION_SECRET = 'test-session-secret';
-    delete process.env.JWT_REFRESH_SECRET;
+  describe('Client environment schema', () => {
+    it('should default NEXT_PUBLIC_APP_URL to localhost', () => {
+      const result = clientEnvSchema.safeParse({});
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.NEXT_PUBLIC_APP_URL).toBe('http://localhost:3000');
+      }
+    });
 
-    expect(() => validateRequiredEnvVars()).toThrow('JWT_REFRESH_SECRET');
+    it('should accept valid URL', () => {
+      const result = clientEnvSchema.safeParse({
+        NEXT_PUBLIC_APP_URL: 'https://myapp.com',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.NEXT_PUBLIC_APP_URL).toBe('https://myapp.com');
+      }
+    });
+
+    it('should reject invalid URL', () => {
+      const result = clientEnvSchema.safeParse({
+        NEXT_PUBLIC_APP_URL: 'not-a-url',
+      });
+      expect(result.success).toBe(false);
+    });
   });
 
-  it('should throw when SESSION_SECRET is missing', () => {
-    process.env.JWT_SECRET = 'test-jwt-secret';
-    process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-    delete process.env.SESSION_SECRET;
-
-    expect(() => validateRequiredEnvVars()).toThrow('SESSION_SECRET');
-  });
-
-  it('should list all missing vars in error message', () => {
-    delete process.env.JWT_SECRET;
-    delete process.env.JWT_REFRESH_SECRET;
-    delete process.env.SESSION_SECRET;
-
-    expect(() => validateRequiredEnvVars()).toThrow(
-      'JWT_SECRET, JWT_REFRESH_SECRET, SESSION_SECRET'
-    );
-  });
-
-  it('should reference .env.example in error message', () => {
-    delete process.env.JWT_SECRET;
-
-    expect(() => validateRequiredEnvVars()).toThrow('.env.example');
-  });
-
-  it('should export the correct required env vars', () => {
-    expect(REQUIRED_ENV_VARS).toContain('JWT_SECRET');
-    expect(REQUIRED_ENV_VARS).toContain('JWT_REFRESH_SECRET');
-    expect(REQUIRED_ENV_VARS).toContain('SESSION_SECRET');
-    expect(REQUIRED_ENV_VARS).toHaveLength(3);
-  });
-});
-
-describe('getJwtSecret', () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    vi.resetModules();
-    process.env = { ...originalEnv };
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-  });
-
-  it('should return Uint8Array when JWT_SECRET is set', () => {
-    process.env.JWT_SECRET = 'test-secret';
-
-    const result = getJwtSecret();
-
-    expect(result).toBeInstanceOf(Uint8Array);
-  });
-
-  it('should encode the secret correctly', () => {
-    process.env.JWT_SECRET = 'test-secret';
-
-    const result = getJwtSecret();
-    const decoded = new TextDecoder().decode(result);
-
-    expect(decoded).toBe('test-secret');
-  });
-
-  it('should throw when JWT_SECRET is missing', () => {
-    delete process.env.JWT_SECRET;
-
-    expect(() => getJwtSecret()).toThrow('JWT_SECRET');
-    expect(() => getJwtSecret()).toThrow('environment variable is required');
-  });
-
-  it('should reference .env.example in error message', () => {
-    delete process.env.JWT_SECRET;
-
-    expect(() => getJwtSecret()).toThrow('.env.example');
+  describe('Error message format', () => {
+    it('should include helpful error messages', () => {
+      const result = serverEnvSchema.safeParse({
+        JWT_SECRET: 'short',
+        DATABASE_URL: '',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const messages = result.error.issues.map((i) => i.message);
+        expect(
+          messages.some((m) => m.includes('at least 32 characters'))
+        ).toBe(true);
+      }
+    });
   });
 });

@@ -10,6 +10,10 @@ import {
   createCsrfErrorResponse,
 } from '@/lib/csrf';
 
+// Note: Middleware runs in Edge Runtime. We use process.env.NODE_ENV directly
+// here instead of the env module to avoid Edge Runtime compatibility issues.
+// NODE_ENV is always available and doesn't require Zod validation.
+
 // Define protected routes and their required roles
 const protectedRoutes = {
   '/dashboard': 'USER',
@@ -77,7 +81,8 @@ export async function middleware(request: NextRequest) {
   ) {
     const csrfResult = validateCsrfRequest(request);
     if (!csrfResult.valid) {
-      const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
+      const requestId =
+        request.headers.get('x-request-id') || crypto.randomUUID();
       console.warn(
         `CSRF validation failed: ${csrfResult.error}`,
         `requestId=${requestId}`,

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { JWTPayload, RefreshTokenPayload } from '@/types/auth';
 import { Role } from '@prisma/client';
+import { env } from './env';
 
 // Dynamic crypto import for Edge Runtime compatibility
 async function getCrypto() {
@@ -50,18 +51,13 @@ export async function verifyPassword(
 }
 
 // JWT token utilities
+// Note: JWT_SECRET and JWT_REFRESH_SECRET are validated by env module.
+// In production they are required; in development permissive parsing is used.
 export async function generateAccessToken(payload: {
   userId: string;
   email: string;
   role: Role;
 }): Promise<string> {
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    throw new Error(
-      'JWT_SECRET environment variable is required. See .env.example for configuration.'
-    );
-  }
-
   const crypto = await getCrypto();
 
   const jwtPayload: Omit<JWTPayload, 'iat' | 'exp'> = {
@@ -71,7 +67,7 @@ export async function generateAccessToken(payload: {
     jti: crypto.randomUUID(),
   };
 
-  return jwt.sign(jwtPayload, jwtSecret, {
+  return jwt.sign(jwtPayload, env.JWT_SECRET as string, {
     expiresIn: '15m',
     issuer: 'soclestack',
     audience: 'soclestack-users',
@@ -81,13 +77,6 @@ export async function generateAccessToken(payload: {
 export async function generateRefreshToken(payload: {
   userId: string;
 }): Promise<string> {
-  const refreshSecret = process.env.JWT_REFRESH_SECRET;
-  if (!refreshSecret) {
-    throw new Error(
-      'JWT_REFRESH_SECRET environment variable is required. See .env.example for configuration.'
-    );
-  }
-
   const crypto = await getCrypto();
 
   const refreshPayload: Omit<RefreshTokenPayload, 'iat' | 'exp'> = {
@@ -95,7 +84,7 @@ export async function generateRefreshToken(payload: {
     jti: crypto.randomUUID(),
   };
 
-  return jwt.sign(refreshPayload, refreshSecret, {
+  return jwt.sign(refreshPayload, env.JWT_REFRESH_SECRET as string, {
     expiresIn: '7d',
     issuer: 'soclestack',
     audience: 'soclestack-refresh',
@@ -103,15 +92,8 @@ export async function generateRefreshToken(payload: {
 }
 
 export function verifyAccessToken(token: string): JWTPayload {
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    throw new Error(
-      'JWT_SECRET environment variable is required. See .env.example for configuration.'
-    );
-  }
-
   try {
-    return jwt.verify(token, jwtSecret, {
+    return jwt.verify(token, env.JWT_SECRET as string, {
       issuer: 'soclestack',
       audience: 'soclestack-users',
     }) as JWTPayload;
@@ -121,15 +103,8 @@ export function verifyAccessToken(token: string): JWTPayload {
 }
 
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
-  const refreshSecret = process.env.JWT_REFRESH_SECRET;
-  if (!refreshSecret) {
-    throw new Error(
-      'JWT_REFRESH_SECRET environment variable is required. See .env.example for configuration.'
-    );
-  }
-
   try {
-    return jwt.verify(token, refreshSecret, {
+    return jwt.verify(token, env.JWT_REFRESH_SECRET as string, {
       issuer: 'soclestack',
       audience: 'soclestack-refresh',
     }) as RefreshTokenPayload;
