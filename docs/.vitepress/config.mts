@@ -9,6 +9,12 @@ export default withMermaid(
     cleanUrls: true,
     ignoreDeadLinks: 'localhostLinks',
     themeConfig: {
+      logo: {
+        src: '/logo-navbar.svg',
+        width: 24,
+        height: 24,
+        alt: 'SocleStack'
+      },
       nav: [
         { text: 'Home', link: '/' },
         { text: 'Guide', link: '/PROGRESS' },

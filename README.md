@@ -1,7 +1,7 @@
 # SocleStack - Next.js User Management Application
 
 <div align="center">
-  <img src="./public/images/logo.png" alt="SocleStack Logo" width="200" />
+  <img src="./public/images/logo.svg" alt="SocleStack Logo" width="200" />
   <br />
 </div>
 

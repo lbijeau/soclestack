@@ -6,7 +6,7 @@ hero:
   text: Enterprise-grade Next.js User Management
   tagline: The foundational block upon which your SaaS application is built.
   image:
-    src: /logo.png
+    src: /logo.svg
     alt: SocleStack Logo
   actions:
     - theme: brand
@@ -18,12 +18,21 @@ hero:
 
 features:
   - title: Complete Auth System
+    icon:
+      src: /auth-icon.svg
+      alt: Authentication Icon
     details: User registration, email verification, secure login/logout, and password reset workflow.
     link: /TECHNICAL_ARCHITECTURE#_5-authentication-strategy
   - title: RBAC & Security
+    icon:
+      src: /rbac-icon.svg
+      alt: RBAC Icon
     details: Role-Based Access Control, JWT authentication, rate limiting, and input validation.
     link: /TECHNICAL_ARCHITECTURE#_8-security-considerations
   - title: Enterprise Ready
+    icon:
+      src: /stack-icon.svg
+      alt: Stack Icon
     details: Multi-tenancy with Organizations, 2FA, API Keys, and Audit Logging.
     link: /DATABASE
 ---

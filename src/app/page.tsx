@@ -74,7 +74,7 @@ export default async function HomePage() {
                 <CardHeader>
                   <div className="mb-4 flex h-32 w-full items-center justify-center rounded-lg bg-blue-50">
                     <Image
-                      src="/images/auth-icon.png"
+                      src="/images/auth-icon.svg"
                       alt="Secure Authentication"
                       width={128}
                       height={128}
@@ -113,7 +113,7 @@ export default async function HomePage() {
                 <CardHeader>
                   <div className="mb-4 flex h-32 w-full items-center justify-center rounded-lg bg-green-50">
                     <Image
-                      src="/images/rbac-icon.png"
+                      src="/images/rbac-icon.svg"
                       alt="Role-Based Access"
                       width={128}
                       height={128}
@@ -152,7 +152,7 @@ export default async function HomePage() {
                 <CardHeader>
                   <div className="mb-4 flex h-32 w-full items-center justify-center rounded-lg bg-purple-50">
                     <Image
-                      src="/images/stack-icon.png"
+                      src="/images/stack-icon.svg"
                       alt="Modern Stack"
                       width={128}
                       height={128}
