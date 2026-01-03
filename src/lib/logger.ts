@@ -56,7 +56,8 @@ const logger = pino({
 });
 
 // Create a child logger with request context
-export function createRequestLogger(requestId: string, userId?: string) {
+// Note: Available for future use when request correlation IDs are implemented
+function _createRequestLogger(requestId: string, userId?: string) {
   return logger.child({
     requestId,
     ...(userId && { userId }),
@@ -74,13 +75,13 @@ export const log = {
   // Authentication events
   auth: {
     login: (userId: string, email: string, ip?: string) =>
-      logger.info({ category: 'auth', action: 'login', userId, email, ip }, 'User logged in'),
+      logger.info({ category: 'auth', action: 'login', userId, email: redactEmail(email), ip }, 'User logged in'),
     logout: (userId: string) =>
       logger.info({ category: 'auth', action: 'logout', userId }, 'User logged out'),
     register: (userId: string, email: string) =>
-      logger.info({ category: 'auth', action: 'register', userId, email }, 'User registered'),
+      logger.info({ category: 'auth', action: 'register', userId, email: redactEmail(email) }, 'User registered'),
     loginFailed: (email: string, reason: string, ip?: string) =>
-      logger.warn({ category: 'auth', action: 'login_failed', email, reason, ip }, 'Login failed'),
+      logger.warn({ category: 'auth', action: 'login_failed', email: redactEmail(email), reason, ip }, 'Login failed'),
     passwordReset: (userId: string) =>
       logger.info({ category: 'auth', action: 'password_reset', userId }, 'Password reset'),
     passwordChanged: (userId: string) =>
