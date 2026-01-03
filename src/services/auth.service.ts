@@ -11,20 +11,17 @@ import {
   requestPasswordResetSchema,
   resetPasswordSchema,
 } from '@/lib/validations';
-import {
-  authenticateUser,
-  createUserSession,
-  isRateLimited,
-} from '@/lib/auth';
+import { authenticateUser, createUserSession, isRateLimited } from '@/lib/auth';
 import {
   checkAccountLocked,
   recordFailedAttempt,
   resetFailedAttempts,
 } from '@/lib/auth/lockout';
+import { createRememberMeToken } from '@/lib/auth/remember-me';
 import {
-  createRememberMeToken,
-} from '@/lib/auth/remember-me';
-import { createPending2FAToken, verifyPending2FAToken } from '@/lib/auth/pending-2fa';
+  createPending2FAToken,
+  verifyPending2FAToken,
+} from '@/lib/auth/pending-2fa';
 import { verifyTOTPCode, generateTOTPSecret } from '@/lib/auth/totp';
 import {
   verifyBackupCode,
@@ -35,16 +32,18 @@ import {
 import { logAuditEvent } from '@/lib/audit';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import { prisma } from '@/lib/db';
-import { sendNewDeviceAlert, isKnownDevice } from '@/lib/email';
+import {
+  sendNewDeviceAlert,
+  isKnownDevice,
+  sendTwoFactorEnabledNotification,
+  sendTwoFactorDisabledNotification,
+  sendPasswordChangedNotification,
+  sendVerificationEmail,
+} from '@/lib/email';
 import { parseUserAgent } from '@/lib/utils/user-agent';
 import { generateCsrfToken } from '@/lib/csrf';
 import { RequestContext } from '@/lib/api-utils';
-import {
-  hashPassword,
-  generateResetToken,
-  hashResetToken,
-  timeSafeEqual,
-} from '@/lib/security';
+import { hashPassword, generateResetToken, hashResetToken } from '@/lib/security';
 import { generateSlug } from '@/lib/organization';
 import {
   ValidationError,
@@ -122,7 +121,9 @@ export async function login(
   // Rate limiting
   const rateLimitKey = `login:${clientIP}`;
   if (isRateLimited(rateLimitKey, 10, 15 * 60 * 1000)) {
-    throw new RateLimitError('Too many login attempts. Please try again later.');
+    throw new RateLimitError(
+      'Too many login attempts. Please try again later.'
+    );
   }
 
   // Validate input
@@ -148,7 +149,10 @@ export async function login(
         ? Math.ceil((lockoutStatus.lockedUntil.getTime() - Date.now()) / 1000)
         : SECURITY_CONFIG.lockout.durationMinutes * 60;
 
-      throw new AccountLockedError(lockoutStatus.lockedUntil, retryAfterSeconds);
+      throw new AccountLockedError(
+        lockoutStatus.lockedUntil,
+        retryAfterSeconds
+      );
     }
   }
 
@@ -177,7 +181,10 @@ export async function login(
           ? Math.ceil((lockoutStatus.lockedUntil.getTime() - Date.now()) / 1000)
           : SECURITY_CONFIG.lockout.durationMinutes * 60;
 
-        throw new AccountLockedError(lockoutStatus.lockedUntil, retryAfterSeconds);
+        throw new AccountLockedError(
+          lockoutStatus.lockedUntil,
+          retryAfterSeconds
+        );
       }
     } else {
       await logAuditEvent({
@@ -339,7 +346,9 @@ export async function register(
   // Rate limiting
   const rateLimitKey = `register:${clientIP}`;
   if (isRateLimited(rateLimitKey, 3, 60 * 60 * 1000)) {
-    throw new RateLimitError('Too many registration attempts. Please try again later.');
+    throw new RateLimitError(
+      'Too many registration attempts. Please try again later.'
+    );
   }
 
   // Validate input
@@ -392,7 +401,9 @@ export async function register(
     if (invite.email.toLowerCase() !== email.toLowerCase()) {
       throw new ValidationError('Email does not match the invite', {
         details: {
-          email: ['You must register with the email address the invite was sent to'],
+          email: [
+            'You must register with the email address the invite was sent to',
+          ],
         },
       });
     }
@@ -454,11 +465,14 @@ export async function register(
 
   // TODO: Send email verification email
   // In a real application, you would send an email here
-  console.log(`Email verification token for ${email}: ${plainVerificationToken}`);
+  console.log(
+    `Email verification token for ${email}: ${plainVerificationToken}`
+  );
 
   // Return success result
   return {
-    message: 'Registration successful. Please check your email to verify your account.',
+    message:
+      'Registration successful. Please check your email to verify your account.',
     user: {
       id: user.id,
       email: user.email,
@@ -636,7 +650,7 @@ export async function setup2FA(userId: string): Promise<Setup2FAResult> {
   }
 
   if (user.twoFactorEnabled) {
-    throw new ValidationError('2FA is already enabled');
+    throw new ConflictError('2FA is already enabled');
   }
 
   // Generate TOTP secret and QR code
@@ -710,8 +724,7 @@ export async function verify2FASetup(
     userAgent,
   });
 
-  // Send notification (fire-and-forget) - imported at top
-  const { sendTwoFactorEnabledNotification } = await import('@/lib/email');
+  // Send notification (fire-and-forget)
   sendTwoFactorEnabledNotification(user.email).catch((err) =>
     console.error('Failed to send 2FA enabled notification:', err)
   );
@@ -733,7 +746,12 @@ export async function disable2FA(
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, twoFactorSecret: true, twoFactorEnabled: true, email: true },
+    select: {
+      role: true,
+      twoFactorSecret: true,
+      twoFactorEnabled: true,
+      email: true,
+    },
   });
 
   if (!user) {
@@ -776,7 +794,6 @@ export async function disable2FA(
   });
 
   // Send notification (fire-and-forget)
-  const { sendTwoFactorDisabledNotification } = await import('@/lib/email');
   sendTwoFactorDisabledNotification(user.email).catch((err) =>
     console.error('Failed to send 2FA disabled notification:', err)
   );
@@ -865,25 +882,20 @@ export async function resetPassword(
 
   const { token, password } = validationResult.data;
 
-  // Hash the provided token to compare with stored hash
+  // Hash the provided token to match against stored hash
   const hashedToken = await hashResetToken(token);
 
-  // Find user with unexpired reset token
+  // Find user with this specific hashed token that hasn't expired
   const user = await prisma.user.findFirst({
     where: {
-      passwordResetToken: { not: null },
+      passwordResetToken: hashedToken,
       passwordResetExpires: {
         gt: new Date(),
       },
     },
   });
 
-  if (!user || !user.passwordResetToken) {
-    throw new TokenExpiredError('Invalid or expired reset token');
-  }
-
-  // Compare tokens in a time-safe manner
-  if (!timeSafeEqual(hashedToken, user.passwordResetToken)) {
+  if (!user) {
     throw new TokenExpiredError('Invalid or expired reset token');
   }
 
@@ -927,7 +939,6 @@ export async function resetPassword(
   });
 
   // Send notification (fire-and-forget)
-  const { sendPasswordChangedNotification } = await import('@/lib/email');
   sendPasswordChangedNotification(user.email, new Date()).catch((err) =>
     console.error('Failed to send password changed notification:', err)
   );
@@ -954,25 +965,20 @@ export async function verifyEmail(input: VerifyEmailInput): Promise<void> {
     throw new ValidationError('Verification token is required');
   }
 
-  // Hash the provided token to compare with stored hash
+  // Hash the provided token to match against stored hash
   const hashedToken = await hashResetToken(token);
 
-  // Find user with unexpired verification token
+  // Find user with this specific hashed token that hasn't expired
   const user = await prisma.user.findFirst({
     where: {
-      emailVerificationToken: { not: null },
+      emailVerificationToken: hashedToken,
       emailVerificationExpires: {
         gt: new Date(),
       },
     },
   });
 
-  if (!user || !user.emailVerificationToken) {
-    throw new TokenExpiredError('Invalid or expired verification token');
-  }
-
-  // Compare tokens in a time-safe manner
-  if (!timeSafeEqual(hashedToken, user.emailVerificationToken)) {
+  if (!user) {
     throw new TokenExpiredError('Invalid or expired verification token');
   }
 
@@ -996,7 +1002,12 @@ export async function verifyEmail(input: VerifyEmailInput): Promise<void> {
 export async function resendVerificationEmail(userId: string): Promise<void> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, emailVerified: true, firstName: true, username: true },
+    select: {
+      email: true,
+      emailVerified: true,
+      firstName: true,
+      username: true,
+    },
   });
 
   if (!user) {
@@ -1004,7 +1015,7 @@ export async function resendVerificationEmail(userId: string): Promise<void> {
   }
 
   if (user.emailVerified) {
-    throw new ValidationError('Email is already verified');
+    throw new ConflictError('Email is already verified');
   }
 
   // Generate new verification token (hash for storage, plain for email)
@@ -1022,7 +1033,6 @@ export async function resendVerificationEmail(userId: string): Promise<void> {
   });
 
   // Send verification email
-  const { sendVerificationEmail } = await import('@/lib/email');
   await sendVerificationEmail(
     user.email,
     plainVerificationToken,

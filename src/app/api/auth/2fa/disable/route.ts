@@ -72,7 +72,9 @@ export async function POST(req: NextRequest) {
     await disable2FA(session.userId, validationResult.data.code, context);
 
     // Rotate CSRF token after sensitive action
-    const response = NextResponse.json({ message: '2FA disabled successfully' });
+    const response = NextResponse.json({
+      message: '2FA disabled successfully',
+    });
     rotateCsrfToken(response);
     return response;
   } catch (error) {

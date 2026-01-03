@@ -24,10 +24,7 @@ export class ServiceError extends Error {
  * Validation error - invalid input data (400)
  */
 export class ValidationError extends ServiceError {
-  constructor(
-    message: string,
-    details?: Record<string, unknown>
-  ) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super('VALIDATION_ERROR', message, 400, details);
     this.name = 'ValidationError';
   }
@@ -75,10 +72,15 @@ export class AccountLockedError extends ServiceError {
     public readonly lockedUntil: Date | null,
     public readonly retryAfterSeconds: number
   ) {
-    super('ACCOUNT_LOCKED', 'Account temporarily locked due to too many failed attempts', 423, {
-      lockedUntil: lockedUntil?.toISOString() ?? null,
-      retryAfterSeconds,
-    });
+    super(
+      'ACCOUNT_LOCKED',
+      'Account temporarily locked due to too many failed attempts',
+      423,
+      {
+        lockedUntil: lockedUntil?.toISOString() ?? null,
+        retryAfterSeconds,
+      }
+    );
     this.name = 'AccountLockedError';
   }
 }
