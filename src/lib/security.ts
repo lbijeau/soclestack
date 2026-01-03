@@ -7,7 +7,9 @@ import { env } from './env';
 // Valid roles for runtime validation
 const VALID_ROLES: Role[] = ['USER', 'MODERATOR', 'ADMIN'];
 
-function isValidAccessTokenPayload(payload: JoseJWTPayload): payload is JoseJWTPayload & {
+function isValidAccessTokenPayload(
+  payload: JoseJWTPayload
+): payload is JoseJWTPayload & {
   sub: string;
   email: string;
   role: Role;
@@ -22,14 +24,13 @@ function isValidAccessTokenPayload(payload: JoseJWTPayload): payload is JoseJWTP
   );
 }
 
-function isValidRefreshTokenPayload(payload: JoseJWTPayload): payload is JoseJWTPayload & {
+function isValidRefreshTokenPayload(
+  payload: JoseJWTPayload
+): payload is JoseJWTPayload & {
   sub: string;
   jti: string;
 } {
-  return (
-    typeof payload.sub === 'string' &&
-    typeof payload.jti === 'string'
-  );
+  return typeof payload.sub === 'string' && typeof payload.jti === 'string';
 }
 
 // Cache encoded secrets for jose

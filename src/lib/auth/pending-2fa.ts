@@ -21,10 +21,7 @@ function getJwtSecret(): Uint8Array {
 function isValidPending2FAPayload(
   payload: JWTPayload
 ): payload is JWTPayload & { userId: string; type: 'pending_2fa' } {
-  return (
-    typeof payload.userId === 'string' &&
-    payload.type === 'pending_2fa'
-  );
+  return typeof payload.userId === 'string' && payload.type === 'pending_2fa';
 }
 
 export async function createPending2FAToken(userId: string): Promise<string> {

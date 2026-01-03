@@ -17,10 +17,7 @@ export async function generateSlug(name: string): Promise<string> {
   // Use OR to avoid false positives (e.g., "test" matching "testing")
   const existingSlugs = await prisma.organization.findMany({
     where: {
-      OR: [
-        { slug: baseSlug },
-        { slug: { startsWith: `${baseSlug}-` } },
-      ],
+      OR: [{ slug: baseSlug }, { slug: { startsWith: `${baseSlug}-` } }],
     },
     select: { slug: true },
   });

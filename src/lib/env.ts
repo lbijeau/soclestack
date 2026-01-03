@@ -152,7 +152,9 @@ export const env = parseEnv();
  * @example
  *   const secret = getEnvOrThrow('JWT_SECRET');
  */
-export function getEnvOrThrow<K extends keyof Env>(key: K): NonNullable<Env[K]> {
+export function getEnvOrThrow<K extends keyof Env>(
+  key: K
+): NonNullable<Env[K]> {
   const value = env[key];
   if (value === undefined || value === null) {
     throw new Error(

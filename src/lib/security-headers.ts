@@ -72,4 +72,3 @@ export function buildCSP(nonce: string, isDev: boolean = false): string {
     'upgrade-insecure-requests',
   ].join('; ');
 }
-
