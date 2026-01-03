@@ -1,8 +1,36 @@
 import bcrypt from 'bcryptjs';
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, JWTPayload as JoseJWTPayload } from 'jose';
 import { JWTPayload, RefreshTokenPayload } from '@/types/auth';
 import { Role } from '@prisma/client';
 import { env } from './env';
+
+// Valid roles for runtime validation
+const VALID_ROLES: Role[] = ['USER', 'MODERATOR', 'ADMIN'];
+
+function isValidAccessTokenPayload(payload: JoseJWTPayload): payload is JoseJWTPayload & {
+  sub: string;
+  email: string;
+  role: Role;
+  jti: string;
+} {
+  return (
+    typeof payload.sub === 'string' &&
+    typeof payload.email === 'string' &&
+    typeof payload.role === 'string' &&
+    VALID_ROLES.includes(payload.role as Role) &&
+    typeof payload.jti === 'string'
+  );
+}
+
+function isValidRefreshTokenPayload(payload: JoseJWTPayload): payload is JoseJWTPayload & {
+  sub: string;
+  jti: string;
+} {
+  return (
+    typeof payload.sub === 'string' &&
+    typeof payload.jti === 'string'
+  );
+}
 
 // Cache encoded secrets for jose
 let cachedJwtSecret: Uint8Array | null = null;
@@ -123,7 +151,19 @@ export async function verifyAccessToken(token: string): Promise<JWTPayload> {
       issuer: 'soclestack',
       audience: 'soclestack-users',
     });
-    return payload as unknown as JWTPayload;
+
+    if (!isValidAccessTokenPayload(payload)) {
+      throw new Error('Invalid access token payload');
+    }
+
+    return {
+      sub: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      jti: payload.jti,
+      iat: payload.iat!,
+      exp: payload.exp!,
+    };
   } catch {
     throw new Error('Invalid access token');
   }
@@ -137,7 +177,17 @@ export async function verifyRefreshToken(
       issuer: 'soclestack',
       audience: 'soclestack-refresh',
     });
-    return payload as unknown as RefreshTokenPayload;
+
+    if (!isValidRefreshTokenPayload(payload)) {
+      throw new Error('Invalid refresh token payload');
+    }
+
+    return {
+      sub: payload.sub,
+      jti: payload.jti,
+      iat: payload.iat!,
+      exp: payload.exp!,
+    };
   } catch {
     throw new Error('Invalid refresh token');
   }

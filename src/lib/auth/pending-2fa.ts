@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import { SECURITY_CONFIG } from '../config/security';
 import { env } from '../env';
 
@@ -18,11 +18,13 @@ function getJwtSecret(): Uint8Array {
   return cachedSecret;
 }
 
-interface Pending2FAPayload {
-  userId: string;
-  type: 'pending_2fa';
-  iat: number;
-  exp: number;
+function isValidPending2FAPayload(
+  payload: JWTPayload
+): payload is JWTPayload & { userId: string; type: 'pending_2fa' } {
+  return (
+    typeof payload.userId === 'string' &&
+    payload.type === 'pending_2fa'
+  );
 }
 
 export async function createPending2FAToken(userId: string): Promise<string> {
@@ -38,11 +40,12 @@ export async function verifyPending2FAToken(
 ): Promise<{ userId: string } | null> {
   try {
     const { payload } = await jwtVerify(token, getJwtSecret());
-    const pending2FAPayload = payload as unknown as Pending2FAPayload;
-    if (pending2FAPayload.type !== 'pending_2fa') {
+
+    if (!isValidPending2FAPayload(payload)) {
       return null;
     }
-    return { userId: pending2FAPayload.userId };
+
+    return { userId: payload.userId };
   } catch {
     return null;
   }
