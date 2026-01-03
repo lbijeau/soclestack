@@ -13,6 +13,15 @@ const BATCH_SIZE = 500;
 // Maximum total rows to export (safety limit)
 const MAX_EXPORT_ROWS = 100000;
 
+// Safe JSON parse helper - returns raw string if invalid JSON
+function safeJsonParse(str: string): unknown {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return str;
+  }
+}
+
 // CSV escape helper
 function escapeCsvField(field: string): string {
   if (field.includes(',') || field.includes('"') || field.includes('\n')) {
@@ -40,7 +49,7 @@ function formatCsvRow(log: {
     log.category,
     log.ipAddress ?? '',
     log.userAgent ?? '',
-    log.metadata ? log.metadata.replace(/"/g, '""') : '',
+    log.metadata ?? '',
   ];
   return fields.map(escapeCsvField).join(',');
 }
@@ -65,7 +74,7 @@ function formatJsonRow(logEntry: {
     category: logEntry.category,
     ipAddress: logEntry.ipAddress,
     userAgent: logEntry.userAgent,
-    metadata: logEntry.metadata ? JSON.parse(logEntry.metadata) : null,
+    metadata: logEntry.metadata ? safeJsonParse(logEntry.metadata) : null,
     createdAt: logEntry.createdAt.toISOString(),
   };
 }
@@ -225,7 +234,9 @@ export async function GET(req: NextRequest) {
               } else {
                 const prefix = isFirst ? '  ' : ',\n  ';
                 controller.enqueue(
-                  encoder.encode(prefix + JSON.stringify(formatJsonRow(logEntry)))
+                  encoder.encode(
+                    prefix + JSON.stringify(formatJsonRow(logEntry))
+                  )
                 );
                 isFirst = false;
               }
@@ -243,7 +254,8 @@ export async function GET(req: NextRequest) {
 
           // Write closing for JSON format
           if (format === 'json') {
-            controller.enqueue(encoder.encode('\n]\n'));
+            // Only add newline before closing bracket if we wrote any rows
+            controller.enqueue(encoder.encode(isFirst ? ']\n' : '\n]\n'));
           }
 
           controller.close();
