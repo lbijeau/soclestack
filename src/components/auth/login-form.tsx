@@ -253,11 +253,14 @@ export function LoginForm() {
               value={formData.email}
               onChange={handleChange}
               error={!!errors.email}
+              aria-describedby={errors.email ? 'email-error' : undefined}
               disabled={isLoading}
               data-testid="email-input"
             />
             {errors.email && (
-              <p className="text-sm text-red-600">{errors.email[0]}</p>
+              <p id="email-error" className="text-sm text-red-600" role="alert">
+                {errors.email[0]}
+              </p>
             )}
           </div>
 
@@ -274,11 +277,14 @@ export function LoginForm() {
               value={formData.password}
               onChange={handleChange}
               error={!!errors.password}
+              aria-describedby={errors.password ? 'password-error' : undefined}
               disabled={isLoading}
               data-testid="password-input"
             />
             {errors.password && (
-              <p className="text-sm text-red-600">{errors.password[0]}</p>
+              <p id="password-error" className="text-sm text-red-600" role="alert">
+                {errors.password[0]}
+              </p>
             )}
           </div>
 

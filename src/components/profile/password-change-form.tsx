@@ -88,10 +88,13 @@ export function PasswordChangeForm() {
           value={formData.currentPassword}
           onChange={handleChange}
           error={!!errors.currentPassword}
+          aria-describedby={errors.currentPassword ? 'currentPassword-error' : undefined}
           disabled={isLoading}
         />
         {errors.currentPassword && (
-          <p className="text-sm text-red-600">{errors.currentPassword[0]}</p>
+          <p id="currentPassword-error" className="text-sm text-red-600" role="alert">
+            {errors.currentPassword[0]}
+          </p>
         )}
       </div>
 
@@ -111,10 +114,13 @@ export function PasswordChangeForm() {
           value={formData.newPassword}
           onChange={handleChange}
           error={!!errors.newPassword}
+          aria-describedby={errors.newPassword ? 'newPassword-error' : undefined}
           disabled={isLoading}
         />
         {errors.newPassword && (
-          <p className="text-sm text-red-600">{errors.newPassword[0]}</p>
+          <p id="newPassword-error" className="text-sm text-red-600" role="alert">
+            {errors.newPassword[0]}
+          </p>
         )}
         <PasswordStrengthMeter password={formData.newPassword} />
       </div>
@@ -135,10 +141,13 @@ export function PasswordChangeForm() {
           value={formData.confirmPassword}
           onChange={handleChange}
           error={!!errors.confirmPassword}
+          aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
           disabled={isLoading}
         />
         {errors.confirmPassword && (
-          <p className="text-sm text-red-600">{errors.confirmPassword[0]}</p>
+          <p id="confirmPassword-error" className="text-sm text-red-600" role="alert">
+            {errors.confirmPassword[0]}
+          </p>
         )}
       </div>
 

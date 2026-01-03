@@ -99,10 +99,13 @@ export function ProfileForm({ user }: ProfileFormProps) {
             value={formData.firstName}
             onChange={handleChange}
             error={!!errors.firstName}
+            aria-describedby={errors.firstName ? 'firstName-error' : undefined}
             disabled={isLoading}
           />
           {errors.firstName && (
-            <p className="text-sm text-red-600">{errors.firstName[0]}</p>
+            <p id="firstName-error" className="text-sm text-red-600" role="alert">
+              {errors.firstName[0]}
+            </p>
           )}
         </div>
 
@@ -121,10 +124,13 @@ export function ProfileForm({ user }: ProfileFormProps) {
             value={formData.lastName}
             onChange={handleChange}
             error={!!errors.lastName}
+            aria-describedby={errors.lastName ? 'lastName-error' : undefined}
             disabled={isLoading}
           />
           {errors.lastName && (
-            <p className="text-sm text-red-600">{errors.lastName[0]}</p>
+            <p id="lastName-error" className="text-sm text-red-600" role="alert">
+              {errors.lastName[0]}
+            </p>
           )}
         </div>
       </div>
@@ -141,10 +147,13 @@ export function ProfileForm({ user }: ProfileFormProps) {
           value={formData.email}
           onChange={handleChange}
           error={!!errors.email}
+          aria-describedby={errors.email ? 'email-error' : undefined}
           disabled={isLoading}
         />
         {errors.email && (
-          <p className="text-sm text-red-600">{errors.email[0]}</p>
+          <p id="email-error" className="text-sm text-red-600" role="alert">
+            {errors.email[0]}
+          </p>
         )}
         {formData.email !== user.email && (
           <p className="text-sm text-amber-600">
@@ -166,10 +175,13 @@ export function ProfileForm({ user }: ProfileFormProps) {
           value={formData.username}
           onChange={handleChange}
           error={!!errors.username}
+          aria-describedby={errors.username ? 'username-error' : undefined}
           disabled={isLoading}
         />
         {errors.username && (
-          <p className="text-sm text-red-600">{errors.username[0]}</p>
+          <p id="username-error" className="text-sm text-red-600" role="alert">
+            {errors.username[0]}
+          </p>
         )}
       </div>
 

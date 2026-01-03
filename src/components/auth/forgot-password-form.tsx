@@ -97,10 +97,13 @@ export function ForgotPasswordForm() {
               value={formData.email}
               onChange={handleChange}
               error={!!errors.email}
+              aria-describedby={errors.email ? 'email-error' : undefined}
               disabled={isLoading}
             />
             {errors.email && (
-              <p className="text-sm text-red-600">{errors.email[0]}</p>
+              <p id="email-error" className="text-sm text-red-600" role="alert">
+                {errors.email[0]}
+              </p>
             )}
           </div>
 
