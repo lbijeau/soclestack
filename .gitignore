@@ -64,3 +64,10 @@ logs/
 
 # git worktrees
 .worktrees/
+
+# VitePress
+.vitepress/dist
+.vitepress/cache
+docs/api-generated
+docs/public/openapi.json
+docs/public/openapi.yaml
