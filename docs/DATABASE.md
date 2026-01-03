@@ -66,130 +66,57 @@ Complete reference for the SocleStack database schema, including all models, rel
 
 ## Entity Relationship Diagram
 
-```
-┌─────────────────┐
-│  Organization   │
-│                 │
-│  id (PK)        │
-│  name           │
-│  slug (unique)  │
-└────────┬────────┘
-         │
-         │ 1:N
-         │
-    ┌────▼─────────────────────────┐
-    │         User                 │ ◄──────┐
-    │                              │        │
-    │  id (PK)                     │        │
-    │  email (unique)              │        │
-    │  username (unique)           │        │
-    │  password                    │        │
-    │  role (enum)                 │        │
-    │  organizationId (FK)         │        │
-    │  organizationRole (enum)     │        │
-    │  twoFactorSecret             │        │
-    │  twoFactorEnabled            │        │
-    │  failedLoginAttempts         │        │
-    │  lockedUntil                 │        │
-    │  notifyNewDevice             │        │
-    │  notifyPasswordChange        │        │
-    │  notifyLoginAlert            │        │
-    │  notify2FAChange             │        │
-    └──┬──┬──┬──┬──┬──┬──┬────────┘        │
-       │  │  │  │  │  │  │                 │
-       │  │  │  │  │  │  └─────────────────┘
-       │  │  │  │  │  │                     (invitedBy)
-       │  │  │  │  │  │
-       │  │  │  │  │  │  1:N   ┌──────────────────┐
-       │  │  │  │  │  └────────►│ OrganizationInvite│
-       │  │  │  │  │            │                  │
-       │  │  │  │  │            │  id (PK)         │
-       │  │  │  │  │            │  email           │
-       │  │  │  │  │            │  token (unique)  │
-       │  │  │  │  │            │  role (enum)     │
-       │  │  │  │  │            │  organizationId  │
-       │  │  │  │  │            │  invitedById     │
-       │  │  │  │  │            │  expiresAt       │
-       │  │  │  │  │            └──────────────────┘
-       │  │  │  │  │
-       │  │  │  │  │  1:N   ┌──────────────────┐
-       │  │  │  │  └────────►│    ApiKey        │
-       │  │  │  │            │                  │
-       │  │  │  │            │  id (PK)         │
-       │  │  │  │            │  userId (FK)     │
-       │  │  │  │            │  name            │
-       │  │  │  │            │  keyHash         │
-       │  │  │  │            │  keyPrefix       │
-       │  │  │  │            │  permission      │
-       │  │  │  │            │  expiresAt       │
-       │  │  │  │            │  revokedAt       │
-       │  │  │  │            └──────────────────┘
-       │  │  │  │
-       │  │  │  │  1:N   ┌──────────────────┐
-       │  │  │  └────────►│  OAuthAccount    │
-       │  │  │            │                  │
-       │  │  │            │  id (PK)         │
-       │  │  │            │  userId (FK)     │
-       │  │  │            │  provider        │
-       │  │  │            │  providerAccountId│
-       │  │  │            │  accessToken     │
-       │  │  │            │  refreshToken    │
-       │  │  │            └──────────────────┘
-       │  │  │
-       │  │  │  1:N   ┌──────────────────┐
-       │  │  └────────►│   BackupCode     │
-       │  │            │                  │
-       │  │            │  id (PK)         │
-       │  │            │  userId (FK)     │
-       │  │            │  codeHash        │
-       │  │            │  usedAt          │
-       │  │            └──────────────────┘
-       │  │
-       │  │  1:N   ┌──────────────────┐
-       │  └────────►│ RememberMeToken  │
-       │            │                  │
-       │            │  id (PK)         │
-       │            │  userId (FK)     │
-       │            │  tokenHash       │
-       │            │  series (unique) │
-       │            │  expiresAt       │
-       │            │  ipAddress       │
-       │            │  userAgent       │
-       │            └──────────────────┘
-       │
-       │  1:N   ┌──────────────────┐
-       ├────────►│   UserSession    │
-       │        │                  │
-       │        │  id (PK)         │
-       │        │  userId (FK)     │
-       │        │  tokenHash       │
-       │        │  expiresAt       │
-       │        │  ipAddress       │
-       │        │  userAgent       │
-       │        │  isActive        │
-       │        └──────────────────┘
-       │
-       │  1:N   ┌──────────────────┐
-       ├────────►│ PasswordHistory  │
-       │        │                  │
-       │        │  id (PK)         │
-       │        │  userId (FK)     │
-       │        │  password        │
-       │        │  createdAt       │
-       │        └──────────────────┘
-       │
-       │  1:N   ┌──────────────────┐
-       └────────►│    AuditLog      │
-                │                  │
-                │  id (PK)         │
-                │  userId (FK)     │
-                │  action          │
-                │  category        │
-                │  ipAddress       │
-                │  userAgent       │
-                │  metadata (JSON) │
-                │  createdAt       │
-                └──────────────────┘
+```mermaid
+erDiagram
+    Organization ||--o{ User : "contains"
+    Organization ||--o{ OrganizationInvite : "has"
+    User ||--o{ UserSession : "has"
+    User ||--o{ PasswordHistory : "has"
+    User ||--o{ AuditLog : "generates"
+    User ||--o{ RememberMeToken : "has"
+    User ||--o{ BackupCode : "has"
+    User ||--o{ OAuthAccount : "links"
+    User ||--o{ ApiKey : "owns"
+    User ||--o{ OrganizationInvite : "invitedBy"
+
+    User {
+        string id PK
+        string email UK
+        string username UK
+        string password
+        string role
+        boolean isActive
+        boolean twoFactorEnabled
+    }
+
+    Organization {
+        string id PK
+        string name
+        string slug UK
+    }
+
+    UserSession {
+        string id PK
+        string userId FK
+        string tokenHash
+        datetime expiresAt
+        boolean isActive
+    }
+
+    AuditLog {
+        string id PK
+        string userId FK
+        string action
+        string category
+        json metadata
+    }
+
+    ApiKey {
+        string id PK
+        string userId FK
+        string keyHash
+        string permission
+    }
 ```
 
 ---

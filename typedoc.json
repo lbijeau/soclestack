@@ -1,0 +1,7 @@
+{
+  "entryPoints": ["src/lib/auth.ts", "src/lib/db.ts", "src/lib/security.ts", "src/types/auth.ts"],
+  "out": "docs/api-generated",
+  "plugin": ["typedoc-plugin-markdown"],
+  "theme": "markdown",
+  "hideBreadcrumbs": true
+}

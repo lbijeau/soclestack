@@ -4,6 +4,24 @@
 ### 1. Overview
 This document outlines the technical architecture for a Next.js web application with comprehensive user management capabilities, inspired by established enterprise security patterns.
 
+```mermaid
+graph TD
+    Client[Browser / Client]
+    NextJS[Next.js App Router]
+    Middleware[Auth Middleware]
+    API[API Routes]
+    Prisma[Prisma ORM]
+    DB[(PostgreSQL / SQLite)]
+    Email[Resend Email Service]
+
+    Client <--> NextJS
+    NextJS --> Middleware
+    Middleware --> API
+    API --> Prisma
+    Prisma --> DB
+    API -.-> Email
+```
+
 ### 2. Technology Stack
 - **Frontend Framework**: Next.js 14+ with App Router
 - **Language**: TypeScript
@@ -243,6 +261,25 @@ CREATE TABLE oauth_accounts (
 ```
 
 #### OAuth Flow Architecture
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant App as SocleStack App
+    participant Auth as Auth API
+    participant Provider as OAuth Provider (Google/GitHub)
+
+    User->>App: Click "Login with Provider"
+    App->>Auth: GET /api/auth/oauth/[provider]
+    Auth-->>User: Redirect to Provider + State Token
+    User->>Provider: Authorize Application
+    Provider-->>Auth: Redirect to Callback + Code
+    Auth->>Provider: Exchange Code for Access Token
+    Provider-->>Auth: Access Token + Profile
+    Auth->>Auth: Validate/Create User
+    Auth-->>User: Set Session Cookie + Redirect to Dashboard
+```
+
 1. **Initiation**: `GET /api/auth/oauth/[provider]` - Generates state token, redirects to provider
 2. **Callback**: `GET /api/auth/oauth/[provider]/callback` - Handles provider response
    - Existing user with linked OAuth: Sign in directly
