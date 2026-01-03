@@ -604,6 +604,13 @@ export type AuthContext = ApiKeyAuthContext | SessionAuthContext;
  * Get authentication context from request.
  * Supports both session-based and API key authentication.
  * API key auth is checked first via Authorization header.
+ *
+ * @note This function is currently NOT used by route handlers.
+ * Routes use getCurrentUser() which only supports session auth.
+ * To enable API key authentication, routes should be updated to
+ * use getAuthContext() instead of getCurrentUser().
+ *
+ * @see https://github.com/lbijeau/soclestack/issues/131
  */
 export async function getAuthContext(req: NextRequest): Promise<{
   context: AuthContext | null;
