@@ -43,7 +43,11 @@ import {
 import { parseUserAgent } from '@/lib/utils/user-agent';
 import { generateCsrfToken } from '@/lib/csrf';
 import { RequestContext } from '@/lib/api-utils';
-import { hashPassword, generateResetToken, hashResetToken } from '@/lib/security';
+import {
+  hashPassword,
+  generateResetToken,
+  hashResetToken,
+} from '@/lib/security';
 import { generateSlug } from '@/lib/organization';
 import {
   ValidationError,

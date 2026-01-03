@@ -56,7 +56,7 @@ export class AuthorizationError extends ServiceError {
 export class EmailNotVerifiedError extends ServiceError {
   constructor() {
     super(
-      'AUTHORIZATION_ERROR',
+      'EMAIL_NOT_VERIFIED',
       'Please verify your email before logging in',
       403
     );
@@ -90,7 +90,7 @@ export class AccountLockedError extends ServiceError {
  */
 export class RateLimitError extends ServiceError {
   constructor(message = 'Too many attempts. Please try again later.') {
-    super('AUTHORIZATION_ERROR', message, 429);
+    super('RATE_LIMIT_ERROR', message, 429);
     this.name = 'RateLimitError';
   }
 }

@@ -102,7 +102,7 @@ describe('Auth Service Error Classes', () => {
       const error = new EmailNotVerifiedError();
 
       expect(error.statusCode).toBe(403);
-      expect(error.type).toBe('AUTHORIZATION_ERROR');
+      expect(error.type).toBe('EMAIL_NOT_VERIFIED');
       expect(error.message).toBe('Please verify your email before logging in');
     });
   });
@@ -112,7 +112,7 @@ describe('Auth Service Error Classes', () => {
       const error = new RateLimitError('Too many requests');
 
       expect(error.statusCode).toBe(429);
-      expect(error.type).toBe('AUTHORIZATION_ERROR');
+      expect(error.type).toBe('RATE_LIMIT_ERROR');
     });
   });
 
