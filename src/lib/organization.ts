@@ -13,12 +13,14 @@ export async function generateSlug(name: string): Promise<string> {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
-  // Fetch all existing slugs that start with the base slug in a single query
+  // Fetch all existing slugs that match the base slug or have numeric suffixes
+  // Use OR to avoid false positives (e.g., "test" matching "testing")
   const existingSlugs = await prisma.organization.findMany({
     where: {
-      slug: {
-        startsWith: baseSlug,
-      },
+      OR: [
+        { slug: baseSlug },
+        { slug: { startsWith: `${baseSlug}-` } },
+      ],
     },
     select: { slug: true },
   });
