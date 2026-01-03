@@ -145,6 +145,24 @@ function parseEnv(): Env {
 export const env = parseEnv();
 
 /**
+ * Get an environment variable with strict validation.
+ * Use this in development code that requires a value to be present.
+ * Throws immediately if the value is undefined, even in development.
+ *
+ * @example
+ *   const secret = getEnvOrThrow('JWT_SECRET');
+ */
+export function getEnvOrThrow<K extends keyof Env>(key: K): NonNullable<Env[K]> {
+  const value = env[key];
+  if (value === undefined || value === null) {
+    throw new Error(
+      `Environment variable ${key} is required but not set. See .env.example for configuration.`
+    );
+  }
+  return value as NonNullable<Env[K]>;
+}
+
+/**
  * Re-export parseEnv for testing purposes.
  * @internal
  */
@@ -154,4 +172,7 @@ export { parseEnv as _parseEnv };
  * Export schemas for testing purposes.
  * @internal
  */
-export { serverEnvSchema as _serverEnvSchema, clientEnvSchema as _clientEnvSchema };
+export {
+  serverEnvSchema as _serverEnvSchema,
+  clientEnvSchema as _clientEnvSchema,
+};
