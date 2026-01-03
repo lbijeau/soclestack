@@ -36,13 +36,26 @@ const CSRF_RATE_LIMIT_WINDOW_MS = parseInt(
   10
 );
 
+// Cleanup tracking - run cleanup every N operations to prevent memory leaks
+let operationsSinceCleanup = 0;
+const CLEANUP_INTERVAL_OPS = 100; // Cleanup every 100 operations
+
 /**
  * Record a CSRF validation failure and check if rate limited.
+ * Performs lazy cleanup every CLEANUP_INTERVAL_OPS operations.
  * @param ip - Client IP address
  * @returns true if the IP is rate limited
  */
 export function recordCsrfFailure(ip: string): boolean {
   const now = Date.now();
+
+  // Lazy cleanup to prevent memory leaks
+  operationsSinceCleanup++;
+  if (operationsSinceCleanup >= CLEANUP_INTERVAL_OPS) {
+    cleanupCsrfRateLimitStore();
+    operationsSinceCleanup = 0;
+  }
+
   const record = csrfRateLimitStore.get(ip);
 
   if (!record || now > record.resetTime) {
@@ -82,20 +95,24 @@ export function isCsrfRateLimited(ip: string): boolean {
 
 /**
  * Create a rate limit error response for CSRF.
+ * Includes Retry-After header indicating when the client can retry.
  */
 export function createCsrfRateLimitResponse(): NextResponse {
-  return NextResponse.json(
+  const retryAfterSeconds = Math.ceil(CSRF_RATE_LIMIT_WINDOW_MS / 1000);
+  const response = NextResponse.json(
     {
       error: 'RATE_LIMITED',
       message: 'Too many CSRF validation failures. Please try again later.',
     },
     { status: 429 }
   );
+  response.headers.set('Retry-After', String(retryAfterSeconds));
+  return response;
 }
 
 /**
  * Clean up expired entries from the rate limit store.
- * Call periodically to prevent memory leaks.
+ * Called automatically via lazy cleanup, but can be called manually.
  */
 export function cleanupCsrfRateLimitStore(): void {
   const now = Date.now();
@@ -104,6 +121,15 @@ export function cleanupCsrfRateLimitStore(): void {
       csrfRateLimitStore.delete(ip);
     }
   }
+}
+
+/**
+ * Reset rate limit state for testing purposes.
+ * @internal
+ */
+export function _resetRateLimitState(): void {
+  csrfRateLimitStore.clear();
+  operationsSinceCleanup = 0;
 }
 
 // Token format: 64 lowercase hex characters (32 bytes)

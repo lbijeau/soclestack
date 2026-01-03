@@ -10,6 +10,8 @@ import {
   recordCsrfFailure,
   isCsrfRateLimited,
   cleanupCsrfRateLimitStore,
+  createCsrfRateLimitResponse,
+  _resetRateLimitState,
   CSRF_CONFIG,
   CSRF_PROTECTED_METHODS,
   CSRF_EXCLUDED_ROUTES,
@@ -262,8 +264,8 @@ describe('rotateCsrfToken', () => {
 
 describe('CSRF Rate Limiting', () => {
   beforeEach(() => {
-    // Clean up before each test
-    cleanupCsrfRateLimitStore();
+    // Reset rate limit state before each test
+    _resetRateLimitState();
   });
 
   it('should not rate limit on first failure', () => {
@@ -324,5 +326,40 @@ describe('CSRF Rate Limiting', () => {
 
     // Cleanup should not throw
     expect(() => cleanupCsrfRateLimitStore()).not.toThrow();
+  });
+
+  it('should reset rate limit after window expires', () => {
+    const ip = '192.168.1.50';
+
+    // Mock Date.now to control time
+    const originalNow = Date.now;
+    let mockTime = 1000000;
+    vi.spyOn(Date, 'now').mockImplementation(() => mockTime);
+
+    // Rate limit the IP
+    for (let i = 0; i < 11; i++) {
+      recordCsrfFailure(ip);
+    }
+    expect(isCsrfRateLimited(ip)).toBe(true);
+
+    // Advance time past the window (5 minutes = 300000ms)
+    mockTime += 300001;
+
+    // Should no longer be rate limited
+    expect(isCsrfRateLimited(ip)).toBe(false);
+
+    // New failure should start fresh window
+    const isLimited = recordCsrfFailure(ip);
+    expect(isLimited).toBe(false);
+
+    // Restore Date.now
+    Date.now = originalNow;
+  });
+
+  it('createCsrfRateLimitResponse should include Retry-After header', () => {
+    const response = createCsrfRateLimitResponse();
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Retry-After')).toBe('300'); // 5 minutes
   });
 });
