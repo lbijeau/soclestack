@@ -55,7 +55,11 @@ export class RedisRateLimiter implements RateLimiter {
     return headers;
   }
 
-  async check(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
+  async check(
+    key: string,
+    limit: number,
+    windowMs: number
+  ): Promise<RateLimitResult> {
     const now = Date.now();
     const windowSeconds = Math.ceil(windowMs / 1000);
     const redisKey = `${this.keyPrefix}${key}`;
@@ -105,7 +109,11 @@ export class RedisRateLimiter implements RateLimiter {
     }
   }
 
-  async peek(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
+  async peek(
+    key: string,
+    limit: number,
+    windowMs: number
+  ): Promise<RateLimitResult> {
     const now = Date.now();
     const redisKey = `${this.keyPrefix}${key}`;
 
@@ -122,7 +130,13 @@ export class RedisRateLimiter implements RateLimiter {
 
       return {
         limited: currentCount > limit,
-        headers: this.buildHeaders(limit, remaining, resetTimestamp, false, undefined),
+        headers: this.buildHeaders(
+          limit,
+          remaining,
+          resetTimestamp,
+          false,
+          undefined
+        ),
       };
     } catch (error) {
       log.error('Redis rate limiter peek error', { error, key });

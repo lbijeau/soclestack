@@ -219,7 +219,7 @@ OAuth callback failed: invalid_grant
 OAuth state token expired or invalid
 ```
 
-**Cause:** Took too long to complete OAuth flow (>15 minutes).
+**Cause:** Took too long to complete OAuth flow (>10 minutes).
 
 **Solution:** Start the OAuth flow again.
 

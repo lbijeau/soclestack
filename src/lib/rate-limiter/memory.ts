@@ -70,13 +70,20 @@ export class MemoryRateLimiter implements RateLimiter {
     };
 
     if (limited) {
-      headers['Retry-After'] = Math.max(0, resetTimestamp - Math.floor(now / 1000));
+      headers['Retry-After'] = Math.max(
+        0,
+        resetTimestamp - Math.floor(now / 1000)
+      );
     }
 
     return headers;
   }
 
-  async check(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
+  async check(
+    key: string,
+    limit: number,
+    windowMs: number
+  ): Promise<RateLimitResult> {
     const now = Date.now();
     let record = this.store.get(key);
 
@@ -98,11 +105,21 @@ export class MemoryRateLimiter implements RateLimiter {
 
     return {
       limited,
-      headers: this.buildHeaders(limit, remaining, resetTimestamp, limited, now),
+      headers: this.buildHeaders(
+        limit,
+        remaining,
+        resetTimestamp,
+        limited,
+        now
+      ),
     };
   }
 
-  async peek(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
+  async peek(
+    key: string,
+    limit: number,
+    windowMs: number
+  ): Promise<RateLimitResult> {
     const now = Date.now();
     const record = this.store.get(key);
 
