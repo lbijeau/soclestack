@@ -12,6 +12,7 @@ Welcome to the SocleStack documentation. This guide helps you navigate the avail
 | Learn about the database | [Database Schema](./DATABASE.md) |
 | Deploy to production | [Deployment Guide](./deployment/cloudflare-setup.md) |
 | Run tests | [Testing Guide](./testing/README.md) |
+| Fix a problem | [Troubleshooting](./TROUBLESHOOTING.md) |
 
 ## Documentation Structure
 
@@ -24,6 +25,7 @@ docs/
 ├── MIGRATIONS.md             # Database migration guide
 ├── ENVIRONMENT.md            # Configuration reference
 ├── API_REFERENCE.md          # API endpoints overview
+├── TROUBLESHOOTING.md        # Common issues and solutions
 ├── DOCUMENTATION_STATUS.md   # Documentation health metrics
 │
 ├── deployment/               # Production deployment guides

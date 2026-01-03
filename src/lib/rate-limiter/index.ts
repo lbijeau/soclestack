@@ -20,16 +20,22 @@ export async function getRateLimiter(): Promise<RateLimiter> {
     return rateLimiterInstance;
   }
 
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  if (
+    process.env.UPSTASH_REDIS_REST_URL &&
+    process.env.UPSTASH_REDIS_REST_TOKEN
+  ) {
     try {
       // Lazy import to avoid loading Redis SDK when not needed
       const { RedisRateLimiter } = await import('./redis');
       rateLimiterInstance = new RedisRateLimiter();
       log.info('Rate limiter initialized with Redis backend');
     } catch (error) {
-      log.error('Failed to initialize Redis rate limiter, falling back to memory', {
-        error,
-      });
+      log.error(
+        'Failed to initialize Redis rate limiter, falling back to memory',
+        {
+          error,
+        }
+      );
       rateLimiterInstance = new MemoryRateLimiter();
     }
   } else {

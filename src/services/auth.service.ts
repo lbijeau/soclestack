@@ -683,7 +683,11 @@ export async function setup2FA(
   const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorSetup;
   const rateLimitKey = `2fa-setup:${context.clientIP}`;
   const rateLimiter = await getRateLimiter();
-  const rateLimitResult = await rateLimiter.check(rateLimitKey, limit, windowMs);
+  const rateLimitResult = await rateLimiter.check(
+    rateLimitKey,
+    limit,
+    windowMs
+  );
   if (rateLimitResult.limited) {
     throw new RateLimitError('Too many requests. Please try again later.', {
       limit: rateLimitResult.headers['X-RateLimit-Limit'],
@@ -811,7 +815,11 @@ export async function disable2FA(
   const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorDisable;
   const rateLimitKey = `2fa-disable:${context.clientIP}`;
   const rateLimiter = await getRateLimiter();
-  const rateLimitResult = await rateLimiter.check(rateLimitKey, limit, windowMs);
+  const rateLimitResult = await rateLimiter.check(
+    rateLimitKey,
+    limit,
+    windowMs
+  );
   if (rateLimitResult.limited) {
     throw new RateLimitError('Too many requests. Please try again later.', {
       limit: rateLimitResult.headers['X-RateLimit-Limit'],
@@ -905,7 +913,11 @@ export async function requestPasswordReset(
   const rateLimitKey = `forgot-password:${clientIP}`;
   const { limit, windowMs } = SECURITY_CONFIG.rateLimits.forgotPassword;
   const rateLimiter = await getRateLimiter();
-  const rateLimitResult = await rateLimiter.check(rateLimitKey, limit, windowMs);
+  const rateLimitResult = await rateLimiter.check(
+    rateLimitKey,
+    limit,
+    windowMs
+  );
   if (rateLimitResult.limited) {
     throw new RateLimitError(
       'Too many password reset requests. Please try again later.',
