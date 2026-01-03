@@ -10,6 +10,7 @@ Welcome to the SocleStack documentation. This guide helps you navigate the avail
 | Understand the architecture | [Technical Architecture](./TECHNICAL_ARCHITECTURE.md) |
 | Set up my environment | [Environment Variables](./ENVIRONMENT.md) |
 | Learn about the database | [Database Schema](./DATABASE.md) |
+| Use the API | [API Examples](./API_EXAMPLES.md) |
 | Deploy to production | [Deployment Guide](./deployment/cloudflare-setup.md) |
 | Run tests | [Testing Guide](./testing/README.md) |
 | Fix a problem | [Troubleshooting](./TROUBLESHOOTING.md) |
@@ -25,6 +26,7 @@ docs/
 ├── MIGRATIONS.md             # Database migration guide
 ├── ENVIRONMENT.md            # Configuration reference
 ├── API_REFERENCE.md          # API endpoints overview
+├── API_EXAMPLES.md           # Practical API usage examples
 ├── TROUBLESHOOTING.md        # Common issues and solutions
 ├── DOCUMENTATION_STATUS.md   # Documentation health metrics
 │
@@ -78,6 +80,17 @@ All configuration options with descriptions and examples.
 
 ### [API Reference](./API_REFERENCE.md)
 Overview of available API endpoints and their purposes.
+
+### [API Examples](./API_EXAMPLES.md)
+Practical, copy-paste ready examples for all major endpoints.
+
+**Covers:**
+- Authentication flows (login, 2FA, token refresh)
+- User management (profile updates, password changes)
+- API key creation and usage
+- Organization management and invites
+- Error handling patterns
+- TypeScript type definitions
 
 ## Deployment
 
