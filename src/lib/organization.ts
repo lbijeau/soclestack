@@ -5,6 +5,7 @@ import crypto from 'crypto';
 /**
  * Generate a URL-friendly slug from an organization name.
  * Handles duplicates by appending a number suffix.
+ * Uses a single query to find existing slugs instead of N+1 queries.
  */
 export async function generateSlug(name: string): Promise<string> {
   const baseSlug = name
@@ -12,16 +13,29 @@ export async function generateSlug(name: string): Promise<string> {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
-  // Check if slug exists
-  let slug = baseSlug;
-  let counter = 1;
+  // Fetch all existing slugs that start with the base slug in a single query
+  const existingSlugs = await prisma.organization.findMany({
+    where: {
+      slug: {
+        startsWith: baseSlug,
+      },
+    },
+    select: { slug: true },
+  });
 
-  while (await prisma.organization.findUnique({ where: { slug } })) {
-    slug = `${baseSlug}-${counter}`;
+  // If no conflicts, use the base slug
+  const slugSet = new Set(existingSlugs.map((org) => org.slug));
+  if (!slugSet.has(baseSlug)) {
+    return baseSlug;
+  }
+
+  // Find the next available suffix
+  let counter = 1;
+  while (slugSet.has(`${baseSlug}-${counter}`)) {
     counter++;
   }
 
-  return slug;
+  return `${baseSlug}-${counter}`;
 }
 
 /**
