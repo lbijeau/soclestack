@@ -10,7 +10,7 @@ export default withMermaid(
     ignoreDeadLinks: 'localhostLinks',
     themeConfig: {
       logo: {
-        src: '/logo.svg',
+        src: '/logo-navbar.svg',
         width: 24,
         height: 24,
         alt: 'SocleStack'
