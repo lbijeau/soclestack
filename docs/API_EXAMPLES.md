@@ -5,10 +5,12 @@ Practical examples for interacting with SocleStack APIs. All examples use `http:
 ## Table of Contents
 
 - [Authentication](#authentication)
+  - [Register](#register)
   - [Login](#login)
   - [Login with 2FA](#login-with-2fa)
   - [Token Refresh](#token-refresh)
   - [Logout](#logout)
+  - [Email Verification](#email-verification)
 - [User Management](#user-management)
   - [Get Current Profile](#get-current-profile)
   - [Update Profile](#update-profile)
@@ -27,6 +29,66 @@ Practical examples for interacting with SocleStack APIs. All examples use `http:
 ---
 
 ## Authentication
+
+### Register
+
+Create a new user account. Users must either create an organization or join via invite.
+
+**cURL:**
+```bash
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "newuser@example.com",
+    "password": "SecurePassword123!",
+    "username": "newuser",
+    "firstName": "New",
+    "lastName": "User",
+    "organizationName": "My Company"
+  }'
+```
+
+**JavaScript (fetch):**
+```javascript
+const response = await fetch('http://localhost:3000/api/auth/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'newuser@example.com',
+    password: 'SecurePassword123!',
+    username: 'newuser',
+    firstName: 'New',
+    lastName: 'User',
+    organizationName: 'My Company', // Creates new org, OR use inviteToken to join existing
+  }),
+});
+
+const data = await response.json();
+```
+
+**Success Response (201):**
+```json
+{
+  "message": "Registration successful. Please check your email to verify your account.",
+  "user": {
+    "id": "user_abc123",
+    "email": "newuser@example.com",
+    "username": "newuser",
+    "firstName": "New",
+    "lastName": "User",
+    "role": "USER",
+    "emailVerified": false,
+    "organization": {
+      "id": "org_xyz789",
+      "name": "My Company",
+      "slug": "my-company",
+      "role": "OWNER"
+    }
+  }
+}
+```
+
+**Note:** New users receive a verification email. Use either `organizationName` (to create a new org) or `inviteToken` (to join existing org via invite).
 
 ### Login
 
@@ -211,6 +273,48 @@ localStorage.removeItem('accessToken');
 localStorage.removeItem('refreshToken');
 ```
 
+### Email Verification
+
+After registration, users receive an email with a verification token.
+
+**Verify Email (from email link):**
+```bash
+curl -X POST http://localhost:3000/api/auth/verify-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "verification_token_from_email"
+  }'
+```
+
+**Success Response:**
+```json
+{
+  "message": "Email verified successfully. You can now log in."
+}
+```
+
+**Resend Verification Email (authenticated):**
+```bash
+curl -X POST http://localhost:3000/api/auth/resend-verification \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+**JavaScript:**
+```javascript
+// Resend verification email for current user
+const response = await fetch('/api/auth/resend-verification', {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+  },
+});
+
+const data = await response.json();
+// { message: "Verification email sent successfully" }
+```
+
+**Note:** Resending is rate-limited to 3 attempts per hour.
+
 ---
 
 ## User Management
@@ -331,7 +435,7 @@ curl -X POST http://localhost:3000/api/keys \
   -d '{
     "name": "CI/CD Pipeline",
     "permission": "READ_ONLY",
-    "expiresAt": "2025-12-31T23:59:59Z"
+    "expiresAt": "2027-12-31T23:59:59Z"
   }'
 ```
 
@@ -363,7 +467,7 @@ console.log('Save this key securely:', data.key);
   "name": "CI/CD Pipeline",
   "keyPrefix": "ssk_x7Kp",
   "permission": "READ_ONLY",
-  "expiresAt": "2025-12-31T23:59:59.000Z",
+  "expiresAt": "2027-12-31T23:59:59.000Z",
   "createdAt": "2024-01-15T10:30:00.000Z",
   "count": 1,
   "limit": 10
@@ -387,7 +491,7 @@ curl http://localhost:3000/api/keys \
       "name": "CI/CD Pipeline",
       "keyPrefix": "ssk_x7Kp",
       "permission": "READ_ONLY",
-      "expiresAt": "2025-12-31T23:59:59.000Z",
+      "expiresAt": "2027-12-31T23:59:59.000Z",
       "lastUsedAt": "2024-01-15T14:22:00.000Z",
       "createdAt": "2024-01-15T10:30:00.000Z"
     }
@@ -542,18 +646,24 @@ const { members } = await response.json();
     {
       "id": "user_123",
       "email": "owner@example.com",
+      "username": "johndoe",
       "firstName": "John",
       "lastName": "Doe",
-      "role": "OWNER",
-      "joinedAt": "2024-01-01T00:00:00.000Z"
+      "organizationRole": "OWNER",
+      "isActive": true,
+      "lastLoginAt": "2024-01-15T10:00:00.000Z",
+      "createdAt": "2024-01-01T00:00:00.000Z"
     },
     {
       "id": "user_456",
       "email": "member@example.com",
+      "username": "janesmith",
       "firstName": "Jane",
       "lastName": "Smith",
-      "role": "MEMBER",
-      "joinedAt": "2024-01-15T10:30:00.000Z"
+      "organizationRole": "MEMBER",
+      "isActive": true,
+      "lastLoginAt": "2024-01-15T14:30:00.000Z",
+      "createdAt": "2024-01-15T10:30:00.000Z"
     }
   ]
 }
@@ -695,10 +805,13 @@ interface Organization {
 interface OrganizationMember {
   id: string;
   email: string;
+  username: string | null;
   firstName: string | null;
   lastName: string | null;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
-  joinedAt: string;
+  organizationRole: 'OWNER' | 'ADMIN' | 'MEMBER';
+  isActive: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
 }
 
 // API Error
