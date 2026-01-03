@@ -6,6 +6,7 @@ import {
   newDeviceAlertTemplate,
   accountLockedTemplate,
   passwordChangedTemplate,
+  emailChangedTemplate,
   twoFactorEnabledTemplate,
   twoFactorDisabledTemplate,
   emailVerificationTemplate,
@@ -91,6 +92,15 @@ export async function sendPasswordChangedNotification(
   changedAt: Date
 ): Promise<boolean> {
   const { subject, html } = passwordChangedTemplate({ changedAt });
+  return sendEmail({ to, subject, html });
+}
+
+export async function sendEmailChangedNotification(
+  to: string,
+  newEmail: string,
+  changedAt: Date
+): Promise<boolean> {
+  const { subject, html } = emailChangedTemplate({ newEmail, changedAt });
   return sendEmail({ to, subject, html });
 }
 

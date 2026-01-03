@@ -126,6 +126,35 @@ export function passwordChangedTemplate(data: PasswordChangedData): {
   };
 }
 
+export interface EmailChangedData {
+  newEmail: string;
+  changedAt: Date;
+}
+
+export function emailChangedTemplate(data: EmailChangedData): {
+  subject: string;
+  html: string;
+} {
+  const content = `
+    <h2 style="color: #f59e0b; font-size: 20px; margin: 0 0 15px 0;">Email Address Changed</h2>
+    <p style="margin: 0 0 15px 0;">
+      The email address associated with your account has been changed.
+    </p>
+    <div style="background-color: #fff; padding: 15px; border-radius: 6px; border-left: 4px solid #f59e0b; margin: 0 0 20px 0;">
+      <p style="margin: 0 0 10px 0;"><strong>New email:</strong> ${data.newEmail}</p>
+      <p style="margin: 0;"><strong>Changed at:</strong> ${formatDateTime(data.changedAt)}</p>
+    </div>
+    <p style="margin: 0 0 15px 0; color: #dc2626; font-weight: 500;">
+      If you didn't make this change, your account may be compromised. Please contact support immediately.
+    </p>
+  `;
+
+  return {
+    subject: `Your ${APP_NAME} email address was changed`,
+    html: wrapTemplate('Email Address Changed', content),
+  };
+}
+
 export function twoFactorEnabledTemplate(): { subject: string; html: string } {
   const content = `
     <h2 style="color: #16a34a; font-size: 20px; margin: 0 0 15px 0;">Two-Factor Authentication Enabled</h2>
