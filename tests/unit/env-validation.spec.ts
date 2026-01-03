@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 /**
  * Environment validation tests.
@@ -6,49 +6,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  * These tests verify the Zod-based environment variable validation
  * implemented in src/lib/env.ts.
  *
- * Note: We test the parsing logic directly rather than importing env,
- * since env is parsed at module load time.
+ * We import the schemas directly from env.ts to ensure tests stay in sync
+ * with the actual validation logic.
  */
 
-// Mock the parseEnv function behavior by testing Zod schemas directly
-import { z } from 'zod';
-
-// Replicate the schema from src/lib/env.ts for testing
-const serverEnvSchema = z
-  .object({
-    JWT_SECRET: z
-      .string()
-      .min(32, 'JWT_SECRET must be at least 32 characters'),
-    JWT_REFRESH_SECRET: z
-      .string()
-      .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
-    SESSION_SECRET: z
-      .string()
-      .min(32, 'SESSION_SECRET must be at least 32 characters'),
-    DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-    NODE_ENV: z
-      .enum(['development', 'production', 'test'])
-      .default('development'),
-    RESEND_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().optional(),
-    GOOGLE_CLIENT_ID: z.string().optional(),
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
-    GITHUB_CLIENT_ID: z.string().optional(),
-    GITHUB_CLIENT_SECRET: z.string().optional(),
-    VALIDATE_ENV_VARS: z.string().optional(),
-  })
-  .refine((data) => !(data.GOOGLE_CLIENT_ID && !data.GOOGLE_CLIENT_SECRET), {
-    message: 'GOOGLE_CLIENT_SECRET is required when GOOGLE_CLIENT_ID is set',
-    path: ['GOOGLE_CLIENT_SECRET'],
-  })
-  .refine((data) => !(data.GITHUB_CLIENT_ID && !data.GITHUB_CLIENT_SECRET), {
-    message: 'GITHUB_CLIENT_SECRET is required when GITHUB_CLIENT_ID is set',
-    path: ['GITHUB_CLIENT_SECRET'],
-  });
-
-const clientEnvSchema = z.object({
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
-});
+import {
+  _serverEnvSchema as serverEnvSchema,
+  _clientEnvSchema as clientEnvSchema,
+} from '@/lib/env';
 
 describe('Environment Validation Schema', () => {
   describe('Required variables', () => {

@@ -20,8 +20,10 @@ export const SESSION_DURATION_MS = 60 * 60 * 24 * 7 * 1000; // 7 days in ms
 export const SESSION_WARNING_THRESHOLD_MS = 60 * 60 * 1000; // Show warning 1 hour before expiry
 
 // Session configuration
+// Note: SESSION_SECRET is validated by env module. In production it's required;
+// in development it uses permissive parsing (see src/lib/env.ts).
 const sessionOptions = {
-  password: env.SESSION_SECRET || 'development-secret-min-32-characters!!',
+  password: env.SESSION_SECRET as string,
   cookieName: 'soclestack-session',
   cookieOptions: {
     secure: env.NODE_ENV === 'production',

@@ -15,9 +15,7 @@ import { z } from 'zod';
 const serverEnvSchema = z
   .object({
     // === Required Security Secrets ===
-    JWT_SECRET: z
-      .string()
-      .min(32, 'JWT_SECRET must be at least 32 characters'),
+    JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
     JWT_REFRESH_SECRET: z
       .string()
       .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
@@ -46,20 +44,14 @@ const serverEnvSchema = z
     // === Optional: Validation Control ===
     VALIDATE_ENV_VARS: z.string().optional(),
   })
-  .refine(
-    (data) => !(data.GOOGLE_CLIENT_ID && !data.GOOGLE_CLIENT_SECRET),
-    {
-      message: 'GOOGLE_CLIENT_SECRET is required when GOOGLE_CLIENT_ID is set',
-      path: ['GOOGLE_CLIENT_SECRET'],
-    }
-  )
-  .refine(
-    (data) => !(data.GITHUB_CLIENT_ID && !data.GITHUB_CLIENT_SECRET),
-    {
-      message: 'GITHUB_CLIENT_SECRET is required when GITHUB_CLIENT_ID is set',
-      path: ['GITHUB_CLIENT_SECRET'],
-    }
-  );
+  .refine((data) => !(data.GOOGLE_CLIENT_ID && !data.GOOGLE_CLIENT_SECRET), {
+    message: 'GOOGLE_CLIENT_SECRET is required when GOOGLE_CLIENT_ID is set',
+    path: ['GOOGLE_CLIENT_SECRET'],
+  })
+  .refine((data) => !(data.GITHUB_CLIENT_ID && !data.GITHUB_CLIENT_SECRET), {
+    message: 'GITHUB_CLIENT_SECRET is required when GITHUB_CLIENT_ID is set',
+    path: ['GITHUB_CLIENT_SECRET'],
+  });
 
 /**
  * Client-safe environment variables schema.
@@ -157,3 +149,9 @@ export const env = parseEnv();
  * @internal
  */
 export { parseEnv as _parseEnv };
+
+/**
+ * Export schemas for testing purposes.
+ * @internal
+ */
+export { serverEnvSchema as _serverEnvSchema, clientEnvSchema as _clientEnvSchema };
