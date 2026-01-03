@@ -1,3 +1,41 @@
+/**
+ * Security Headers Module
+ *
+ * This module provides security headers including Content Security Policy (CSP)
+ * with per-request nonce support.
+ *
+ * ## CSP Nonce Usage
+ *
+ * The middleware generates a unique nonce for each request and passes it via
+ * the `x-nonce` response header. To use inline scripts with CSP:
+ *
+ * 1. In Server Components, read the nonce from headers:
+ *    ```tsx
+ *    import { headers } from 'next/headers';
+ *
+ *    export default async function Layout({ children }) {
+ *      const nonce = (await headers()).get('x-nonce') ?? undefined;
+ *      return (
+ *        <html>
+ *          <head>
+ *            <script nonce={nonce} dangerouslySetInnerHTML={{ __html: '...' }} />
+ *          </head>
+ *          <body>{children}</body>
+ *        </html>
+ *      );
+ *    }
+ *    ```
+ *
+ * 2. For Next.js Script components:
+ *    ```tsx
+ *    import Script from 'next/script';
+ *    <Script nonce={nonce} strategy="beforeInteractive">...</Script>
+ *    ```
+ *
+ * Note: External scripts loaded via `src` attribute don't need nonces if they
+ * match the 'self' directive. Only inline scripts require the nonce attribute.
+ */
+
 // Security headers configuration - Edge Runtime compatible
 export const securityHeaders = {
   'X-Frame-Options': 'DENY',

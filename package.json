@@ -18,6 +18,8 @@
     "docs:openapi": "npx tsx scripts/generate-openapi.ts",
     "docs:all": "npm run docs:typedoc && npm run docs:openapi && npm run docs:build",
     "test": "playwright test",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
@@ -69,6 +71,7 @@
     "typedoc-vitepress-theme": "^1.1.2",
     "typescript": "^5",
     "vitepress": "^1.6.4",
-    "vitepress-plugin-mermaid": "^2.0.17"
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vitest": "^4.0.16"
   }
 }
