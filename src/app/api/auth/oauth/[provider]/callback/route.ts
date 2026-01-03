@@ -84,6 +84,27 @@ export async function GET(
     return NextResponse.redirect(`${appUrl}/login?error=profile_fetch_failed`);
   }
 
+  // Reject unverified emails from OAuth providers
+  if (!profile.emailVerified) {
+    console.warn(
+      `OAuth login rejected: unverified email from ${provider}`,
+      `email=${profile.email}`,
+      `ip=${ipAddress}`
+    );
+    await logAuditEvent({
+      action: 'AUTH_OAUTH_LOGIN_FAILURE',
+      category: 'authentication',
+      ipAddress,
+      userAgent,
+      metadata: {
+        provider,
+        reason: 'email_not_verified',
+        email: profile.email,
+      },
+    });
+    return NextResponse.redirect(`${appUrl}/login?error=email_not_verified`);
+  }
+
   // Check if this OAuth account is already linked
   const existingOAuthAccount = await prisma.oAuthAccount.findUnique({
     where: {
@@ -166,7 +187,7 @@ export async function GET(
 
 async function handleLinkToExistingAccount(
   provider: OAuthProvider,
-  profile: { id: string; email: string },
+  profile: { id: string; email: string; emailVerified: boolean },
   tokens: { access_token: string; refresh_token?: string; expires_in?: number },
   userId: string,
   existingOAuthAccount: { user: { id: string } } | null,
@@ -174,6 +195,21 @@ async function handleLinkToExistingAccount(
   userAgent: string | undefined,
   appUrl: string
 ) {
+  // Reject linking with unverified email
+  if (!profile.emailVerified) {
+    await logAuditEvent({
+      action: 'AUTH_OAUTH_LOGIN_FAILURE',
+      category: 'authentication',
+      userId,
+      ipAddress,
+      userAgent,
+      metadata: { provider, reason: 'email_not_verified', context: 'link' },
+    });
+    return NextResponse.redirect(
+      `${appUrl}/profile/security?error=email_not_verified`
+    );
+  }
+
   // Check if this OAuth is already linked to another account
   if (existingOAuthAccount && existingOAuthAccount.user.id !== userId) {
     return NextResponse.redirect(
