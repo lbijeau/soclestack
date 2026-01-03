@@ -5,6 +5,9 @@ hero:
   name: SocleStack
   text: Enterprise-grade Next.js User Management
   tagline: The foundational block upon which your SaaS application is built.
+  image:
+    src: /logo.png
+    alt: SocleStack Logo
   actions:
     - theme: brand
       text: Get Started

@@ -8,7 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { CheckCircle, Users, Shield, Globe } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -71,8 +72,14 @@ export default async function HomePage() {
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               <Card>
                 <CardHeader>
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
-                    <Shield className="h-6 w-6 text-blue-600" />
+                  <div className="mb-4 flex h-32 w-full items-center justify-center rounded-lg bg-blue-50">
+                    <Image
+                      src="/images/auth-icon.png"
+                      alt="Secure Authentication"
+                      width={128}
+                      height={128}
+                      className="object-contain"
+                    />
                   </div>
                   <CardTitle>Secure Authentication</CardTitle>
                   <CardDescription>
@@ -104,8 +111,14 @@ export default async function HomePage() {
 
               <Card>
                 <CardHeader>
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
-                    <Users className="h-6 w-6 text-green-600" />
+                  <div className="mb-4 flex h-32 w-full items-center justify-center rounded-lg bg-green-50">
+                    <Image
+                      src="/images/rbac-icon.png"
+                      alt="Role-Based Access"
+                      width={128}
+                      height={128}
+                      className="object-contain"
+                    />
                   </div>
                   <CardTitle>Role-Based Access</CardTitle>
                   <CardDescription>
@@ -137,8 +150,14 @@ export default async function HomePage() {
 
               <Card>
                 <CardHeader>
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
-                    <Globe className="h-6 w-6 text-purple-600" />
+                  <div className="mb-4 flex h-32 w-full items-center justify-center rounded-lg bg-purple-50">
+                    <Image
+                      src="/images/stack-icon.png"
+                      alt="Modern Stack"
+                      width={128}
+                      height={128}
+                      className="object-contain"
+                    />
                   </div>
                   <CardTitle>Modern Stack</CardTitle>
                   <CardDescription>
