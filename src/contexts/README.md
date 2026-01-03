@@ -2,87 +2,129 @@
 
 ## Purpose
 
-React Context providers for global state management across the application. This directory is currently empty but is intended to house React Context implementations for authentication state, theme management, and other global application state.
+This directory is reserved for React Context providers if global client-side state management becomes necessary. Currently, the application uses Next.js App Router's server-first architecture, which eliminates the need for most traditional React Context patterns.
 
-## Contents
+## Current State
 
-Currently empty - prepared for future context implementations.
+**This directory is intentionally empty.** The application's architecture makes React Context largely unnecessary:
 
-## Planned Usage
+### Why No React Context?
 
-### Authentication Context (Future)
+1. **Server Components**: Pages fetch data server-side using `getCurrentUser()` and pass it as props
+2. **Server Sessions**: Authentication state is managed server-side with iron-session
+3. **Props Drilling**: User data flows from server components to client components via props
+4. **API Routes**: Client components make direct API calls for data mutations
 
-```typescript
-// Planned: AuthContext for global authentication state
-import { createContext, useContext } from 'react'
-import { AuthState } from '@/types/auth'
+### Current Data Flow
 
-const AuthContext = createContext<AuthState | null>(null)
+```
+Server Component (page.tsx)
+    │
+    ├── getCurrentUser() → iron-session
+    │
+    └── Passes user as props to:
+        │
+        └── Client Component (component.tsx)
+            │
+            └── Uses apiClient for mutations
+```
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Authentication state management
-  return (
-    <AuthContext.Provider value={authState}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
+## State Management Patterns
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
+### Authentication State
+
+```tsx
+// Server component pattern (pages)
+import { getCurrentUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+
+export default async function ProtectedPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect('/login');
   }
-  return context
+
+  return <ClientComponent user={user} />;
 }
 ```
 
-### Theme Context (Future)
+### Client-Side Data Fetching
 
-```typescript
-// Planned: ThemeContext for dark/light mode
-interface ThemeState {
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
+```tsx
+// Client component pattern
+'use client';
+
+import { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api-client';
+
+export function DataComponent() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiClient
+      .get('/api/data')
+      .then(setData)
+      .catch(() => setError('Failed to load data'));
+  }, []);
+
+  if (error) return <div>{error}</div>;
+  return <div>{/* render data */}</div>;
 }
-
-const ThemeContext = createContext<ThemeState | null>(null);
 ```
+
+### Form State
+
+```tsx
+// Local state for forms
+'use client';
+
+import { useState } from 'react';
+
+export function FormComponent() {
+  const [formData, setFormData] = useState({ field: '' });
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Form logic...
+}
+```
+
+## When to Add Contexts
+
+Consider adding React Context only if:
+
+1. **Deep prop drilling** becomes unwieldy (>3-4 levels)
+2. **Real-time updates** across many unrelated components are needed
+3. **Complex client-side state** cannot be managed with server components
+4. **Theme switching** or other UI preferences need instant updates
+
+### Potential Future Contexts
+
+If needed, these might be candidates:
+
+| Context             | Use Case                                       |
+| ------------------- | ---------------------------------------------- |
+| ThemeContext        | Dark/light mode toggle with instant UI updates |
+| NotificationContext | Global toast/alert management                  |
+| ModalContext        | Centralized modal state management             |
 
 ## Dependencies
 
-- **React**: Context API and hooks
-- **@/types/auth**: Type definitions for authentication state
-- **@/lib/auth**: Authentication utilities and session management
+If contexts are added, they would use:
 
-## Architecture Notes
-
-- **Server-First**: Currently using server-side session management with iron-session
-- **Future Enhancement**: Will add client-side state management for improved UX
-- **Hydration Safe**: Context implementations will handle SSR/CSR hydration properly
-- **Type Safety**: All contexts will be fully typed with TypeScript
+- **React**: `createContext`, `useContext` hooks
+- **@/lib/auth**: Authentication utilities
+- **@/lib/api-client**: API communication
 
 ## Integration Points
 
-- **Layout Components**: Root layout will wrap app with context providers
-- **Page Components**: Pages will consume context through custom hooks
-- **API Integration**: Contexts will sync with server-side authentication state
-- **Middleware**: Will coordinate with Next.js middleware for route protection
+- **`src/app/layout.tsx`**: Context providers would wrap the app here
+- **Client components**: Would consume contexts via custom hooks
+- **Server components**: Cannot use contexts (server-side only)
 
-## Current State Management
+## Related Documentation
 
-Without React contexts, the application currently uses:
-
-- **Server Sessions**: iron-session for server-side state
-- **API Calls**: Direct API calls from components for data fetching
-- **URL State**: Next.js router for navigation state
-- **Form State**: Local component state for form management
-
-## Migration Path
-
-When implementing contexts:
-
-1. **AuthContext**: Wrap authentication state and sync with server sessions
-2. **ThemeContext**: Add dark/light mode toggle functionality
-3. **NotificationContext**: Global notification/toast management
-4. **UserPreferencesContext**: User settings and preferences
+- [Technical Architecture](../../docs/TECHNICAL_ARCHITECTURE.md) - System design overview
+- [Auth Library](../lib/README.md) - Authentication implementation
+- [API Client](../lib/api-client.ts) - Client-side API utilities
