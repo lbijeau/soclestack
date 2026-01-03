@@ -328,3 +328,11 @@ function MobileMenu() {
 - **Logo Customization**: Easy logo and branding updates
 - **Menu Structure**: Configurable navigation items
 - **Style Overrides**: Custom className support for styling extensions
+
+## Related Documentation
+
+- [Auth Library](../../lib/README.md) - Authentication utilities used for user state
+- [Auth Components](../auth/README.md) - Login/logout forms
+- [Admin Components](../admin/README.md) - Admin panel navigation target
+- [Logout API Route](../../app/api/auth/logout/README.md) - Logout endpoint
+- [Technical Architecture](../../../docs/TECHNICAL_ARCHITECTURE.md) - System design

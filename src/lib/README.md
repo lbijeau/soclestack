@@ -131,3 +131,15 @@ Required environment variables:
 - `SESSION_SECRET`: Secret for iron-session encryption
 - `JWT_SECRET`: Secret for JWT token signing
 - `DATABASE_URL`: Prisma database connection string
+
+## Related Documentation
+
+- [Auth Components](../components/auth/README.md) - Authentication UI components
+- [Profile Components](../components/profile/README.md) - Profile management components
+- [Login API Route](../app/api/auth/login/README.md) - Login endpoint
+- [Register API Route](../app/api/auth/register/README.md) - Registration endpoint
+- [API Keys Routes](../app/api/keys/README.md) - API key management
+- [Organization Pages](../app/organization/README.md) - Multi-tenant management
+- [API Examples](../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../docs/TECHNICAL_ARCHITECTURE.md) - System design
+- [Environment Variables](../../docs/ENVIRONMENT.md) - Configuration reference

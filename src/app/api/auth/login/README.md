@@ -179,3 +179,12 @@ async function login(email: string, password: string) {
 - **Login Forms**: Used by `/app/login` and `/app/(auth)/login` pages
 - **Session Management**: Creates sessions used throughout the application
 - **Token Storage**: Tokens used for API authentication and session refresh
+
+## Related Documentation
+
+- [Auth Components](../../../../components/auth/README.md) - Login form implementation
+- [Auth Library](../../../../lib/README.md) - Session and authentication utilities
+- [Register API Route](../register/README.md) - User registration endpoint
+- [Logout API Route](../logout/README.md) - Session termination endpoint
+- [API Examples](../../../../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../../../../docs/TECHNICAL_ARCHITECTURE.md) - Authentication system design

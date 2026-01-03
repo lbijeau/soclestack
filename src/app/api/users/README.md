@@ -256,3 +256,12 @@ function UserManagementTable() {
 - **Pagination**: Efficient skip/take implementation
 - **Field Selection**: Minimal data transfer with select queries
 - **Caching**: Consider implementing Redis caching for frequently accessed data
+
+## Related Documentation
+
+- [User Detail API Route](./[id]/README.md) - Individual user operations
+- [User Profile API Route](./profile/README.md) - User profile management
+- [Admin Components](../../../components/admin/README.md) - User management UI
+- [Auth Library](../../../lib/README.md) - Authentication utilities
+- [API Examples](../../../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../../../docs/TECHNICAL_ARCHITECTURE.md) - System design

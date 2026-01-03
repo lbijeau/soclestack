@@ -261,3 +261,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 - **CSS Purging**: Tailwind CSS purges unused styles
 - **Bundle Size**: Minimal JavaScript footprint
 - **Runtime Performance**: Optimized re-renders with proper prop handling
+
+## Related Documentation
+
+- [Auth Components](../auth/README.md) - Components using UI primitives
+- [Profile Components](../profile/README.md) - Profile forms using UI components
+- [Admin Components](../admin/README.md) - Admin interfaces using UI components
+- [Forms Components](../forms/README.md) - Form patterns built on UI components
+- [Technical Architecture](../../../docs/TECHNICAL_ARCHITECTURE.md) - System design

@@ -308,3 +308,12 @@ function UserManagement({ userId }: { userId: string }) {
 - **Status Updates**: Boolean validation for isActive field
 - **Self-Modification**: Users cannot modify their own role or status
 - **Admin Requirements**: Role and status changes require admin permissions
+
+## Related Documentation
+
+- [Users API Route](../README.md) - User listing endpoint
+- [User Profile API Route](../profile/README.md) - User profile management
+- [Admin Components](../../../../components/admin/README.md) - User management UI
+- [Auth Library](../../../../lib/README.md) - Authentication and authorization utilities
+- [API Examples](../../../../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../../../../docs/TECHNICAL_ARCHITECTURE.md) - System design
