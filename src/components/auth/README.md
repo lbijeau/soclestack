@@ -197,3 +197,12 @@ export default function ForgotPasswordPage() {
 - **Accessibility**: WCAG compliant form implementation
 - **Performance**: Optimized re-renders and API calls
 - **Security**: Secure form handling and validation
+
+## Related Documentation
+
+- [Auth Library](../../lib/README.md) - Session management and authentication utilities
+- [Login API Route](../../app/api/auth/login/README.md) - Login endpoint specification
+- [Register API Route](../../app/api/auth/register/README.md) - Registration endpoint specification
+- [Profile Components](../profile/README.md) - Post-authentication profile management
+- [API Examples](../../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../../docs/TECHNICAL_ARCHITECTURE.md) - Authentication system design

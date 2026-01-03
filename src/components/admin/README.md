@@ -269,3 +269,12 @@ const handleBulkAction = async (action: string, userIds: string[]) => {
 - **User Profile Pages**: Link to individual user profile management
 - **Audit Logs**: Integration with system audit logging
 - **Analytics**: User management statistics and reports
+
+## Related Documentation
+
+- [Users API Route](../../app/api/users/README.md) - User listing endpoint
+- [User Detail API Route](../../app/api/users/[id]/README.md) - Individual user operations
+- [Auth Library](../../lib/README.md) - Authentication and authorization utilities
+- [Navigation Components](../navigation/README.md) - Admin navigation integration
+- [API Examples](../../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../../docs/TECHNICAL_ARCHITECTURE.md) - System design

@@ -312,3 +312,11 @@ function PasswordChangeForm() {
 - **Names**: Optional fields, reasonable length limits
 - **Password**: Minimum 8 characters, complexity requirements
 - **Current Password**: Must match existing password hash
+
+## Related Documentation
+
+- [Profile Components](../../../../components/profile/README.md) - Profile and password forms
+- [Auth Library](../../../../lib/README.md) - Authentication utilities
+- [Users API Route](../README.md) - User listing endpoint
+- [API Examples](../../../../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../../../../docs/TECHNICAL_ARCHITECTURE.md) - System design

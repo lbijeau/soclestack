@@ -347,3 +347,12 @@ const handlePasswordChange = async (e: React.FormEvent) => {
 - **Error Announcements**: ARIA live regions for error messages
 - **Keyboard Navigation**: Full keyboard accessibility
 - **Focus Management**: Logical tab order and focus indicators
+
+## Related Documentation
+
+- [User Profile API Route](../../app/api/users/profile/README.md) - Profile update endpoint
+- [Auth Components](../auth/README.md) - Authentication forms
+- [Auth Library](../../lib/README.md) - Session management utilities
+- [Dashboard Components](../dashboard/README.md) - Dashboard widgets
+- [API Examples](../../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../../docs/TECHNICAL_ARCHITECTURE.md) - System design

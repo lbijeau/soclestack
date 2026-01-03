@@ -217,3 +217,11 @@ async function register(userData: RegisterData) {
 - **Registration Forms**: Used by `/app/register` and `/app/(auth)/register` pages
 - **Email Verification**: Tokens used by `/api/auth/verify-email` endpoint
 - **User Management**: Created users appear in admin user management interfaces
+
+## Related Documentation
+
+- [Auth Components](../../../../components/auth/README.md) - Registration form implementation
+- [Auth Library](../../../../lib/README.md) - Authentication utilities
+- [Login API Route](../login/README.md) - User login endpoint
+- [API Examples](../../../../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../../../../docs/TECHNICAL_ARCHITECTURE.md) - Authentication system design
