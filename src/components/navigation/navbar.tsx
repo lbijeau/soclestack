@@ -12,7 +12,7 @@ import { User, Settings, LogOut, Users } from 'lucide-react';
 function Logo() {
   return (
     <Image
-      src="/images/logo.png"
+      src="/images/logo.svg"
       alt="SocleStack Logo"
       width={32}
       height={32}
