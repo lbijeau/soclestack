@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth-edge';
-import { securityHeaders, contentSecurityPolicy } from '@/lib/security-headers';
+import { securityHeaders, buildCSP } from '@/lib/security-headers';
 
 // Define protected routes and their required roles
 const protectedRoutes = {
@@ -43,16 +43,23 @@ const publicApiRoutes = ['/api/invites'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Generate unique nonce for this request (used for CSP)
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+
   // Apply security headers to all requests
   const response = NextResponse.next();
+
+  // Pass nonce to downstream via header (for components that need it)
+  response.headers.set('x-nonce', nonce);
 
   // Add security headers
   Object.entries(securityHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
   });
 
-  // Add Content Security Policy
-  response.headers.set('Content-Security-Policy', contentSecurityPolicy);
+  // Add Content Security Policy with per-request nonce
+  const isDev = process.env.NODE_ENV === 'development';
+  response.headers.set('Content-Security-Policy', buildCSP(nonce, isDev));
 
   // Skip middleware for static files and API routes that don't need protection
   if (
