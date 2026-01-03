@@ -44,13 +44,20 @@ vi.mock('@/lib/db', () => ({
 vi.mock('@/lib/auth', () => ({
   authenticateUser: vi.fn(),
   createUserSession: vi.fn(),
-  isRateLimited: vi.fn(),
-  getRateLimitInfo: vi.fn().mockReturnValue({
-    limit: 10,
-    remaining: 0,
-    reset: Math.floor(Date.now() / 1000) + 900,
-  }),
 }));
+
+vi.mock('@/lib/rate-limiter', async () => {
+  const mockRateLimiter = {
+    check: vi.fn(),
+    peek: vi.fn(),
+    reset: vi.fn(),
+    shutdown: vi.fn(),
+  };
+  return {
+    getRateLimiter: vi.fn().mockResolvedValue(mockRateLimiter),
+    __mockRateLimiter: mockRateLimiter,
+  };
+});
 
 vi.mock('@/lib/auth/lockout', () => ({
   checkAccountLocked: vi.fn(),
@@ -105,7 +112,8 @@ vi.mock('@/lib/organization', () => ({
 
 // Import after mocks
 import { prisma } from '@/lib/db';
-import { authenticateUser, isRateLimited } from '@/lib/auth';
+import { authenticateUser } from '@/lib/auth';
+import { __mockRateLimiter as mockRateLimiter } from '@/lib/rate-limiter';
 import { checkAccountLocked, recordFailedAttempt } from '@/lib/auth/lockout';
 import { verifyTOTPCode, generateTOTPSecret } from '@/lib/auth/totp';
 import { generateBackupCodes, deleteAllBackupCodes } from '@/lib/auth/backup-codes';
@@ -129,7 +137,14 @@ describe('Auth Service Functions', () => {
 
   describe('login', () => {
     it('should throw RateLimitError when rate limited', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(true);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: true,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 0,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
 
       await expect(
         login({ email: 'test@example.com', password: 'password' }, mockContext)
@@ -137,7 +152,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw ValidationError for invalid input', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
 
       await expect(
         login({ email: 'invalid-email', password: '' }, mockContext)
@@ -145,7 +167,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw AuthenticationError for invalid credentials', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
       vi.mocked(authenticateUser).mockResolvedValue(null);
 
@@ -155,7 +184,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw AccountLockedError when account is locked', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         email: 'test@example.com',
@@ -171,7 +207,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw EmailNotVerifiedError when email not verified', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         email: 'test@example.com',
@@ -191,20 +234,41 @@ describe('Auth Service Functions', () => {
 
   describe('setup2FA', () => {
     it('should throw RateLimitError when rate limited', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(true);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: true,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 0,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
 
       await expect(setup2FA('user-id', mockContext)).rejects.toThrow(RateLimitError);
     });
 
     it('should throw NotFoundError when user not found', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
       await expect(setup2FA('user-id', mockContext)).rejects.toThrow(NotFoundError);
     });
 
     it('should throw ConflictError when 2FA already enabled', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         email: 'test@example.com',
@@ -215,7 +279,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw ImpersonationBlockedError when impersonating', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       const impersonatingContext = { ...mockContext, isImpersonating: true };
 
       await expect(setup2FA('user-id', impersonatingContext)).rejects.toThrow(
@@ -224,7 +295,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should return QR code and backup codes on success', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         email: 'test@example.com',
@@ -315,7 +393,14 @@ describe('Auth Service Functions', () => {
 
   describe('disable2FA', () => {
     it('should throw RateLimitError when rate limited', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(true);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: true,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 0,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
 
       await expect(disable2FA('user-id', '123456', mockContext)).rejects.toThrow(
         RateLimitError
@@ -323,7 +408,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw NotFoundError when user not found', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
       await expect(disable2FA('user-id', '123456', mockContext)).rejects.toThrow(
@@ -332,7 +424,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw ImpersonationBlockedError when impersonating', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       const impersonatingContext = { ...mockContext, isImpersonating: true };
 
       await expect(disable2FA('user-id', '123456', impersonatingContext)).rejects.toThrow(
@@ -341,7 +440,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw AuthorizationError when admin tries to disable', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         role: 'ADMIN',
@@ -355,7 +461,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw ValidationError when 2FA not enabled', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         role: 'USER',
@@ -369,7 +482,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should throw AuthenticationError for invalid code', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         role: 'USER',
@@ -385,7 +505,14 @@ describe('Auth Service Functions', () => {
     });
 
     it('should disable 2FA on valid code', async () => {
-      vi.mocked(isRateLimited).mockReturnValue(false);
+      mockRateLimiter.check.mockResolvedValue({
+        limited: false,
+        headers: {
+          'X-RateLimit-Limit': 10,
+          'X-RateLimit-Remaining': 9,
+          'X-RateLimit-Reset': Math.floor(Date.now() / 1000) + 900,
+        },
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
         role: 'USER',
