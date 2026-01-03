@@ -8,8 +8,8 @@ This directory contains components that manage the user's session lifecycle, pro
 
 ## Contents
 
-| File | Description |
-|------|-------------|
+| File                          | Description                                                   |
+| ----------------------------- | ------------------------------------------------------------- |
 | `session-timeout-warning.tsx` | Displays a warning when the user's session is about to expire |
 
 ## Component Architecture
@@ -26,10 +26,10 @@ This component takes no props - it manages its own state internally.
 
 ```typescript
 interface SessionStatus {
-  isValid: boolean;        // Whether the session is still valid
+  isValid: boolean; // Whether the session is still valid
   expiresAt: number | null; // Unix timestamp when session expires
   timeRemainingMs: number | null; // Milliseconds until expiry
-  shouldWarn: boolean;     // Whether to show the warning
+  shouldWarn: boolean; // Whether to show the warning
 }
 ```
 
@@ -69,6 +69,8 @@ export default function RootLayout({
 
 ### Conditional Rendering
 
+> **Note**: This is typically unnecessary. The component already returns `null` when no warning is needed (user not authenticated or session not expiring soon). Only use conditional rendering if you want to completely prevent the component from polling on certain routes.
+
 If you need session warnings only on certain pages:
 
 ```tsx
@@ -82,7 +84,7 @@ export function ConditionalSessionWarning() {
 
   // Only show on authenticated routes
   const authenticatedPaths = ['/dashboard', '/profile', '/admin'];
-  const shouldShow = authenticatedPaths.some(p => pathname.startsWith(p));
+  const shouldShow = authenticatedPaths.some((p) => pathname.startsWith(p));
 
   if (!shouldShow) return null;
 
@@ -112,6 +114,7 @@ GET /api/auth/session-status
 ```
 
 **Response:**
+
 ```json
 {
   "isValid": true,
@@ -128,6 +131,7 @@ POST /api/auth/extend-session
 ```
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -139,6 +143,7 @@ POST /api/auth/extend-session
 ```
 
 **Error Response (401):**
+
 ```json
 {
   "error": {
@@ -152,17 +157,19 @@ POST /api/auth/extend-session
 
 Session timing is configured in `src/lib/auth.ts`:
 
-| Constant | Default | Description |
-|----------|---------|-------------|
-| `SESSION_DURATION_MS` | 1 hour | Total session duration |
+| Constant                       | Default   | Description                   |
+| ------------------------------ | --------- | ----------------------------- |
+| `SESSION_DURATION_MS`          | 1 hour    | Total session duration        |
 | `SESSION_WARNING_THRESHOLD_MS` | 5 minutes | When to start showing warning |
 
 Component-level timing:
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `CHECK_INTERVAL_MS` | 60 seconds | How often to poll session status |
-| `WARNING_UPDATE_INTERVAL_MS` | 1 second | Countdown update frequency |
+| Constant                     | Value      | Description                      |
+| ---------------------------- | ---------- | -------------------------------- |
+| `CHECK_INTERVAL_MS`          | 60 seconds | How often to poll session status |
+| `WARNING_UPDATE_INTERVAL_MS` | 1 second   | Countdown update frequency       |
+
+> **Timing Note**: Due to the 60-second polling interval, there may be up to a 60-second delay before the warning appears after crossing the threshold. This is a trade-off between responsiveness and minimizing API calls.
 
 ## Styling
 
@@ -205,8 +212,8 @@ export function CustomSessionWarning() {
 ## Related Documentation
 
 - [Auth Library](../../lib/README.md) - Session management implementation
-- [API Auth Routes](../../app/api/auth/session-status/route.ts) - Session status endpoint
-- [Security Configuration](../../lib/config/security.ts) - Session timing settings
+- [API Examples](../../../docs/API_EXAMPLES.md) - API usage patterns
+- [Technical Architecture](../../../docs/TECHNICAL_ARCHITECTURE.md) - System design overview
 
 ## Related Components
 
