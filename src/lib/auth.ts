@@ -15,6 +15,7 @@ import {
 import { User, ApiKeyPermission, Role } from '@prisma/client';
 import { validateApiKey, isMethodAllowed } from './api-keys';
 import { log } from './logger';
+import { SECURITY_CONFIG } from './config/security';
 
 // ============================================================================
 // Session Configuration
@@ -465,8 +466,7 @@ export function startRateLimitCleanup(intervalMs?: number): void {
     return;
   }
 
-  // Import dynamically to avoid circular dependency
-  const interval = intervalMs ?? 60000; // Default 60 seconds
+  const interval = intervalMs ?? SECURITY_CONFIG.rateLimits.cleanupIntervalMs;
 
   cleanupIntervalId = setInterval(() => {
     const now = Date.now();
