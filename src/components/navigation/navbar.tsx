@@ -9,6 +9,19 @@ import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
 import { QuickActionsMenu } from './quick-actions-menu';
 import { User, Settings, LogOut, Users } from 'lucide-react';
 
+function Logo() {
+  return (
+    <Image
+      src="/images/logo.png"
+      alt="SocleStack Logo"
+      width={32}
+      height={32}
+      className="rounded"
+      priority
+    />
+  );
+}
+
 interface User {
   id: string;
   email: string;
@@ -99,13 +112,7 @@ export function Navbar() {
                 href="/"
                 className="flex items-center space-x-2 text-xl font-bold text-gray-900"
               >
-                <Image
-                  src="/images/logo.png"
-                  alt="SocleStack Logo"
-                  width={32}
-                  height={32}
-                  className="rounded"
-                />
+                <Logo />
                 <span>SocleStack</span>
               </Link>
             </div>
@@ -140,13 +147,7 @@ export function Navbar() {
                 href="/dashboard"
                 className="flex items-center space-x-2 text-xl font-bold text-gray-900"
               >
-                <Image
-                  src="/images/logo.png"
-                  alt="SocleStack Logo"
-                  width={32}
-                  height={32}
-                  className="rounded"
-                />
+                <Logo />
                 <span>SocleStack</span>
               </Link>
 
