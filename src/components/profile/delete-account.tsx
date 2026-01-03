@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { AlertTriangle, Trash2 } from 'lucide-react';
+import { apiPost } from '@/lib/api-client';
 
 interface DeleteAccountProps {
   isAdmin: boolean;
@@ -40,15 +41,9 @@ export function DeleteAccount({
     setError('');
 
     try {
-      const response = await fetch('/api/users/delete-account', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          password,
-          confirmation,
-        }),
+      const response = await apiPost('/api/users/delete-account', {
+        password,
+        confirmation,
       });
 
       const data = await response.json();

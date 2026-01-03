@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { createUserSession, getClientIP } from '@/lib/auth';
 import { verifyTOTPCode } from '@/lib/auth/totp';
 import {
@@ -9,6 +10,7 @@ import { verifyPending2FAToken } from '@/lib/auth/pending-2fa';
 import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { generateCsrfToken, CSRF_CONFIG } from '@/lib/csrf';
 
 export const runtime = 'nodejs';
 
@@ -112,6 +114,15 @@ export async function POST(req: NextRequest) {
 
     // Check remaining backup codes
     const remainingBackupCodes = await getRemainingBackupCodeCount(user.id);
+
+    // Set CSRF token cookie
+    const csrfToken = generateCsrfToken();
+    const cookieStore = await cookies();
+    cookieStore.set(
+      CSRF_CONFIG.cookieName,
+      csrfToken,
+      CSRF_CONFIG.cookieOptions
+    );
 
     return NextResponse.json({
       message: 'Login successful',

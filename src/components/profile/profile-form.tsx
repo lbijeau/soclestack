@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { UpdateProfileInput } from '@/lib/validations';
 import { AuthError } from '@/types/auth';
+import { apiPatch } from '@/lib/api-client';
 
 interface User {
   id: string;
@@ -40,13 +41,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     setErrors({});
 
     try {
-      const response = await fetch('/api/users/profile', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await apiPatch('/api/users/profile', formData);
 
       const data = await response.json();
 

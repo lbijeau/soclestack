@@ -23,6 +23,7 @@ import {
   Edit2,
 } from 'lucide-react';
 import { ApiKeyPermission } from '@prisma/client';
+import { apiPost, apiPatch, apiDelete } from '@/lib/api-client';
 
 interface ApiKey {
   id: string;
@@ -109,17 +110,13 @@ export function ApiKeys() {
     setError('');
 
     try {
-      const res = await fetch('/api/keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: createName.trim(),
-          permission: createPermission,
-          expiresAt:
-            createExpiry === 'custom' && createExpiryDate
-              ? new Date(createExpiryDate).toISOString()
-              : null,
-        }),
+      const res = await apiPost('/api/keys', {
+        name: createName.trim(),
+        permission: createPermission,
+        expiresAt:
+          createExpiry === 'custom' && createExpiryDate
+            ? new Date(createExpiryDate).toISOString()
+            : null,
       });
 
       if (!res.ok) {
@@ -205,17 +202,13 @@ export function ApiKeys() {
     setError('');
 
     try {
-      const res = await fetch(`/api/keys/${editingKey.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editName.trim(),
-          permission: editPermission,
-          expiresAt:
-            editExpiry === 'custom' && editExpiryDate
-              ? new Date(editExpiryDate).toISOString()
-              : null,
-        }),
+      const res = await apiPatch(`/api/keys/${editingKey.id}`, {
+        name: editName.trim(),
+        permission: editPermission,
+        expiresAt:
+          editExpiry === 'custom' && editExpiryDate
+            ? new Date(editExpiryDate).toISOString()
+            : null,
       });
 
       if (!res.ok) {
@@ -249,7 +242,7 @@ export function ApiKeys() {
     setError('');
 
     try {
-      const res = await fetch(`/api/keys/${key.id}`, { method: 'DELETE' });
+      const res = await apiDelete(`/api/keys/${key.id}`);
 
       if (!res.ok) {
         const data = await res.json();

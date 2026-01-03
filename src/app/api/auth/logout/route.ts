@@ -6,6 +6,7 @@ import {
   REMEMBER_ME_COOKIE_NAME,
 } from '@/lib/auth/remember-me';
 import { logAuditEvent } from '@/lib/audit';
+import { CSRF_CONFIG } from '@/lib/csrf';
 
 export const runtime = 'nodejs';
 
@@ -37,6 +38,9 @@ export async function POST(req: NextRequest) {
       // Clear the cookie
       cookieStore.delete(REMEMBER_ME_COOKIE_NAME);
     }
+
+    // Clear CSRF token cookie
+    cookieStore.delete(CSRF_CONFIG.cookieName);
 
     // Log the logout event
     if (userId) {

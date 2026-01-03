@@ -18,6 +18,7 @@ import {
   Shield,
   CheckCircle,
 } from 'lucide-react';
+import { apiDelete } from '@/lib/api-client';
 
 interface Device {
   id: string;
@@ -98,9 +99,7 @@ export function TrustedDevices() {
     setSuccessMessage('');
 
     try {
-      const response = await fetch(`/api/users/devices/${deviceId}`, {
-        method: 'DELETE',
-      });
+      const response = await apiDelete(`/api/users/devices/${deviceId}`);
 
       const data = await response.json();
 
