@@ -77,10 +77,13 @@ export async function middleware(request: NextRequest) {
   ) {
     const csrfResult = validateCsrfRequest(request);
     if (!csrfResult.valid) {
+      const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
       console.warn(
         `CSRF validation failed: ${csrfResult.error}`,
+        `requestId=${requestId}`,
         `path=${pathname}`,
-        `ip=${request.headers.get('x-forwarded-for') || 'unknown'}`,
+        `method=${request.method}`,
+        `ip=${request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'}`,
         `ua=${request.headers.get('user-agent') || 'unknown'}`
       );
       return createCsrfErrorResponse(csrfResult.error);

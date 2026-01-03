@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   generateCsrfToken,
   validateCsrfToken,
+  isValidTokenFormat,
   isRouteExcludedFromCsrf,
   requiresCsrfValidation,
   hasValidApiKeyHeader,
@@ -42,6 +43,8 @@ describe('CSRF Configuration', () => {
     expect(CSRF_EXCLUDED_ROUTES).toContain('/api/auth/forgot-password');
     expect(CSRF_EXCLUDED_ROUTES).toContain('/api/auth/reset-password');
     expect(CSRF_EXCLUDED_ROUTES).toContain('/api/auth/verify-email');
+    expect(CSRF_EXCLUDED_ROUTES).toContain('/api/auth/verify-unlock');
+    expect(CSRF_EXCLUDED_ROUTES).toContain('/api/auth/request-unlock');
     expect(CSRF_EXCLUDED_ROUTES).toContain('/api/auth/oauth/');
     expect(CSRF_EXCLUDED_ROUTES).toContain('/api/invites/');
   });
@@ -65,8 +68,45 @@ describe('generateCsrfToken', () => {
   });
 });
 
+describe('isValidTokenFormat', () => {
+  it('should return true for valid 64-char hex string', () => {
+    const validToken = 'a'.repeat(64);
+    expect(isValidTokenFormat(validToken)).toBe(true);
+  });
+
+  it('should return true for generated tokens', () => {
+    const token = generateCsrfToken();
+    expect(isValidTokenFormat(token)).toBe(true);
+  });
+
+  it('should return false for tokens that are too short', () => {
+    expect(isValidTokenFormat('a'.repeat(63))).toBe(false);
+  });
+
+  it('should return false for tokens that are too long', () => {
+    expect(isValidTokenFormat('a'.repeat(65))).toBe(false);
+  });
+
+  it('should return false for tokens with uppercase characters', () => {
+    expect(isValidTokenFormat('A'.repeat(64))).toBe(false);
+  });
+
+  it('should return false for tokens with non-hex characters', () => {
+    expect(isValidTokenFormat('g'.repeat(64))).toBe(false);
+    expect(isValidTokenFormat('z'.repeat(64))).toBe(false);
+  });
+
+  it('should return false for tokens with special characters', () => {
+    expect(isValidTokenFormat('a'.repeat(32) + '-'.repeat(32))).toBe(false);
+  });
+
+  it('should return false for empty string', () => {
+    expect(isValidTokenFormat('')).toBe(false);
+  });
+});
+
 describe('validateCsrfToken', () => {
-  it('should return true for matching tokens', () => {
+  it('should return true for matching valid tokens', () => {
     const token = 'a'.repeat(64);
     expect(validateCsrfToken(token, token)).toBe(true);
   });
@@ -78,19 +118,27 @@ describe('validateCsrfToken', () => {
   });
 
   it('should return false when cookie token is undefined', () => {
-    expect(validateCsrfToken(undefined, 'some-token')).toBe(false);
+    expect(validateCsrfToken(undefined, 'a'.repeat(64))).toBe(false);
   });
 
   it('should return false when header token is undefined', () => {
-    expect(validateCsrfToken('some-token', undefined)).toBe(false);
+    expect(validateCsrfToken('a'.repeat(64), undefined)).toBe(false);
   });
 
   it('should return false when both tokens are undefined', () => {
     expect(validateCsrfToken(undefined, undefined)).toBe(false);
   });
 
+  it('should return false for tokens with invalid format', () => {
+    // Even if tokens match, invalid format should fail
+    expect(validateCsrfToken('short', 'short')).toBe(false);
+    expect(validateCsrfToken('UPPER'.repeat(13), 'UPPER'.repeat(13))).toBe(
+      false
+    );
+  });
+
   it('should return false for tokens with different lengths', () => {
-    expect(validateCsrfToken('short', 'much-longer-token')).toBe(false);
+    expect(validateCsrfToken('a'.repeat(64), 'a'.repeat(32))).toBe(false);
   });
 });
 

@@ -277,10 +277,14 @@ async function handleExistingOAuthLogin(
     metadata: { provider },
   });
 
-  // Set CSRF token cookie
+  // Set CSRF token cookie on redirect response
   const csrfToken = generateCsrfToken();
-  const cookieStore = await cookies();
-  cookieStore.set(CSRF_CONFIG.cookieName, csrfToken, CSRF_CONFIG.cookieOptions);
+  const redirectResponse = NextResponse.redirect(`${appUrl}${returnTo}`);
+  redirectResponse.cookies.set(
+    CSRF_CONFIG.cookieName,
+    csrfToken,
+    CSRF_CONFIG.cookieOptions
+  );
 
-  return NextResponse.redirect(`${appUrl}${returnTo}`);
+  return redirectResponse;
 }
