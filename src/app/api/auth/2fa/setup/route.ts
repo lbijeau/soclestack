@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, getClientIP, isRateLimited } from '@/lib/auth';
-import { generateTOTPSecret } from '@/lib/auth/totp';
-import { generateBackupCodes } from '@/lib/auth/backup-codes';
-import { prisma } from '@/lib/db';
+import { setup2FA } from '@/services/auth.service';
+import { handleServiceError } from '@/lib/api-utils';
 import {
   assertNotImpersonating,
   ImpersonationBlockedError,
@@ -52,51 +51,10 @@ export async function POST(req: NextRequest) {
       throw error;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true, twoFactorEnabled: true },
-    });
+    const result = await setup2FA(session.userId);
 
-    if (!user) {
-      return NextResponse.json(
-        { error: { type: 'NOT_FOUND', message: 'User not found' } },
-        { status: 404 }
-      );
-    }
-
-    if (user.twoFactorEnabled) {
-      return NextResponse.json(
-        { error: { type: 'CONFLICT', message: '2FA is already enabled' } },
-        { status: 409 }
-      );
-    }
-
-    // Generate TOTP secret and QR code
-    const totpResult = await generateTOTPSecret(user.email);
-
-    // Generate backup codes
-    const backupCodes = await generateBackupCodes(session.userId);
-
-    // Store secret (not enabled yet, needs verification)
-    await prisma.user.update({
-      where: { id: session.userId },
-      data: {
-        twoFactorSecret: totpResult.secret,
-        twoFactorEnabled: false,
-        twoFactorVerified: false,
-      },
-    });
-
-    return NextResponse.json({
-      qrCodeDataUrl: totpResult.qrCodeDataUrl,
-      manualEntryKey: totpResult.manualEntryKey,
-      backupCodes,
-    });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('2FA setup error:', error);
-    return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'Failed to setup 2FA' } },
-      { status: 500 }
-    );
+    return handleServiceError(error);
   }
 }

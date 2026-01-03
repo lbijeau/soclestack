@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, getClientIP, isRateLimited } from '@/lib/auth';
-import { verifyTOTPCode } from '@/lib/auth/totp';
-import { deleteAllBackupCodes } from '@/lib/auth/backup-codes';
-import { logAuditEvent } from '@/lib/audit';
-import { prisma } from '@/lib/db';
-import { sendTwoFactorDisabledNotification } from '@/lib/email';
-import { z } from 'zod';
+import { disable2FA } from '@/services/auth.service';
+import { getRequestContext, handleServiceError } from '@/lib/api-utils';
 import {
   assertNotImpersonating,
   ImpersonationBlockedError,
 } from '@/lib/auth/impersonation';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import { rotateCsrfToken } from '@/lib/csrf';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
@@ -21,7 +18,6 @@ const disableSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const clientIP = getClientIP(req);
-  const userAgent = req.headers.get('user-agent') || undefined;
 
   try {
     // Rate limiting
@@ -72,85 +68,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { code } = validationResult.data;
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        role: true,
-        twoFactorSecret: true,
-        twoFactorEnabled: true,
-        email: true,
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: { type: 'NOT_FOUND', message: 'User not found' } },
-        { status: 404 }
-      );
-    }
-
-    // Admins cannot disable their own 2FA
-    if (user.role === 'ADMIN') {
-      return NextResponse.json(
-        { error: { type: 'FORBIDDEN', message: 'Admins cannot disable 2FA' } },
-        { status: 403 }
-      );
-    }
-
-    if (!user.twoFactorEnabled || !user.twoFactorSecret) {
-      return NextResponse.json(
-        { error: { type: 'BAD_REQUEST', message: '2FA is not enabled' } },
-        { status: 400 }
-      );
-    }
-
-    // Verify current TOTP code
-    const isValid = verifyTOTPCode(user.twoFactorSecret, code);
-
-    if (!isValid) {
-      return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Invalid code' } },
-        { status: 401 }
-      );
-    }
-
-    // Disable 2FA
-    await prisma.user.update({
-      where: { id: session.userId },
-      data: {
-        twoFactorSecret: null,
-        twoFactorEnabled: false,
-        twoFactorVerified: false,
-      },
-    });
-
-    // Delete backup codes
-    await deleteAllBackupCodes(session.userId);
-
-    await logAuditEvent({
-      action: 'AUTH_2FA_DISABLED',
-      category: 'security',
-      userId: session.userId,
-      ipAddress: clientIP,
-      userAgent,
-    });
-
-    // Send notification (fire-and-forget)
-    sendTwoFactorDisabledNotification(user.email).catch((err) =>
-      console.error('Failed to send 2FA disabled notification:', err)
-    );
+    const context = getRequestContext(req);
+    await disable2FA(session.userId, validationResult.data.code, context);
 
     // Rotate CSRF token after sensitive action
     const response = NextResponse.json({ message: '2FA disabled successfully' });
     rotateCsrfToken(response);
     return response;
   } catch (error) {
-    console.error('2FA disable error:', error);
-    return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'Failed to disable 2FA' } },
-      { status: 500 }
-    );
+    return handleServiceError(error);
   }
 }

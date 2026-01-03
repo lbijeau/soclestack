@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, getClientIP } from '@/lib/auth';
-import { verifyTOTPCode } from '@/lib/auth/totp';
-import { logAuditEvent } from '@/lib/audit';
-import { prisma } from '@/lib/db';
-import { sendTwoFactorEnabledNotification } from '@/lib/email';
-import { z } from 'zod';
+import { getSession } from '@/lib/auth';
+import { verify2FASetup } from '@/services/auth.service';
+import { getRequestContext, handleServiceError } from '@/lib/api-utils';
 import {
   assertNotImpersonating,
   ImpersonationBlockedError,
 } from '@/lib/auth/impersonation';
 import { rotateCsrfToken } from '@/lib/csrf';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
@@ -18,9 +16,6 @@ const verifySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const clientIP = getClientIP(req);
-  const userAgent = req.headers.get('user-agent') || undefined;
-
   try {
     const session = await getSession();
 
@@ -56,67 +51,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { code } = validationResult.data;
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { twoFactorSecret: true, twoFactorEnabled: true, email: true },
-    });
-
-    if (!user || !user.twoFactorSecret) {
-      return NextResponse.json(
-        { error: { type: 'BAD_REQUEST', message: '2FA setup not started' } },
-        { status: 400 }
-      );
-    }
-
-    if (user.twoFactorEnabled) {
-      return NextResponse.json(
-        { error: { type: 'CONFLICT', message: '2FA is already enabled' } },
-        { status: 409 }
-      );
-    }
-
-    const isValid = verifyTOTPCode(user.twoFactorSecret, code);
-
-    if (!isValid) {
-      return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Invalid code' } },
-        { status: 401 }
-      );
-    }
-
-    // Enable 2FA
-    await prisma.user.update({
-      where: { id: session.userId },
-      data: {
-        twoFactorEnabled: true,
-        twoFactorVerified: true,
-      },
-    });
-
-    await logAuditEvent({
-      action: 'AUTH_2FA_ENABLED',
-      category: 'security',
-      userId: session.userId,
-      ipAddress: clientIP,
-      userAgent,
-    });
-
-    // Send notification (fire-and-forget)
-    sendTwoFactorEnabledNotification(user.email).catch((err) =>
-      console.error('Failed to send 2FA enabled notification:', err)
-    );
+    const context = getRequestContext(req);
+    await verify2FASetup(session.userId, validationResult.data.code, context);
 
     // Rotate CSRF token after sensitive action
     const response = NextResponse.json({ message: '2FA enabled successfully' });
     rotateCsrfToken(response);
     return response;
   } catch (error) {
-    console.error('2FA verify error:', error);
-    return NextResponse.json(
-      { error: { type: 'SERVER_ERROR', message: 'Failed to verify 2FA' } },
-      { status: 500 }
-    );
+    return handleServiceError(error);
   }
 }
