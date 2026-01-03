@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { JWTPayload, RefreshTokenPayload } from '@/types/auth';
 import { Role } from '@prisma/client';
+import { env } from './env';
 
 // Dynamic crypto import for Edge Runtime compatibility
 async function getCrypto() {
@@ -55,7 +56,7 @@ export async function generateAccessToken(payload: {
   email: string;
   role: Role;
 }): Promise<string> {
-  const jwtSecret = process.env.JWT_SECRET;
+  const jwtSecret = env.JWT_SECRET;
   if (!jwtSecret) {
     throw new Error(
       'JWT_SECRET environment variable is required. See .env.example for configuration.'
@@ -81,7 +82,7 @@ export async function generateAccessToken(payload: {
 export async function generateRefreshToken(payload: {
   userId: string;
 }): Promise<string> {
-  const refreshSecret = process.env.JWT_REFRESH_SECRET;
+  const refreshSecret = env.JWT_REFRESH_SECRET;
   if (!refreshSecret) {
     throw new Error(
       'JWT_REFRESH_SECRET environment variable is required. See .env.example for configuration.'
@@ -103,7 +104,7 @@ export async function generateRefreshToken(payload: {
 }
 
 export function verifyAccessToken(token: string): JWTPayload {
-  const jwtSecret = process.env.JWT_SECRET;
+  const jwtSecret = env.JWT_SECRET;
   if (!jwtSecret) {
     throw new Error(
       'JWT_SECRET environment variable is required. See .env.example for configuration.'
@@ -121,7 +122,7 @@ export function verifyAccessToken(token: string): JWTPayload {
 }
 
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
-  const refreshSecret = process.env.JWT_REFRESH_SECRET;
+  const refreshSecret = env.JWT_REFRESH_SECRET;
   if (!refreshSecret) {
     throw new Error(
       'JWT_REFRESH_SECRET environment variable is required. See .env.example for configuration.'

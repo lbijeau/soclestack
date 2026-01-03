@@ -2,6 +2,7 @@ import { getIronSession, IronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from './db';
+import { env } from './env';
 import { SessionData } from '@/types/auth';
 import {
   generateAccessToken,
@@ -20,10 +21,10 @@ export const SESSION_WARNING_THRESHOLD_MS = 60 * 60 * 1000; // Show warning 1 ho
 
 // Session configuration
 const sessionOptions = {
-  password: process.env.SESSION_SECRET!,
+  password: env.SESSION_SECRET || 'development-secret-min-32-characters!!',
   cookieName: 'soclestack-session',
   cookieOptions: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax' as const,
     maxAge: 60 * 60 * 24 * 7, // 7 days

@@ -1,36 +1,7 @@
 /**
- * Required environment variables for security-critical operations.
- * These must be set in production - the application will fail to start without them.
+ * Security configuration constants.
+ * Environment variable validation has been moved to @/lib/env.
  */
-export const REQUIRED_ENV_VARS = [
-  'JWT_SECRET',
-  'JWT_REFRESH_SECRET',
-  'SESSION_SECRET',
-] as const;
-
-/**
- * Validates that all required environment variables are set.
- * Call this at application startup to fail fast if configuration is missing.
- *
- * @throws Error if any required environment variable is missing
- */
-export function validateRequiredEnvVars(): void {
-  const missing: string[] = [];
-
-  for (const envVar of REQUIRED_ENV_VARS) {
-    if (!process.env[envVar]) {
-      missing.push(envVar);
-    }
-  }
-
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}. ` +
-        'These are required for security-critical operations. ' +
-        'See .env.example for configuration.'
-    );
-  }
-}
 
 export const SECURITY_CONFIG = {
   lockout: {
