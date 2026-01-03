@@ -37,6 +37,9 @@ docs/
 │   ├── README.md             # Testing overview
 │   └── TEST-STRATEGY.md      # Testing approach
 │
+├── templates/                # Documentation templates
+│   └── COMPONENT_README_TEMPLATE.md  # Standard component README format
+│
 └── plans/                    # Design documents (historical)
     └── *.md                  # Feature design specs
 ```
@@ -116,6 +119,14 @@ Testing philosophy and coverage approach.
 npm run test:unit    # 306 unit tests
 npm run test:e2e     # End-to-end tests
 ```
+
+## Templates
+
+### [Documentation Templates](./templates/README.md)
+Standardized templates for creating consistent documentation across the project.
+
+**Available templates:**
+- [Component README Template](./templates/COMPONENT_README_TEMPLATE.md) - Standard format for component directory READMEs
 
 ## Design Documents
 
