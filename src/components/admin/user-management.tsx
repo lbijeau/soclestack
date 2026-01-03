@@ -16,6 +16,7 @@ import {
   Filter,
   X,
   CheckSquare,
+  Loader2,
 } from 'lucide-react';
 import { apiPatch, apiDelete, apiPost } from '@/lib/api-client';
 
@@ -69,6 +70,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
   const [success, setSuccess] = useState<string>('');
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
+  const [changingRoleId, setChangingRoleId] = useState<string | null>(null);
+  const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -126,6 +130,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       return;
     }
 
+    setChangingRoleId(userId);
+    setError('');
+
     try {
       const response = await apiPatch(`/api/users/${userId}`, {
         role: newRole,
@@ -140,6 +147,8 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       fetchUsers();
     } catch {
       setError('Failed to update user role');
+    } finally {
+      setChangingRoleId(null);
     }
   };
 
@@ -148,6 +157,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       setError('You cannot deactivate your own account');
       return;
     }
+
+    setTogglingStatusId(userId);
+    setError('');
 
     try {
       const response = await apiPatch(`/api/users/${userId}`, { isActive });
@@ -161,6 +173,8 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       fetchUsers();
     } catch {
       setError('Failed to update user status');
+    } finally {
+      setTogglingStatusId(null);
     }
   };
 
@@ -178,6 +192,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       return;
     }
 
+    setDeletingUserId(userId);
+    setError('');
+
     try {
       const response = await apiDelete(`/api/users/${userId}`);
 
@@ -190,6 +207,8 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       fetchUsers();
     } catch {
       setError('Failed to delete user');
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -509,20 +528,29 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {currentUser.role === 'ADMIN' &&
                         user.id !== currentUser.id ? (
-                          <select
-                            value={user.role}
-                            onChange={(e) =>
-                              handleRoleChange(
-                                user.id,
-                                e.target.value as 'USER' | 'MODERATOR' | 'ADMIN'
-                              )
-                            }
-                            className="rounded border border-gray-300 px-2 py-1 text-sm"
-                          >
-                            <option value="USER">User</option>
-                            <option value="MODERATOR">Moderator</option>
-                            <option value="ADMIN">Admin</option>
-                          </select>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={user.role}
+                              onChange={(e) =>
+                                handleRoleChange(
+                                  user.id,
+                                  e.target.value as
+                                    | 'USER'
+                                    | 'MODERATOR'
+                                    | 'ADMIN'
+                                )
+                              }
+                              disabled={changingRoleId === user.id}
+                              className="rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
+                            >
+                              <option value="USER">User</option>
+                              <option value="MODERATOR">Moderator</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                            {changingRoleId === user.id && (
+                              <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                            )}
+                          </div>
                         ) : (
                           <Badge
                             variant={
@@ -571,8 +599,11 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                                 onClick={() =>
                                   handleStatusToggle(user.id, !user.isActive)
                                 }
+                                disabled={togglingStatusId === user.id}
                               >
-                                {user.isActive ? (
+                                {togglingStatusId === user.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : user.isActive ? (
                                   <UserX size={16} />
                                 ) : (
                                   <UserCheck size={16} />
@@ -582,8 +613,13 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => handleDeleteUser(user.id)}
+                                disabled={deletingUserId === user.id}
                               >
-                                <Trash2 size={16} />
+                                {deletingUserId === user.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 size={16} />
+                                )}
                               </Button>
                             </>
                           )}
