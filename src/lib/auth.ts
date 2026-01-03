@@ -81,8 +81,9 @@ interface EdgeMockResponse {
 
 /**
  * Default empty session for unauthenticated requests.
+ * Exported for use by code that needs a default session state.
  */
-const EMPTY_SESSION: SessionData = {
+export const EMPTY_SESSION: SessionData = {
   userId: '',
   email: '',
   role: Role.USER,
@@ -93,8 +94,11 @@ const EMPTY_SESSION: SessionData = {
  * Get session data from a NextRequest (Edge Runtime compatible).
  * This is a read-only operation - use getSession() if you need to modify the session.
  *
+ * Note: Returns SessionData (not IronSession) since Edge Runtime only needs
+ * read access. For session modification, use getSession() in Node.js context.
+ *
  * @param request - The incoming NextRequest
- * @returns SessionData object (not IronSession - cannot be modified)
+ * @returns SessionData object (read-only, cannot call save/destroy)
  */
 export async function getSessionFromRequest(
   request: NextRequest
