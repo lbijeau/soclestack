@@ -610,7 +610,7 @@ export type AuthContext = ApiKeyAuthContext | SessionAuthContext;
  * To enable API key authentication, routes should be updated to
  * use getAuthContext() instead of getCurrentUser().
  *
- * @see https://github.com/lbijeau/soclestack/issues/131
+ * @see Issue #131 - Verify API key Bearer token middleware implementation
  */
 export async function getAuthContext(req: NextRequest): Promise<{
   context: AuthContext | null;

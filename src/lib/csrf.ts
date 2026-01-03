@@ -266,9 +266,12 @@ export function requiresCsrfValidation(method: string): boolean {
  */
 export function hasValidApiKeyHeader(request: NextRequest): boolean {
   const apiKey = request.headers.get('X-API-Key');
-  // Also check Authorization header with Bearer lsk_ prefix
+  // Also check Authorization header with Bearer lsk_ prefix (case-insensitive)
   const authHeader = request.headers.get('authorization');
-  return !!apiKey || (!!authHeader && authHeader.startsWith('Bearer lsk_'));
+  return (
+    !!apiKey ||
+    (!!authHeader && authHeader.toLowerCase().startsWith('bearer lsk_'))
+  );
 }
 
 /**
