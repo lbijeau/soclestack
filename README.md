@@ -62,7 +62,7 @@ A complete Next.js 14 application with Enterprise-grade user management features
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL database
+- Docker (for local PostgreSQL) or a PostgreSQL database
 - npm or yarn
 
 ### Installation
@@ -74,49 +74,33 @@ cd soclestack
 npm install
 ```
 
-2. **Set up environment variables:**
+2. **Start PostgreSQL (using Docker):**
+```bash
+docker-compose up -d
+```
+This starts PostgreSQL on `localhost:5432` with default credentials.
+
+3. **Set up environment variables:**
 ```bash
 cp .env.example .env.local
 ```
+The default `.env.example` is pre-configured for the Docker PostgreSQL instance.
 
-Update `.env.local` with your configuration:
-```env
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/soclestack"
-
-# JWT Secrets (change these in production!)
-JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
-JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-this-in-production"
-
-# Session Secret
-SESSION_SECRET="your-super-secret-session-key-change-this-in-production"
-
-# App Configuration
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-nextauth-secret-change-this-in-production"
-
-# Security
-CSRF_SECRET="your-csrf-secret-change-this-in-production"
-```
-
-3. **Set up the database:**
+4. **Set up the database:**
 ```bash
 # Generate Prisma client
 npx prisma generate
 
 # Run database migrations
 npx prisma db push
-
-# (Optional) Seed the database
-npx prisma db seed
 ```
 
-4. **Start the development server:**
+5. **Start the development server:**
 ```bash
 npm run dev
 ```
 
-5. **Open your browser:**
+6. **Open your browser:**
 Visit [http://localhost:3000](http://localhost:3000)
 
 ## Usage
@@ -247,21 +231,17 @@ npm run lint
 | CSP Policy | Needs Fix | `unsafe-eval` and `unsafe-inline` defeat XSS protection |
 | CSRF Protection | Incomplete | Tokens generated but never validated |
 | Rate Limiting | In-Memory | Lost on restart; doesn't scale horizontally |
-| Database | SQLite | Cannot handle concurrent writes; use PostgreSQL |
 | Fallback Secrets | Insecure | Hardcoded fallbacks if env vars missing |
 
 ### Incomplete Features
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| Email System | TODO | Verification and password reset emails not sent |
-| Unit Tests | Missing | No unit tests for auth/security functions |
 | CSRF Validation | Missing | Middleware not implemented |
 | Organization Auth | Incomplete | Cross-org access not properly blocked |
 
 ### Technical Debt
 
-- No service layer (business logic in route handlers)
 - Session management duplicated across files
 - Dual JWT libraries (`jose` and `jsonwebtoken`)
 - No structured logging

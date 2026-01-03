@@ -5,9 +5,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// PostgreSQL database configuration
+// Use docker-compose up -d for local development
+// For production, set DATABASE_URL to your PostgreSQL connection string
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // For migrations with connection poolers (optional)
 }
 
 model User {
