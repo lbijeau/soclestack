@@ -182,6 +182,11 @@ export interface EmailVerificationData {
   name?: string;
 }
 
+export interface PasswordResetData {
+  resetUrl: string;
+  name?: string;
+}
+
 export interface AccountUnlockData {
   unlockUrl: string;
   lockedUntil: Date;
@@ -257,6 +262,42 @@ export function emailVerificationTemplate(data: EmailVerificationData): {
   return {
     subject: `Verify your email for ${APP_NAME}`,
     html: wrapTemplate('Email Verification', content),
+  };
+}
+
+export function passwordResetTemplate(data: PasswordResetData): {
+  subject: string;
+  html: string;
+} {
+  const greeting = data.name ? `Hi ${data.name},` : 'Hello,';
+  const content = `
+    <h2 style="color: #2563eb; font-size: 20px; margin: 0 0 15px 0;">Reset Your Password</h2>
+    <p style="margin: 0 0 15px 0;">
+      ${greeting}
+    </p>
+    <p style="margin: 0 0 15px 0;">
+      We received a request to reset your password for your ${APP_NAME} account.
+    </p>
+    <div style="background-color: #fff; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb; margin: 0 0 20px 0;">
+      <p style="margin: 0 0 15px 0;">Click the button below to reset your password:</p>
+      <a href="${data.resetUrl}" style="display: inline-block; background-color: #2563eb; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+        Reset Password
+      </a>
+    </div>
+    <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
+      Or copy and paste this link into your browser:
+    </p>
+    <p style="margin: 0 0 15px 0; word-break: break-all; font-size: 14px;">
+      <a href="${data.resetUrl}" style="color: #2563eb;">${data.resetUrl}</a>
+    </p>
+    <p style="margin: 0 0 15px 0; color: #dc2626; font-weight: 500;">
+      This link expires in 1 hour. If you didn't request this password reset, you can safely ignore this email.
+    </p>
+  `;
+
+  return {
+    subject: `Reset your ${APP_NAME} password`,
+    html: wrapTemplate('Password Reset', content),
   };
 }
 

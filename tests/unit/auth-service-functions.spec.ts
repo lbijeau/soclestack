@@ -80,6 +80,7 @@ vi.mock('@/lib/email', () => ({
   sendTwoFactorDisabledNotification: vi.fn().mockResolvedValue(undefined),
   sendPasswordChangedNotification: vi.fn().mockResolvedValue(undefined),
   sendVerificationEmail: vi.fn().mockResolvedValue(undefined),
+  sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/lib/security', () => ({

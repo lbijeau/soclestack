@@ -39,6 +39,7 @@ import {
   sendTwoFactorDisabledNotification,
   sendPasswordChangedNotification,
   sendVerificationEmail,
+  sendPasswordResetEmail,
 } from '@/lib/email';
 import { parseUserAgent } from '@/lib/utils/user-agent';
 import { generateCsrfToken } from '@/lib/csrf';
@@ -467,10 +468,9 @@ export async function register(
     });
   });
 
-  // TODO: Send email verification email
-  // In a real application, you would send an email here
-  console.log(
-    `Email verification token for ${email}: ${plainVerificationToken}`
+  // Send verification email (fire-and-forget)
+  sendVerificationEmail(email, plainVerificationToken, firstName).catch((err) =>
+    console.error('Failed to send verification email:', err)
   );
 
   // Return success result
@@ -814,12 +814,10 @@ export interface RequestPasswordResetInput {
 /**
  * Request a password reset. Generates token and stores in database.
  * Always returns success to prevent email enumeration.
- *
- * @returns Token for development (in production, send via email)
  */
 export async function requestPasswordReset(
   input: RequestPasswordResetInput
-): Promise<{ message: string; token?: string }> {
+): Promise<{ message: string }> {
   const validationResult = requestPasswordResetSchema.safeParse(input);
   if (!validationResult.success) {
     throw new ValidationError('Invalid input', {
@@ -855,11 +853,12 @@ export async function requestPasswordReset(
     },
   });
 
-  // TODO: Send password reset email
-  // In production, send email instead of returning token
-  console.log(`Password reset token for ${email}: ${resetToken}`);
+  // Send password reset email (fire-and-forget)
+  sendPasswordResetEmail(email, resetToken, user.firstName ?? undefined).catch(
+    (err) => console.error('Failed to send password reset email:', err)
+  );
 
-  return { message, token: resetToken };
+  return { message };
 }
 
 export interface ResetPasswordInput {

@@ -10,6 +10,7 @@ import {
   twoFactorDisabledTemplate,
   emailVerificationTemplate,
   accountUnlockTemplate,
+  passwordResetTemplate,
 } from '@/lib/email/templates';
 
 export { organizationInviteTemplate } from '@/lib/email/templates';
@@ -116,6 +117,20 @@ export async function sendVerificationEmail(
   const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
   const { subject, html } = emailVerificationTemplate({
     verificationUrl,
+    name,
+  });
+  return sendEmail({ to, subject, html });
+}
+
+export async function sendPasswordResetEmail(
+  to: string,
+  token: string,
+  name?: string
+): Promise<boolean> {
+  const baseUrl = env.NEXT_PUBLIC_APP_URL;
+  const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+  const { subject, html } = passwordResetTemplate({
+    resetUrl,
     name,
   });
   return sendEmail({ to, subject, html });

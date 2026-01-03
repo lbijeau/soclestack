@@ -1,6 +1,7 @@
 import { IronSession } from 'iron-session';
 import { SessionData, ImpersonationData } from '@/types/auth';
 import { SECURITY_CONFIG } from '@/lib/config/security';
+import { ServiceError } from '@/services/auth.errors';
 
 const { timeoutMinutes } = SECURITY_CONFIG.impersonation;
 
@@ -78,11 +79,15 @@ export function assertNotImpersonating(
 }
 
 /**
- * Error thrown when an action is blocked during impersonation
+ * Error thrown when an action is blocked during impersonation (403)
  */
-export class ImpersonationBlockedError extends Error {
+export class ImpersonationBlockedError extends ServiceError {
   constructor() {
-    super('This action is not allowed while impersonating a user');
+    super(
+      'IMPERSONATION_BLOCKED',
+      'This action is not allowed while impersonating a user',
+      403
+    );
     this.name = 'ImpersonationBlockedError';
   }
 }
