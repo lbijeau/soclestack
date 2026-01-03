@@ -86,11 +86,6 @@ export async function GET(
 
   // Reject unverified emails from OAuth providers
   if (!profile.emailVerified) {
-    console.warn(
-      `OAuth login rejected: unverified email from ${provider}`,
-      `email=${profile.email}`,
-      `ip=${ipAddress}`
-    );
     await logAuditEvent({
       action: 'AUTH_OAUTH_LOGIN_FAILURE',
       category: 'authentication',
@@ -99,7 +94,6 @@ export async function GET(
       metadata: {
         provider,
         reason: 'email_not_verified',
-        email: profile.email,
       },
     });
     return NextResponse.redirect(`${appUrl}/login?error=email_not_verified`);
