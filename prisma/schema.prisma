@@ -77,6 +77,8 @@ model UserSession {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([expiresAt])
   @@map("user_sessions")
 }
 
@@ -89,6 +91,7 @@ model PasswordHistory {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("password_history")
 }
 
@@ -118,6 +121,7 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+  @@index([ipAddress])
   @@map("audit_logs")
 }
 
