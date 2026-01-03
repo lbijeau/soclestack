@@ -166,10 +166,12 @@ New tab or section at `/profile/api-keys`
 
 ## Implementation Order
 
-1. Add Prisma model and run migration
-2. Create API key utility functions (generate, hash, validate)
-3. Implement API endpoints
-4. Add middleware for API key authentication
-5. Create UI components
-6. Add audit logging
-7. Update documentation
+1. [x] Add Prisma model and run migration
+2. [x] Create API key utility functions (generate, hash, validate)
+3. [x] Implement API endpoints
+4. [ ] Add middleware for API key authentication (infrastructure exists in `getAuthContext()`, not yet integrated into routes)
+5. [x] Create UI components
+6. [x] Add audit logging
+7. [x] Update documentation
+
+> **Note:** Step 4 is partially complete. The `getAuthContext()` function in `src/lib/auth.ts` contains the Bearer token extraction and validation logic, but routes currently use `getCurrentUser()` which only supports session auth. A follow-up task is needed to integrate `getAuthContext()` into route handlers.

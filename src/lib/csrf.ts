@@ -254,11 +254,24 @@ export function requiresCsrfValidation(method: string): boolean {
  * Route handlers MUST validate the API key before processing the request.
  * If a route accepts API keys but doesn't validate them, it will be vulnerable.
  *
+ * @note This function checks for the `X-API-Key` header, while the planned
+ * API key authentication in `getAuthContext()` uses `Authorization: Bearer lsk_...`.
+ * These are intentionally different:
+ * - X-API-Key: Simple presence check for CSRF bypass only
+ * - Authorization: Bearer: Full authentication with validation
+ *
+ * When API key auth is fully integrated, both headers should work for CSRF bypass.
+ *
  * @returns true if X-API-Key header is present (non-empty)
  */
 export function hasValidApiKeyHeader(request: NextRequest): boolean {
   const apiKey = request.headers.get('X-API-Key');
-  return !!apiKey;
+  // Also check Authorization header with Bearer lsk_ prefix (case-insensitive)
+  const authHeader = request.headers.get('authorization');
+  return (
+    !!apiKey ||
+    (!!authHeader && authHeader.toLowerCase().startsWith('bearer lsk_'))
+  );
 }
 
 /**

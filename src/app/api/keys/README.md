@@ -315,19 +315,33 @@ All key operations are logged:
 
 ## Using API Keys
 
-To authenticate with an API key, include it in the `Authorization` header:
+> **Implementation Status:** API key management (create, list, update, revoke) is fully implemented. However, using API keys for route authentication is planned but not yet active. Routes currently require session-based authentication. The infrastructure for API key authentication exists in `getAuthContext()` but is not yet integrated into route handlers.
+
+### Planned Usage (Not Yet Implemented)
+
+When API key authentication is fully integrated, you will authenticate with the `Authorization` header:
 
 ```bash
+# Planned - not yet functional
 curl -X GET http://localhost:3000/api/some-endpoint \
   -H "Authorization: Bearer lsk_abc123def456..."
 ```
 
-The middleware validates the key and checks:
+The validation infrastructure exists and will check:
 1. Valid format (`lsk_` prefix, minimum length)
 2. Key exists and is not revoked
 3. Key is not expired
 4. User account is active
 5. Permission level allows the HTTP method
+
+### Current Workaround
+
+Until API key authentication is integrated, use session-based authentication for all API calls:
+
+```bash
+curl -X GET http://localhost:3000/api/some-endpoint \
+  -H "Cookie: soclestack-session=<session_cookie>"
+```
 
 ## TypeScript Types
 

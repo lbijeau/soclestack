@@ -220,6 +220,61 @@ describe('hasValidApiKeyHeader', () => {
     });
     expect(hasValidApiKeyHeader(request)).toBe(false);
   });
+
+  it('should return true for Authorization header with Bearer lsk_ prefix', () => {
+    const request = new NextRequest('http://localhost/api/test', {
+      headers: {
+        Authorization: 'Bearer lsk_abc123def456',
+      },
+    });
+    expect(hasValidApiKeyHeader(request)).toBe(true);
+  });
+
+  it('should return true for lowercase bearer prefix (case-insensitive)', () => {
+    const request = new NextRequest('http://localhost/api/test', {
+      headers: {
+        Authorization: 'bearer lsk_abc123def456',
+      },
+    });
+    expect(hasValidApiKeyHeader(request)).toBe(true);
+  });
+
+  it('should return true for mixed case BEARER prefix', () => {
+    const request = new NextRequest('http://localhost/api/test', {
+      headers: {
+        Authorization: 'BEARER lsk_abc123def456',
+      },
+    });
+    expect(hasValidApiKeyHeader(request)).toBe(true);
+  });
+
+  it('should return false for Authorization header without lsk_ prefix', () => {
+    const request = new NextRequest('http://localhost/api/test', {
+      headers: {
+        Authorization: 'Bearer some-other-token',
+      },
+    });
+    expect(hasValidApiKeyHeader(request)).toBe(false);
+  });
+
+  it('should return false for non-Bearer Authorization header', () => {
+    const request = new NextRequest('http://localhost/api/test', {
+      headers: {
+        Authorization: 'Basic dXNlcjpwYXNz',
+      },
+    });
+    expect(hasValidApiKeyHeader(request)).toBe(false);
+  });
+
+  it('should return true when both X-API-Key and Bearer headers are present', () => {
+    const request = new NextRequest('http://localhost/api/test', {
+      headers: {
+        'X-API-Key': 'some-api-key',
+        Authorization: 'Bearer lsk_abc123def456',
+      },
+    });
+    expect(hasValidApiKeyHeader(request)).toBe(true);
+  });
 });
 
 describe('rotateCsrfToken', () => {
