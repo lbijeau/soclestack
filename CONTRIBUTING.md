@@ -1,63 +1,227 @@
 # Contributing to SocleStack
 
-First off, thank you for considering contributing to SocleStack! It's people like you that make SocleStack such a great tool.
+Thank you for considering contributing to SocleStack! This document provides guidelines and instructions for contributing.
 
 ## Code of Conduct
 
-By participating in this project, you are expected to uphold our Code of Conduct.
+By participating in this project, you agree to abide by our standards of respectful and constructive interaction. We are committed to providing a welcoming environment for all contributors.
 
-## How Can I Contribute?
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18.x or later
+- npm 9.x or later
+- Git
+
+### Development Setup
+
+1. Fork the repository
+2. Clone your fork:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/soclestack.git
+   cd soclestack
+   ```
+
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+4. Copy environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+
+5. Set up the database:
+   ```bash
+   npx prisma db push
+   ```
+
+6. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+### Running Tests
+
+```bash
+# Unit tests (306 tests)
+npm run test:unit
+
+# E2E tests
+npm run test:e2e
+
+# Type checking
+npx tsc --noEmit
+
+# Linting
+npm run lint
+```
+
+## How to Contribute
 
 ### Reporting Bugs
 
-This section guides you through submitting a bug report for SocleStack. Following these guidelines helps maintainers and the community understand your report, reproduce the behavior, and find related reports.
+Before creating a bug report, please check existing issues to avoid duplicates.
 
-- Use a clear and descriptive title for the issue to identify the problem.
-- Describe the exact steps which reproduce the problem in as many details as possible.
-- Provide specific examples to demonstrate the steps.
-- Describe the behavior you observed after following the steps and point out what exactly is the problem with that behavior.
-- Explain which behavior you expected to see instead and why.
+When filing a bug report, include:
 
-### Suggesting Enhancements
+- A clear and descriptive title
+- Steps to reproduce the issue
+- Expected behavior vs actual behavior
+- Environment details (OS, Node version, browser)
+- Relevant error messages or screenshots
 
-This section guides you through submitting an enhancement suggestion for SocleStack, including completely new features and minor improvements to existing functionality.
+### Suggesting Features
 
-- Use a clear and descriptive title for the issue to identify the suggestion.
-- Provide a step-by-step description of the suggested enhancement in as many details as possible.
-- Provide specific examples to demonstrate the steps.
-- Describe the current behavior and explain which behavior you expected to see instead and why.
+Feature requests are welcome! Please include:
 
-### Your First Code Contribution
+- A clear description of the feature
+- The problem it solves
+- Possible implementation approaches
+- Any relevant examples from other projects
 
-Unsure where to begin contributing to SocleStack? You can start by looking through these `beginner` and `help-wanted` issues:
+### Pull Requests
 
-- Beginner issues - issues which should only require a few lines of code, and a test or two.
-- Help wanted issues - issues which should be a bit more involved than beginner issues.
+1. **Create a branch** from `master`:
+   ```bash
+   git checkout -b feat/your-feature-name
+   # or
+   git checkout -b fix/issue-description
+   ```
 
-## Styleguides
+2. **Make your changes** following our code standards
 
-### Git Commit Messages
+3. **Write tests** for new functionality
 
-- Use the present tense ("Add feature" not "Added feature")
-- Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
-- Limit the first line to 72 characters or less
-- Reference issues and pull requests liberally after the first line
+4. **Ensure all checks pass**:
+   ```bash
+   npm run format
+   npm run lint
+   npm run test:unit
+   npx tsc --noEmit
+   ```
 
-### JavaScript/TypeScript Styleguide
+5. **Commit your changes** using conventional commits (see below)
 
-- All code is linted using ESLint and formatted using Prettier.
-- Run `npm run lint` and `npm run format` before committing.
-- Ensure all tests pass with `npm test`.
+6. **Push and create a PR** against `master`
 
-## Pull Request Process
+## Coding Standards
 
-1. Fork the repository and create your branch from `master`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes.
-5. Make sure your code lints.
-6. Issue that pull request!
+### TypeScript
 
-## Any questions?
+- Use TypeScript for all new code
+- Enable strict mode compliance
+- Define explicit types (avoid `any`)
+- Use Zod for runtime validation
 
-Feel free to open an issue or contact the development team.
+### Code Style
+
+- ESLint and Prettier are enforced via pre-commit hooks
+- Run `npm run lint` to check for issues
+- Run `npm run format` to auto-format code
+
+### File Organization
+
+```
+src/
+├── app/           # Next.js App Router pages and API routes
+├── components/    # React components
+├── lib/           # Utility functions and core logic
+├── services/      # Business logic layer
+├── contexts/      # React contexts
+└── types/         # TypeScript type definitions
+```
+
+## Commit Message Format
+
+We use [Conventional Commits](https://www.conventionalcommits.org/). Commits are validated by commitlint.
+
+### Format
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+
+| Type       | Description                          |
+|------------|--------------------------------------|
+| `feat`     | New feature                          |
+| `fix`      | Bug fix                              |
+| `docs`     | Documentation changes                |
+| `style`    | Code style (formatting, etc.)        |
+| `refactor` | Code refactoring                     |
+| `perf`     | Performance improvements             |
+| `test`     | Adding or updating tests             |
+| `build`    | Build system changes                 |
+| `ci`       | CI/CD changes                        |
+| `chore`    | Other changes (dependencies, etc.)   |
+| `revert`   | Revert a previous commit             |
+
+### Examples
+
+```bash
+feat(auth): add password reset functionality
+fix(session): resolve token refresh race condition
+docs: update API documentation
+test(auth): add unit tests for lockout mechanism
+```
+
+## Branch Naming
+
+Use descriptive branch names with prefixes:
+
+- `feat/` - New features
+- `fix/` - Bug fixes
+- `docs/` - Documentation
+- `refactor/` - Code refactoring
+- `test/` - Test additions/changes
+
+Examples:
+- `feat/oauth-github-integration`
+- `fix/session-expiry-bug`
+- `docs/api-examples`
+
+## Documentation
+
+- Update documentation for any user-facing changes
+- Add JSDoc comments for exported functions
+- Update README.md if adding new features
+- Use Mermaid diagrams for architecture changes
+
+### Documentation Commands
+
+```bash
+# Build documentation site
+npm run docs:build
+
+# Preview documentation
+npm run docs:dev
+```
+
+## Security
+
+For security vulnerabilities, please see our [Security Policy](SECURITY.md). Do not report security issues through public GitHub issues.
+
+## Review Process
+
+1. All PRs require at least one approval
+2. CI checks must pass (lint, tests, type-check)
+3. PRs should be focused and reasonably sized
+4. Address reviewer feedback promptly
+
+## Getting Help
+
+- Open an issue for questions
+- Check existing documentation in `docs/`
+- Review similar PRs for examples
+
+## Recognition
+
+Contributors are recognized in release notes. Thank you for helping improve SocleStack!
