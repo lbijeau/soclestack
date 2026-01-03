@@ -54,12 +54,12 @@ export async function POST() {
     const verificationToken = await generateResetToken();
     const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Update user with new token (reusing passwordResetToken field for email verification)
+    // Update user with new verification token
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        passwordResetToken: verificationToken,
-        passwordResetExpires: tokenExpiry,
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: tokenExpiry,
       },
     });
 

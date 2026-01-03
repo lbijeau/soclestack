@@ -172,8 +172,8 @@ export async function POST(req: NextRequest) {
           passwordChangedAt: new Date(),
           firstName,
           lastName,
-          passwordResetToken: emailVerificationToken,
-          passwordResetExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          emailVerificationToken: emailVerificationToken,
+          emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
           organizationId,
           organizationRole,
         },

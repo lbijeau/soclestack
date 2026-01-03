@@ -28,14 +28,14 @@ export async function POST(req: NextRequest) {
     // Find user with this verification token
     const user = await prisma.user.findFirst({
       where: {
-        passwordResetToken: { not: null },
-        passwordResetExpires: {
+        emailVerificationToken: { not: null },
+        emailVerificationExpires: {
           gt: new Date(),
         },
       },
     });
 
-    if (!user || !user.passwordResetToken) {
+    if (!user || !user.emailVerificationToken) {
       return NextResponse.json(
         {
           error: {
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Compare tokens in a time-safe manner
-    if (!timeSafeEqual(hashedToken, user.passwordResetToken)) {
+    if (!timeSafeEqual(hashedToken, user.emailVerificationToken)) {
       return NextResponse.json(
         {
           error: {
@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
       data: {
         emailVerified: true,
         emailVerifiedAt: new Date(),
-        passwordResetToken: null,
-        passwordResetExpires: null,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
       },
     });
 
