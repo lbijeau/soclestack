@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   generateCsrfToken,
   validateCsrfToken,
@@ -6,11 +6,17 @@ import {
   isRouteExcludedFromCsrf,
   requiresCsrfValidation,
   hasValidApiKeyHeader,
+  rotateCsrfToken,
+  recordCsrfFailure,
+  isCsrfRateLimited,
+  cleanupCsrfRateLimitStore,
+  createCsrfRateLimitResponse,
+  _resetRateLimitState,
   CSRF_CONFIG,
   CSRF_PROTECTED_METHODS,
   CSRF_EXCLUDED_ROUTES,
 } from '@/lib/csrf';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Mock timeSafeEqual to avoid crypto issues in test environment
 vi.mock('@/lib/security', () => ({
@@ -213,5 +219,147 @@ describe('hasValidApiKeyHeader', () => {
       },
     });
     expect(hasValidApiKeyHeader(request)).toBe(false);
+  });
+});
+
+describe('rotateCsrfToken', () => {
+  it('should set a new CSRF token cookie on the response', () => {
+    const response = NextResponse.json({ success: true });
+    const newToken = rotateCsrfToken(response);
+
+    // Should return a valid token
+    expect(isValidTokenFormat(newToken)).toBe(true);
+
+    // Should set the cookie
+    const cookie = response.cookies.get(CSRF_CONFIG.cookieName);
+    expect(cookie).toBeDefined();
+    expect(cookie?.value).toBe(newToken);
+  });
+
+  it('should generate unique tokens on each call', () => {
+    const response1 = NextResponse.json({ a: 1 });
+    const response2 = NextResponse.json({ b: 2 });
+
+    const token1 = rotateCsrfToken(response1);
+    const token2 = rotateCsrfToken(response2);
+
+    expect(token1).not.toBe(token2);
+  });
+
+  it('should overwrite existing CSRF cookie', () => {
+    const response = NextResponse.json({ success: true });
+
+    // Set initial token
+    response.cookies.set(CSRF_CONFIG.cookieName, 'old-token');
+
+    // Rotate
+    const newToken = rotateCsrfToken(response);
+
+    // Cookie should have new token
+    const cookie = response.cookies.get(CSRF_CONFIG.cookieName);
+    expect(cookie?.value).toBe(newToken);
+    expect(cookie?.value).not.toBe('old-token');
+  });
+});
+
+describe('CSRF Rate Limiting', () => {
+  beforeEach(() => {
+    // Reset rate limit state before each test
+    _resetRateLimitState();
+  });
+
+  it('should not rate limit on first failure', () => {
+    const ip = '192.168.1.1';
+    const isLimited = recordCsrfFailure(ip);
+    expect(isLimited).toBe(false);
+    expect(isCsrfRateLimited(ip)).toBe(false);
+  });
+
+  it('should not rate limit within threshold', () => {
+    const ip = '192.168.1.2';
+
+    // Record 9 failures (under default limit of 10)
+    for (let i = 0; i < 9; i++) {
+      const isLimited = recordCsrfFailure(ip);
+      expect(isLimited).toBe(false);
+    }
+
+    expect(isCsrfRateLimited(ip)).toBe(false);
+  });
+
+  it('should rate limit after exceeding threshold', () => {
+    const ip = '192.168.1.3';
+
+    // Record 10 failures (at limit)
+    for (let i = 0; i < 10; i++) {
+      recordCsrfFailure(ip);
+    }
+
+    // 11th failure should trigger rate limit
+    const isLimited = recordCsrfFailure(ip);
+    expect(isLimited).toBe(true);
+    expect(isCsrfRateLimited(ip)).toBe(true);
+  });
+
+  it('should track different IPs independently', () => {
+    const ip1 = '10.0.0.1';
+    const ip2 = '10.0.0.2';
+
+    // Rate limit ip1
+    for (let i = 0; i < 11; i++) {
+      recordCsrfFailure(ip1);
+    }
+
+    // ip1 should be rate limited, ip2 should not
+    expect(isCsrfRateLimited(ip1)).toBe(true);
+    expect(isCsrfRateLimited(ip2)).toBe(false);
+  });
+
+  it('should return false for unknown IP', () => {
+    expect(isCsrfRateLimited('unknown-ip')).toBe(false);
+  });
+
+  it('cleanupCsrfRateLimitStore should not throw', () => {
+    // Add some entries
+    recordCsrfFailure('1.1.1.1');
+    recordCsrfFailure('2.2.2.2');
+
+    // Cleanup should not throw
+    expect(() => cleanupCsrfRateLimitStore()).not.toThrow();
+  });
+
+  it('should reset rate limit after window expires', () => {
+    const ip = '192.168.1.50';
+
+    // Mock Date.now to control time
+    const originalNow = Date.now;
+    let mockTime = 1000000;
+    vi.spyOn(Date, 'now').mockImplementation(() => mockTime);
+
+    // Rate limit the IP
+    for (let i = 0; i < 11; i++) {
+      recordCsrfFailure(ip);
+    }
+    expect(isCsrfRateLimited(ip)).toBe(true);
+
+    // Advance time past the window (5 minutes = 300000ms)
+    mockTime += 300001;
+
+    // Should no longer be rate limited
+    expect(isCsrfRateLimited(ip)).toBe(false);
+
+    // New failure should start fresh window
+    const isLimited = recordCsrfFailure(ip);
+    expect(isLimited).toBe(false);
+
+    // Restore Date.now
+    Date.now = originalNow;
+  });
+
+  it('createCsrfRateLimitResponse should include Retry-After header', () => {
+    const response = createCsrfRateLimitResponse();
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Retry-After')).toBe('300'); // 5 minutes
   });
 });

@@ -8,6 +8,9 @@ import {
   hasValidApiKeyHeader,
   validateCsrfRequest,
   createCsrfErrorResponse,
+  isCsrfRateLimited,
+  recordCsrfFailure,
+  createCsrfRateLimitResponse,
 } from '@/lib/csrf';
 
 // Note: Middleware runs in Edge Runtime. We use process.env.NODE_ENV directly
@@ -79,18 +82,44 @@ export async function middleware(request: NextRequest) {
     !isRouteExcludedFromCsrf(pathname) &&
     !hasValidApiKeyHeader(request)
   ) {
+    const clientIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+
+    // Check if already rate limited before validation
+    if (isCsrfRateLimited(clientIp)) {
+      console.warn(
+        `CSRF rate limit exceeded`,
+        `ip=${clientIp}`,
+        `path=${pathname}`,
+        `method=${request.method}`
+      );
+      return createCsrfRateLimitResponse();
+    }
+
     const csrfResult = validateCsrfRequest(request);
     if (!csrfResult.valid) {
       const requestId =
         request.headers.get('x-request-id') || crypto.randomUUID();
+
+      // Record failure and check if now rate limited
+      const isNowRateLimited = recordCsrfFailure(clientIp);
+
       console.warn(
         `CSRF validation failed: ${csrfResult.error}`,
         `requestId=${requestId}`,
         `path=${pathname}`,
         `method=${request.method}`,
-        `ip=${request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'}`,
-        `ua=${request.headers.get('user-agent') || 'unknown'}`
+        `ip=${clientIp}`,
+        `ua=${request.headers.get('user-agent') || 'unknown'}`,
+        `rateLimited=${isNowRateLimited}`
       );
+
+      if (isNowRateLimited) {
+        return createCsrfRateLimitResponse();
+      }
+
       return createCsrfErrorResponse(csrfResult.error);
     }
   }

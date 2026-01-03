@@ -32,6 +32,7 @@ export const SECURITY_CONFIG = {
     twoFactorSetup: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
     twoFactorDisable: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
     oauthLink: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
+    csrfFailure: { limit: 10, windowMs: 5 * 60 * 1000 }, // 10 failures per 5 minutes
   },
   passwordPolicy: {
     maxAgeDays: 90, // Warn after 90 days

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getSession, getClientIP } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import { getEnabledProviders } from '@/lib/auth/oauth';
+import { rotateCsrfToken } from '@/lib/csrf';
 
 // GET /api/auth/oauth/accounts - List linked OAuth accounts
 export async function GET() {
@@ -143,7 +144,10 @@ export async function DELETE(req: NextRequest) {
       metadata: { provider },
     });
 
-    return NextResponse.json({ success: true });
+    // Rotate CSRF token after sensitive action
+    const response = NextResponse.json({ success: true });
+    rotateCsrfToken(response);
+    return response;
   } catch (error) {
     console.error('Unlink OAuth account error:', error);
     return NextResponse.json(

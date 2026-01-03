@@ -9,6 +9,7 @@ import {
   assertNotImpersonating,
   ImpersonationBlockedError,
 } from '@/lib/auth/impersonation';
+import { rotateCsrfToken } from '@/lib/csrf';
 
 export const runtime = 'nodejs';
 
@@ -107,7 +108,10 @@ export async function POST(req: NextRequest) {
       console.error('Failed to send 2FA enabled notification:', err)
     );
 
-    return NextResponse.json({ message: '2FA enabled successfully' });
+    // Rotate CSRF token after sensitive action
+    const response = NextResponse.json({ message: '2FA enabled successfully' });
+    rotateCsrfToken(response);
+    return response;
   } catch (error) {
     console.error('2FA verify error:', error);
     return NextResponse.json(
