@@ -93,7 +93,9 @@ export function NotificationPreferences() {
     const newValue = !preferences[key];
 
     try {
-      const response = await apiPatch('/api/users/notifications', { [key]: newValue });
+      const response = await apiPatch('/api/users/notifications', {
+        [key]: newValue,
+      });
 
       if (!response.ok) {
         const data = await response.json();

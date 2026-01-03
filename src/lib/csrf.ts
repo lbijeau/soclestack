@@ -72,14 +72,18 @@ export function validateCsrfToken(
 /**
  * Get CSRF token from request cookie.
  */
-export function getCsrfTokenFromCookie(request: NextRequest): string | undefined {
+export function getCsrfTokenFromCookie(
+  request: NextRequest
+): string | undefined {
   return request.cookies.get(CSRF_CONFIG.cookieName)?.value;
 }
 
 /**
  * Get CSRF token from request header.
  */
-export function getCsrfTokenFromHeader(request: NextRequest): string | undefined {
+export function getCsrfTokenFromHeader(
+  request: NextRequest
+): string | undefined {
   return request.headers.get(CSRF_CONFIG.headerName) || undefined;
 }
 
@@ -150,7 +154,11 @@ export function createCsrfErrorResponse(message: string): NextResponse {
  * Set CSRF cookie on a response.
  */
 export function setCsrfCookie(response: NextResponse, token: string): void {
-  response.cookies.set(CSRF_CONFIG.cookieName, token, CSRF_CONFIG.cookieOptions);
+  response.cookies.set(
+    CSRF_CONFIG.cookieName,
+    token,
+    CSRF_CONFIG.cookieOptions
+  );
 }
 
 /**

@@ -108,7 +108,9 @@ export function OAuthAccounts() {
     setSuccess('');
 
     try {
-      const res = await apiDelete(`/api/auth/oauth/accounts?provider=${provider}`);
+      const res = await apiDelete(
+        `/api/auth/oauth/accounts?provider=${provider}`
+      );
 
       if (!res.ok) {
         const data = await res.json();

@@ -88,7 +88,9 @@ export function SessionsList({
     setError('');
 
     try {
-      const response = await apiDelete(`/api/users/${userId}/sessions?all=true`);
+      const response = await apiDelete(
+        `/api/users/${userId}/sessions?all=true`
+      );
 
       if (!response.ok) {
         const data = await response.json();

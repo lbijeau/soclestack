@@ -244,7 +244,11 @@ export async function POST(req: NextRequest) {
 
     // Set CSRF token cookie
     const csrfToken = generateCsrfToken();
-    cookieStore.set(CSRF_CONFIG.cookieName, csrfToken, CSRF_CONFIG.cookieOptions);
+    cookieStore.set(
+      CSRF_CONFIG.cookieName,
+      csrfToken,
+      CSRF_CONFIG.cookieOptions
+    );
 
     // Return success response
     return NextResponse.json({

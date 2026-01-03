@@ -127,7 +127,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     }
 
     try {
-      const response = await apiPatch(`/api/users/${userId}`, { role: newRole });
+      const response = await apiPatch(`/api/users/${userId}`, {
+        role: newRole,
+      });
 
       if (!response.ok) {
         const data = await response.json();

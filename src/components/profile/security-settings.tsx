@@ -42,7 +42,9 @@ export function SecuritySettings({
     setError('');
 
     try {
-      const response = await apiPost('/api/auth/2fa/disable', { code: disableCode });
+      const response = await apiPost('/api/auth/2fa/disable', {
+        code: disableCode,
+      });
 
       const data = await response.json();
 

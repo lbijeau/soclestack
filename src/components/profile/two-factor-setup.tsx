@@ -55,7 +55,9 @@ export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
     setError('');
 
     try {
-      const response = await apiPost('/api/auth/2fa/verify', { code: verifyCode });
+      const response = await apiPost('/api/auth/2fa/verify', {
+        code: verifyCode,
+      });
 
       const data = await response.json();
 
