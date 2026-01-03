@@ -54,7 +54,7 @@ A complete Next.js 14 application with Enterprise-grade user management features
 
 1. **Clone and install dependencies:**
 ```bash
-git clone <repository-url>
+git clone https://github.com/yourusername/soclestack.git
 cd soclestack
 npm install
 ```
