@@ -452,9 +452,23 @@ export const rateLimitStore = new Map<
   { count: number; resetTime: number }
 >();
 
-// Cleanup expired entries every 60 seconds to prevent memory leaks
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+// Cleanup timer management
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Start the rate limit cleanup timer.
+ * Removes expired entries to prevent memory leaks.
+ */
+export function startRateLimitCleanup(intervalMs?: number): void {
+  // Don't start if already running or not in appropriate environment
+  if (cleanupIntervalId !== null || typeof setInterval === 'undefined') {
+    return;
+  }
+
+  // Import dynamically to avoid circular dependency
+  const interval = intervalMs ?? 60000; // Default 60 seconds
+
+  cleanupIntervalId = setInterval(() => {
     const now = Date.now();
     let cleanedCount = 0;
     for (const [key, record] of rateLimitStore) {
@@ -469,8 +483,22 @@ if (typeof setInterval !== 'undefined') {
         remainingEntries: rateLimitStore.size,
       });
     }
-  }, 60000);
+  }, interval);
 }
+
+/**
+ * Stop the rate limit cleanup timer.
+ * Useful for testing and graceful shutdown.
+ */
+export function stopRateLimitCleanup(): void {
+  if (cleanupIntervalId !== null) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+}
+
+// Auto-start cleanup timer (can be stopped for testing)
+startRateLimitCleanup();
 
 /**
  * Check if a key is rate limited.

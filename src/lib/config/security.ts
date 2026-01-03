@@ -26,6 +26,7 @@ export const SECURITY_CONFIG = {
     stateCookieName: 'oauth_state',
   },
   rateLimits: {
+    cleanupIntervalMs: 60 * 1000, // Cleanup expired entries every 60 seconds
     login: { limit: 10, windowMs: 15 * 60 * 1000 }, // 10 per 15 minutes
     register: { limit: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
     forgotPassword: { limit: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour

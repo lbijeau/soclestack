@@ -404,14 +404,14 @@ describe('Auth Service Functions', () => {
   describe('requestPasswordReset', () => {
     it('should throw ValidationError for invalid email', async () => {
       await expect(
-        requestPasswordReset({ email: 'invalid' })
+        requestPasswordReset({ email: 'invalid' }, mockContext)
       ).rejects.toThrow(ValidationError);
     });
 
     it('should return success message even if user not found', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
-      const result = await requestPasswordReset({ email: 'notfound@example.com' });
+      const result = await requestPasswordReset({ email: 'notfound@example.com' }, mockContext);
 
       expect(result.message).toContain('If an account with that email exists');
     });
@@ -423,7 +423,7 @@ describe('Auth Service Functions', () => {
       } as any);
       vi.mocked(prisma.user.update).mockResolvedValue({} as any);
 
-      const result = await requestPasswordReset({ email: 'test@example.com' });
+      const result = await requestPasswordReset({ email: 'test@example.com' }, mockContext);
 
       expect(result.message).toContain('If an account with that email exists');
       expect(prisma.user.update).toHaveBeenCalled();

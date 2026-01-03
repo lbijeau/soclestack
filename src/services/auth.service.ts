@@ -132,7 +132,8 @@ export async function login(
 
   // Rate limiting
   const rateLimitKey = `login:${clientIP}`;
-  const { limit: loginLimit, windowMs: loginWindowMs } = SECURITY_CONFIG.rateLimits.login;
+  const { limit: loginLimit, windowMs: loginWindowMs } =
+    SECURITY_CONFIG.rateLimits.login;
   if (isRateLimited(rateLimitKey, loginLimit, loginWindowMs)) {
     throw new RateLimitError(
       'Too many login attempts. Please try again later.',
@@ -361,7 +362,8 @@ export async function register(
 
   // Rate limiting
   const rateLimitKey = `register:${clientIP}`;
-  const { limit: registerLimit, windowMs: registerWindowMs } = SECURITY_CONFIG.rateLimits.register;
+  const { limit: registerLimit, windowMs: registerWindowMs } =
+    SECURITY_CONFIG.rateLimits.register;
   if (isRateLimited(rateLimitKey, registerLimit, registerWindowMs)) {
     throw new RateLimitError(
       'Too many registration attempts. Please try again later.',
@@ -867,10 +869,26 @@ export interface RequestPasswordResetInput {
 /**
  * Request a password reset. Generates token and stores in database.
  * Always returns success to prevent email enumeration.
+ *
+ * @throws {RateLimitError} Too many password reset requests
+ * @throws {ValidationError} Invalid input
  */
 export async function requestPasswordReset(
-  input: RequestPasswordResetInput
+  input: RequestPasswordResetInput,
+  context: RequestContext
 ): Promise<{ message: string }> {
+  const { clientIP } = context;
+
+  // Rate limiting
+  const rateLimitKey = `forgot-password:${clientIP}`;
+  const { limit, windowMs } = SECURITY_CONFIG.rateLimits.forgotPassword;
+  if (isRateLimited(rateLimitKey, limit, windowMs)) {
+    throw new RateLimitError(
+      'Too many password reset requests. Please try again later.',
+      getRateLimitInfo(rateLimitKey, limit, windowMs)
+    );
+  }
+
   const validationResult = requestPasswordResetSchema.safeParse(input);
   if (!validationResult.success) {
     throw new ValidationError('Invalid input', {
