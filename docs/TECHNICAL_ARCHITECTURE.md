@@ -413,3 +413,140 @@ CREATE TABLE api_keys (
 - Header: `Authorization: Bearer lsk_...`
 - Keys respect user's active status and role permissions
 - READ_ONLY keys reject non-GET/HEAD/OPTIONS requests with 403
+
+### 16. Rate Limiting Abstraction
+
+#### Architecture
+The rate limiter uses a pluggable backend pattern with two implementations:
+
+```mermaid
+graph TD
+    Request[Incoming Request]
+    Factory[getRateLimiter Factory]
+    Memory[MemoryRateLimiter]
+    Redis[RedisRateLimiter]
+    Check{Rate Check}
+    Allow[Allow Request]
+    Block[Block Request]
+
+    Request --> Factory
+    Factory -->|No Redis| Memory
+    Factory -->|UPSTASH_REDIS_REST_URL set| Redis
+    Memory --> Check
+    Redis --> Check
+    Check -->|Within Limit| Allow
+    Check -->|Exceeded| Block
+```
+
+#### Interface
+```typescript
+interface RateLimiter {
+  check(key: string, limit: number, windowMs: number): Promise<RateLimitResult>;
+  peek(key: string, limit: number, windowMs: number): Promise<RateLimitResult>;
+  reset(key: string): Promise<void>;
+  shutdown(): Promise<void>;
+}
+
+interface RateLimitResult {
+  limited: boolean;
+  headers: RateLimitHeaders;
+}
+
+interface RateLimitHeaders {
+  'X-RateLimit-Limit': number;
+  'X-RateLimit-Remaining': number;
+  'X-RateLimit-Reset': number;
+  'Retry-After'?: number;
+}
+```
+
+#### Implementations
+
+**MemoryRateLimiter** (`src/lib/rate-limiter/memory.ts`)
+- In-memory Map-based storage
+- Automatic cleanup of expired entries (configurable interval)
+- Suitable for single-instance deployments
+
+**RedisRateLimiter** (`src/lib/rate-limiter/redis.ts`)
+- Upstash Redis HTTP-based client
+- Atomic Lua script for INCR + EXPIRE operations
+- Suitable for horizontally scaled deployments
+- Fails open (allows request) on Redis errors
+
+#### Factory Pattern
+```typescript
+// Auto-selects Redis if UPSTASH_REDIS_REST_URL is configured
+const rateLimiter = getRateLimiter();
+```
+
+#### Rate Limit Headers (RFC Compliant)
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Requests remaining in window
+- `X-RateLimit-Reset`: Unix timestamp when window resets
+- `Retry-After`: Seconds to wait (only when limited)
+
+### 17. Structured Logging
+
+#### Logger Architecture
+Structured logging using Pino with JSON output format.
+
+```typescript
+// src/lib/logger.ts
+export const log = {
+  debug: (message: string, meta?: object) => void;
+  info: (message: string, meta?: object) => void;
+  warn: (message: string, meta?: object) => void;
+  error: (message: string, meta?: object) => void;
+  security: {
+    loginSuccess: (userId: string, ip: string) => void;
+    loginFailed: (email: string, ip: string, reason: string) => void;
+    rateLimited: (identifier: string, action: string) => void;
+    accountLocked: (userId: string, ip: string) => void;
+    // ... other security events
+  };
+};
+```
+
+#### Log Levels
+| Level | Usage |
+|-------|-------|
+| debug | Development debugging, verbose details |
+| info | Normal operations, successful actions |
+| warn | Recoverable issues, deprecated usage |
+| error | Failures, exceptions, critical issues |
+
+#### Security Event Logging
+Dedicated methods for security-relevant events:
+- Authentication attempts (success/failure)
+- Rate limiting events
+- Account lockouts/unlocks
+- 2FA events
+- Session operations
+
+### 18. Service Layer
+
+#### Architecture
+Business logic is centralized in service classes to keep route handlers thin.
+
+```
+src/services/
+├── auth.service.ts     # Authentication business logic
+└── auth.errors.ts      # Auth-specific error types
+```
+
+#### AuthService
+```typescript
+class AuthService {
+  async login(credentials: LoginCredentials): Promise<LoginResult>;
+  async register(data: RegisterData): Promise<RegisterResult>;
+  async verifyEmail(token: string): Promise<void>;
+  async requestPasswordReset(email: string): Promise<void>;
+  async resetPassword(token: string, password: string): Promise<void>;
+}
+```
+
+#### Benefits
+- Separation of concerns (HTTP handling vs business logic)
+- Easier unit testing of business logic
+- Consistent error handling patterns
+- Rate limiting integrated at service level

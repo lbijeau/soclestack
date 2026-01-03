@@ -1,18 +1,19 @@
 # SocleStack Development Progress
 
-**Last Updated:** 2025-11-30
+**Last Updated:** 2026-01-03
 **Current Branch:** master
+**Status:** All planned features complete
 
 ## Project Goal
 
-Build a Next.js 14 application with Enterprise-grade user management features.
+Build a Next.js 14 application with enterprise-grade user management features.
 
 ---
 
 ## Completed Work
 
 ### Phase 1: Core User Management ✅
-*Completed in initial implementation*
+*Initial implementation*
 
 - User registration with email verification
 - Secure login/logout
@@ -40,255 +41,239 @@ Build a Next.js 14 application with Enterprise-grade user management features.
 
 **Remember Me** (`src/lib/auth/remember-me.ts`)
 - 30-day persistent login sessions
-- Series:token rotation pattern (Enterprise-grade)
+- Series:token rotation pattern
 - Token theft detection - if stolen token is reused, ALL user sessions revoked
 - Timing-safe comparison to prevent timing attacks
-- Cookie: httpOnly, secure, sameSite=lax
 
-**New API Endpoints**
-- `GET /api/auth/session` - Check session or auto-login via remember-me
-- `POST /api/users/[id]/unlock` - Admin unlock account
-- `GET /api/users/[id]/sessions` - List active remember-me sessions
-- `DELETE /api/users/[id]/sessions?series=xxx` - Revoke specific session
-- `DELETE /api/users/[id]/sessions?all=true` - Revoke all sessions
-
-**UI Updates**
-- Login form: "Remember me" checkbox
-- Login form: Account lockout error handling
-- Added data-testid attributes for E2E testing
-
-**Database Changes** (`prisma/schema.prisma`)
-- `AuditLog` model - security event logging
-- `RememberMeToken` model - persistent sessions
-- `User` model - added `failedLoginAttempts`, `lockedUntil` fields
-
-### Two-Factor Authentication (2FA) ✅
+### Phase 3: Two-Factor Authentication ✅
 *Completed 2025-11-30*
 
-**Core Features:**
-- TOTP-based 2FA with QR code setup (otpauth library)
-- Backup codes (10 one-time codes) for recovery
-- Required for ADMIN role, optional for USER/MODERATOR
+- TOTP-based 2FA with QR code setup
+- 10 backup codes for recovery
+- Required for ADMIN role, optional for others
 - Admin can reset user's 2FA
 
-**Files Created:**
-- `src/lib/auth/totp.ts` - TOTP generation/validation
-- `src/lib/auth/backup-codes.ts` - Backup code generation/validation
-- `src/lib/auth/pending-2fa.ts` - JWT tokens for 2FA login flow
-- `src/app/api/auth/2fa/setup/route.ts` - Generate secret, QR code, backup codes
-- `src/app/api/auth/2fa/verify/route.ts` - Complete 2FA setup
-- `src/app/api/auth/2fa/validate/route.ts` - Validate code during login
-- `src/app/api/auth/2fa/disable/route.ts` - Disable 2FA (blocked for admins)
-- `src/app/api/admin/users/[id]/reset-2fa/route.ts` - Admin reset
-- `src/app/(dashboard)/profile/security/page.tsx` - Security settings UI
-
-**Database Changes:**
-- `User` model - added `twoFactorSecret`, `twoFactorEnabled`, `twoFactorVerified`
-- `BackupCode` model - stores hashed backup codes
-
-### User Impersonation (Switch User) ✅
+### Phase 4: User Impersonation ✅
 *Completed 2025-11-30*
 
-**Core Features:**
-- Admins can impersonate any non-admin user
+- Admins can impersonate non-admin users
 - Session preserves original admin identity
 - 1-hour timeout with auto-expiry
 - Sticky amber banner shows impersonation status
 
-**Security:**
-- Cannot impersonate other ADMINs
-- Security actions blocked during impersonation (2FA, password changes)
-- Full audit trail (start, end, expired events)
-
-**API Endpoints:**
-- `POST /api/admin/impersonate` - Start impersonation
-- `POST /api/admin/exit-impersonation` - End impersonation
-
-**Files Created:**
-- `src/lib/auth/impersonation.ts` - Impersonation helpers
-- `src/app/api/admin/impersonate/route.ts` - Start impersonation
-- `src/app/api/admin/exit-impersonation/route.ts` - Exit impersonation
-- `src/components/admin/impersonation-banner.tsx` - UI banner
-- `src/components/admin/impersonation-banner-wrapper.tsx` - Server wrapper
-
-### Active Sessions UI ✅
+### Phase 5: Email Notifications ✅
 *Completed 2025-11-30*
 
-**Features:**
-- View all active "Remember me" sessions
-- Shows browser, OS, IP address, last active time
-- "This device" indicator for current session
-- Revoke individual sessions or all at once
+- Login from new device/location alerts
+- Account locked notifications
+- Password changed confirmations
+- 2FA enabled/disabled notifications
+- Provider: Resend (console logging in development)
 
-**Files Created:**
-- `src/app/(dashboard)/profile/sessions/page.tsx` - Sessions page
-- `src/components/profile/sessions-list.tsx` - Sessions list component
-
-### Audit Log Viewer ✅
+### Phase 6: Organizations (Multi-Tenancy) ✅
 *Completed 2025-11-30*
 
-**Features:**
-- Admin page at `/admin/audit-logs` (ADMIN only)
-- Filter by category, action, user email, date range
-- Human-readable action labels with color-coded badges
-- Traditional pagination (50 per page)
-- Client-side CSV export (up to 10,000 records)
-- Expandable metadata details
-
-**Files Created:**
-- `src/app/admin/audit-logs/page.tsx` - Audit logs page
-- `src/components/admin/audit-log-viewer.tsx` - Viewer component
-- `src/app/api/admin/audit-logs/route.ts` - API endpoint
-
-**Changes:**
-- Extended `getAuditLogs()` with email search and total count
-- Added link to audit logs from admin panel
-- Updated middleware for `/admin/audit-logs` route
-
-### Email Notifications ✅
-*Completed 2025-11-30*
-
-**Notification Types:**
-- Login from new device/location (IP + user-agent detection)
-- Account locked (after 5 failed attempts)
-- Password changed
-- 2FA enabled/disabled
-
-**Email Provider:** Resend (console logging in development)
-
-**Files Created:**
-- `src/lib/email.ts` - Email service with Resend + dev fallback
-- `src/lib/email/templates.ts` - HTML email templates
-- `src/lib/utils/user-agent.ts` - Shared user-agent parser
-
-**Files Modified:**
-- `src/app/api/auth/login/route.ts` - New device detection + alert
-- `src/lib/auth/lockout.ts` - Account locked notification
-- `src/app/api/auth/reset-password/route.ts` - Password changed notification
-- `src/app/api/auth/2fa/verify/route.ts` - 2FA enabled notification
-- `src/app/api/auth/2fa/disable/route.ts` - 2FA disabled notification
-- `src/components/profile/sessions-list.tsx` - Uses shared parseUserAgent
-
-**Environment Variables:**
-- `RESEND_API_KEY` - Required in production
-- `EMAIL_FROM` - Sender address (default: noreply@soclestack.com)
-
-### Organizations (Multi-Tenancy) ✅
-*Completed 2025-11-30*
-
-**Core Features:**
 - Multi-tenant architecture with logical data isolation
-- Single organization per user
-- Organization-specific roles: OWNER, ADMIN, MEMBER
-- Self-service organization creation on registration
-- Email invitations for adding users (7-day expiry)
+- Organization roles: OWNER, ADMIN, MEMBER
+- Email invitations with 7-day expiry
 - Organization-scoped audit logs
 
-**Global vs Org Roles:**
-- System `Role.ADMIN` = super admin (can access all organizations)
-- `OrganizationRole.OWNER` = full control of org, can delete
-- `OrganizationRole.ADMIN` = manage users, settings
-- `OrganizationRole.MEMBER` = basic access
+### Phase 7: OAuth/Social Login ✅
+*Completed 2025-12-01*
 
-**Registration Flow:**
-- New users must provide organization name (becomes OWNER)
-- OR use an invite token (joins with invite's role)
-- Existing users can accept invites if they have no organization
+**Providers:**
+- Google OAuth 2.0 with OpenID Connect
+- GitHub OAuth 2.0
 
-**API Endpoints:**
-- `POST /api/organizations` - Create org (for existing users without one)
-- `GET /api/organizations/current` - Get current user's organization
-- `PATCH /api/organizations/current` - Update org (ADMIN+)
-- `DELETE /api/organizations/current` - Delete org (OWNER only)
-- `GET /api/organizations/current/members` - List members
-- `PATCH /api/organizations/current/members/[id]` - Update member role (ADMIN+)
-- `DELETE /api/organizations/current/members/[id]` - Remove member (ADMIN+)
-- `GET /api/organizations/current/invites` - List pending invites (ADMIN+)
-- `POST /api/organizations/current/invites` - Send invite (ADMIN+)
-- `DELETE /api/organizations/current/invites/[id]` - Cancel invite (ADMIN+)
-- `GET /api/invites/[token]` - Get invite details (public)
-- `POST /api/invites/[token]/accept` - Accept invite (authenticated)
+**Features:**
+- Account linking (connect social to existing account)
+- Password verification before linking
+- Invite token support during OAuth registration
+- 2FA integration for linked accounts
 
-**UI Pages:**
-- `/organization` - Organization settings (ADMIN+)
-- `/organization/members` - Member list with role management
-- `/organization/invites` - Send and manage invitations
-- `/invite/[token]` - Accept invitation page
+**Files:**
+- `src/lib/auth/oauth/` - OAuth client, providers, state management
+- `src/app/api/auth/oauth/` - OAuth endpoints
+- `src/app/auth/oauth/` - OAuth UI pages
 
-**Files Created:**
-- `src/lib/organization.ts` - Slug generation, role hierarchy, invite helpers
-- `src/app/api/organizations/` - All organization API routes
-- `src/app/api/invites/[token]/` - Public invite endpoints
-- `src/app/organization/` - Organization UI pages
-- `src/app/invite/[token]/page.tsx` - Invite acceptance page
-- `src/lib/email/templates.ts` - Added `organizationInviteTemplate`
+### Phase 8: API Keys ✅
+*Completed 2025-12-01*
 
-**Database Changes:**
-- `Organization` model - id, name, slug, timestamps
-- `OrganizationInvite` model - email, role, token, expiry
-- `OrganizationRole` enum - OWNER, ADMIN, MEMBER
-- `User` model - added `organizationId`, `organizationRole`, `sentInvites`
+- User-scoped keys for programmatic access
+- Permissions: READ_ONLY, READ_WRITE
+- Optional expiration dates
+- Maximum 10 keys per user
+- Key format: `ssk_` prefix + 32 bytes base64url
 
-**Files Modified:**
-- `src/lib/validations.ts` - Added org fields to registration schema
-- `src/app/api/auth/register/route.ts` - Handles org creation/invite acceptance
-- `src/app/api/admin/audit-logs/route.ts` - Org-scoped filtering
-- `src/lib/audit.ts` - Added organizationId filter
-- `src/middleware.ts` - Added organization routes, public invite paths
-- `src/components/ui/button.tsx` - Added outline variant and icon size
+**Endpoints:**
+- `POST /api/keys` - Create key (returns full key once)
+- `GET /api/keys` - List keys
+- `DELETE /api/keys/[id]` - Revoke key
+
+### Phase 9: Production Infrastructure ✅
+*Completed 2026-01-03*
+
+**PostgreSQL Support** (PR #83)
+- Dual database support: SQLite (dev) / PostgreSQL (prod)
+- Connection pooling configuration
+- SSL/TLS support for production
+
+**Database Indexes** (PR #81)
+- Indexes on frequently queried fields
+- Improved query performance
+
+**Environment Validation** (PR #76)
+- Zod schema validation on startup
+- Clear error messages for missing vars
+- Fail-fast behavior
+
+### Phase 10: Code Quality & Architecture ✅
+*Completed 2026-01-03*
+
+**Structured Logging** (PR #84)
+- Pino logger with JSON output
+- Log levels: debug, info, warn, error
+- Correlation IDs for request tracing
+- Security event logging methods
+
+**Service Layer** (PR #79)
+- Business logic extracted to `src/services/`
+- `AuthService` with rate limiting integration
+- Thin route handlers
+
+**Session Consolidation** (PR #77)
+- Single source of truth for session management
+- Removed duplicate code
+
+**Security Headers Consolidation** (PR #78)
+- Unified security headers configuration
+- CSP, HSTS, X-Frame-Options
+
+**JWT Library Consolidation** (PR #80)
+- Single JWT library (jose)
+- Removed duplicate implementations
+
+**Unit Tests** (PR #75)
+- 306 unit tests passing
+- Coverage for auth and security functions
+
+### Phase 11: Rate Limiting Abstraction ✅
+*Completed 2026-01-03*
+
+**Rate Limiter Interface** (PR #101)
+- Pluggable backends: Memory and Redis
+- Async interface supporting distributed stores
+- RFC-compliant headers (X-RateLimit-*, Retry-After)
+
+**Implementations:**
+- `MemoryRateLimiter` - Single instance, with cleanup timer
+- `RedisRateLimiter` - Upstash Redis, atomic Lua scripts
+
+**Factory Pattern:**
+- Auto-selects Redis if `UPSTASH_REDIS_REST_URL` configured
+- Graceful fallback to memory
+
+**Files:**
+- `src/lib/rate-limiter/types.ts` - Interface definitions
+- `src/lib/rate-limiter/memory.ts` - In-memory implementation
+- `src/lib/rate-limiter/redis.ts` - Redis implementation
+- `src/lib/rate-limiter/index.ts` - Factory and exports
+
+### Phase 12: Frontend & Accessibility ✅
+*Completed 2026-01-03*
+
+**Accessibility Labels** (PR #86)
+- ARIA labels on all form inputs
+- Screen reader support
+- Keyboard navigation
+
+**Loading States** (PR #82)
+- Disabled buttons during API calls
+- Prevents double submissions
+- Visual feedback with spinners
+
+### Phase 13: Performance ✅
+*Completed 2026-01-03*
+
+**Streaming Audit Exports** (PR #85)
+- Large exports streamed (no memory load)
+- Progress feedback for users
+
+**N+1 Query Fix** (PR #74)
+- Organization slug generation optimized
+- Single query instead of N+1
+
+### Documentation ✅
+*Completed 2026-01-03*
+
+**Cloudflare Edge Rate Limiting** (PR #102)
+- `docs/deployment/cloudflare-setup.md` - Complete setup guide
+- Rate limiting rules for all auth endpoints
+- WAF configuration
+
+**Distributed Rate Limiting Evaluation** (PR #87)
+- `docs/plans/2026-01-03-distributed-rate-limiting-evaluation.md`
+- Options analysis: Cloudflare, Redis, Upstash
 
 ---
 
-## Next Steps (Suggested Priorities)
+## Project Status
 
-### Tier 2: Enhanced Features
+All 5 EPICs completed:
+- ✅ #37 Production Infrastructure
+- ✅ #38 Email & Notifications System
+- ✅ #39 Code Quality & Architecture
+- ✅ #40 Frontend & Accessibility
+- ✅ #41 Performance Optimization
 
-#### 4. OAuth/Social Login
-- Google OAuth
-- GitHub OAuth
-- Account linking (connect social to existing account)
-
-#### 5. API Keys
-- Generate API keys for programmatic access
-- Scoped permissions per key
-- Key rotation
-- Usage tracking
+**Total Issues Closed:** 41
+**Total PRs Merged:** 104
 
 ---
 
 ## File Structure Reference
 
 ```
-src/lib/
-├── audit.ts                 # Audit logging service
-├── auth.ts                  # Core auth (sessions, tokens)
-├── auth/
-│   ├── lockout.ts           # Account lockout service
-│   └── remember-me.ts       # Remember me token service
-├── config/
-│   └── security.ts          # Security configuration
-├── db.ts                    # Prisma client
-├── security.ts              # Crypto utilities
-└── validations.ts           # Zod schemas
-
-src/app/api/
-├── auth/
-│   ├── login/route.ts       # Login with lockout + remember-me
-│   ├── logout/route.ts      # Logout with token revocation
-│   ├── session/route.ts     # Session check + auto-login
-│   ├── register/route.ts
-│   ├── forgot-password/route.ts
-│   ├── reset-password/route.ts
-│   ├── verify-email/route.ts
-│   ├── refresh/route.ts
-│   └── me/route.ts
-└── users/
-    ├── route.ts
-    ├── [id]/
-    │   ├── route.ts
-    │   ├── unlock/route.ts      # Admin unlock
-    │   └── sessions/route.ts    # Session management
-    └── profile/route.ts
+src/
+├── app/
+│   ├── api/
+│   │   ├── auth/           # Authentication endpoints
+│   │   ├── admin/          # Admin endpoints
+│   │   ├── users/          # User management
+│   │   ├── organizations/  # Multi-tenancy
+│   │   ├── keys/           # API keys
+│   │   └── invites/        # Invitation handling
+│   ├── (dashboard)/        # Protected routes
+│   ├── admin/              # Admin pages
+│   └── auth/               # Auth UI pages
+├── components/
+│   ├── ui/                 # Reusable UI components
+│   ├── auth/               # Auth forms
+│   ├── admin/              # Admin components
+│   ├── profile/            # Profile components
+│   └── navigation/         # Navigation
+├── lib/
+│   ├── auth/               # Auth utilities
+│   │   ├── oauth/          # OAuth implementation
+│   │   ├── lockout.ts      # Account lockout
+│   │   ├── remember-me.ts  # Persistent sessions
+│   │   ├── totp.ts         # 2FA TOTP
+│   │   └── backup-codes.ts # 2FA backup codes
+│   ├── rate-limiter/       # Rate limiting
+│   │   ├── types.ts        # Interface
+│   │   ├── memory.ts       # In-memory impl
+│   │   ├── redis.ts        # Redis impl
+│   │   └── index.ts        # Factory
+│   ├── config/             # Configuration
+│   │   └── security.ts     # Security config
+│   ├── audit.ts            # Audit logging
+│   ├── email.ts            # Email service
+│   ├── logger.ts           # Structured logging
+│   └── validations.ts      # Zod schemas
+├── services/
+│   ├── auth.service.ts     # Auth business logic
+│   └── auth.errors.ts      # Auth error types
+└── middleware.ts           # Route protection
 ```
 
 ---
@@ -299,11 +284,11 @@ src/app/api/
 ```typescript
 export const SECURITY_CONFIG = {
   lockout: {
-    maxFailedAttempts: 5,    // Lock after 5 failures
-    durationMinutes: 15,     // Lock for 15 minutes
+    maxFailedAttempts: 5,
+    durationMinutes: 15,
   },
   rememberMe: {
-    tokenLifetimeDays: 30,   // Remember me lasts 30 days
+    tokenLifetimeDays: 30,
     cookieName: 'remember_me',
   },
   twoFactor: {
@@ -312,24 +297,26 @@ export const SECURITY_CONFIG = {
     pendingTokenExpiryMinutes: 5,
   },
   impersonation: {
-    timeoutMinutes: 60,      // Auto-expire after 1 hour
+    timeoutMinutes: 60,
+  },
+  rateLimits: {
+    cleanupIntervalMs: 60000,
   },
 } as const;
 ```
 
 ---
 
-## Design Documents
+## Environment Variables
 
-- `docs/plans/2025-11-30-security-ux-hardening-design.md` - Security hardening design
-- `docs/plans/2025-11-30-security-ux-hardening-implementation.md` - Security hardening implementation
-- `docs/plans/2025-11-30-two-factor-auth-design.md` - 2FA design
-- `docs/plans/2025-11-30-two-factor-auth-implementation.md` - 2FA implementation
-- `docs/plans/2025-11-30-user-impersonation-design.md` - Impersonation design
-- `docs/plans/2025-11-30-user-impersonation-implementation.md` - Impersonation implementation
-- `docs/plans/2025-11-30-audit-log-viewer-design.md` - Audit log viewer design
-- `docs/plans/2025-11-30-email-notifications-design.md` - Email notifications design
-- `docs/plans/2025-11-30-organizations-design.md` - Organizations (multi-tenancy) design
+See [ENVIRONMENT.md](./ENVIRONMENT.md) for complete reference.
+
+**Key Variables:**
+- `DATABASE_URL` - PostgreSQL or SQLite connection
+- `SESSION_SECRET`, `JWT_SECRET`, `JWT_REFRESH_SECRET` - Auth secrets
+- `RESEND_API_KEY` - Email service (production)
+- `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` - Redis rate limiting
+- `OAUTH_GOOGLE_*`, `OAUTH_GITHUB_*` - OAuth credentials
 
 ---
 
@@ -339,13 +326,30 @@ export const SECURITY_CONFIG = {
 # Development
 npm run dev              # Start dev server
 npm run build            # Production build
+npm run lint             # ESLint
 npx tsc --noEmit         # Type check
+
+# Testing
+npm run test:unit        # Unit tests (306 tests)
+npm run test:e2e         # E2E tests
 
 # Database
 npx prisma studio        # Open Prisma Studio
 npx prisma db push       # Push schema changes
 npx prisma generate      # Regenerate client
+npx prisma migrate dev   # Create migration
 
-# Testing (requires @playwright/test)
-npm test                 # Run E2E tests
+# Documentation
+npm run docs:dev         # Dev server for docs
+npm run docs:build       # Build docs
 ```
+
+---
+
+## Related Documentation
+
+- [Technical Architecture](./TECHNICAL_ARCHITECTURE.md)
+- [Database Schema](./DATABASE.md)
+- [Environment Variables](./ENVIRONMENT.md)
+- [Testing Guide](./testing/README.md)
+- [Cloudflare Setup](./deployment/cloudflare-setup.md)
