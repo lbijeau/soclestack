@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getSessionFromRequest } from '@/lib/auth-edge';
+import { getSessionFromRequest } from '@/lib/auth';
 import { securityHeaders, buildCSP } from '@/lib/security-headers';
 import {
   requiresCsrfValidation,

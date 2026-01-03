@@ -1,6 +1,6 @@
 import { getIronSession, IronSession } from 'iron-session';
 import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from './db';
 import { env } from './env';
 import { SessionData } from '@/types/auth';
@@ -12,37 +12,128 @@ import {
   generateSessionToken,
   hashSessionToken,
 } from './security';
-import { User, ApiKeyPermission } from '@prisma/client';
+import { User, ApiKeyPermission, Role } from '@prisma/client';
 import { validateApiKey, isMethodAllowed } from './api-keys';
+
+// ============================================================================
+// Session Configuration
+// ============================================================================
+
+/**
+ * Shared session configuration used by both Edge Runtime and Node.js.
+ * Uses process.env directly for Edge Runtime compatibility.
+ * SESSION_SECRET is validated at startup by the env module.
+ */
+export const SESSION_CONFIG = {
+  cookieName: 'soclestack-session',
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  },
+} as const;
 
 // Session duration constants
 export const SESSION_DURATION_MS = 60 * 60 * 24 * 7 * 1000; // 7 days in ms
 export const SESSION_WARNING_THRESHOLD_MS = 60 * 60 * 1000; // Show warning 1 hour before expiry
 
-// Session configuration
-// Note: SESSION_SECRET is validated by env module. In production it's required;
-// in development it uses permissive parsing (see src/lib/env.ts).
+/**
+ * Iron-session options for Node.js environment.
+ * Uses validated env module for SESSION_SECRET.
+ */
 const sessionOptions = {
   password: env.SESSION_SECRET as string,
-  cookieName: 'soclestack-session',
-  cookieOptions: {
-    secure: env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'lax' as const,
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  },
+  ...SESSION_CONFIG,
 };
 
-// Get session from cookies
+// Get session from cookies (for Server Components and Route Handlers)
 export async function getSession(): Promise<IronSession<SessionData>> {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
 }
 
-// Get session from request (for API routes)
+// ============================================================================
+// Edge Runtime Session Reading
+// ============================================================================
+
+/**
+ * Iron-session options for Edge Runtime.
+ * Uses process.env directly since env module may not be available in Edge.
+ * SESSION_SECRET is validated at app startup by the env module.
+ */
+const edgeSessionOptions = {
+  password: process.env.SESSION_SECRET!,
+  ...SESSION_CONFIG,
+};
+
+// Types for iron-session Edge Runtime compatibility
+interface EdgeMockRequest {
+  headers: {
+    cookie: string;
+  };
+}
+
+interface EdgeMockResponse {
+  getHeader: () => undefined;
+  setHeader: () => void;
+  headers: Map<string, string>;
+}
+
+/**
+ * Default empty session for unauthenticated requests.
+ * Exported for use by code that needs a default session state.
+ */
+export const EMPTY_SESSION: SessionData = {
+  userId: '',
+  email: '',
+  role: Role.USER,
+  isLoggedIn: false,
+};
+
+/**
+ * Get session data from a NextRequest (Edge Runtime compatible).
+ * This is a read-only operation - use getSession() if you need to modify the session.
+ *
+ * Note: Returns SessionData (not IronSession) since Edge Runtime only needs
+ * read access. For session modification, use getSession() in Node.js context.
+ *
+ * @param request - The incoming NextRequest
+ * @returns SessionData object (read-only, cannot call save/destroy)
+ */
 export async function getSessionFromRequest(
-  req: NextRequest
-): Promise<IronSession<SessionData>> {
-  return getIronSession<SessionData>(req, NextResponse.next(), sessionOptions);
+  request: NextRequest
+): Promise<SessionData> {
+  try {
+    const sessionCookie = request.cookies.get(SESSION_CONFIG.cookieName);
+
+    if (!sessionCookie) {
+      return EMPTY_SESSION;
+    }
+
+    // Create mock request/response for iron-session Edge compatibility
+    const mockRequest: EdgeMockRequest = {
+      headers: {
+        cookie: `${SESSION_CONFIG.cookieName}=${sessionCookie.value}`,
+      },
+    };
+
+    const mockResponse: EdgeMockResponse = {
+      getHeader: () => undefined,
+      setHeader: () => {},
+      headers: new Map(),
+    };
+
+    const session = await getIronSession<SessionData>(
+      mockRequest as unknown as Parameters<typeof getIronSession>[0],
+      mockResponse as unknown as Parameters<typeof getIronSession>[1],
+      edgeSessionOptions
+    );
+
+    return session || EMPTY_SESSION;
+  } catch (error) {
+    console.error('Error reading session from request:', error);
+    return EMPTY_SESSION;
+  }
 }
 
 // Get current user from session
