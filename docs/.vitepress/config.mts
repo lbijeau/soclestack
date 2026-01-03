@@ -7,7 +7,7 @@ export default withMermaid(
     description: "Enterprise-grade Next.js User Management System",
     base: '/soclestack/',
     cleanUrls: true,
-    ignoreDeadLinks: true,
+    ignoreDeadLinks: 'localhostLinks',
     themeConfig: {
       nav: [
         { text: 'Home', link: '/' },

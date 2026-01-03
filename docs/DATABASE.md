@@ -1155,8 +1155,8 @@ const recentFailures = await prisma.auditLog.count({
 
 - [Environment Variables](./ENVIRONMENT.md) - Database connection configuration
 - [Migrations Guide](./MIGRATIONS.md) - Database migration workflow
-- [API Documentation](./API.md) - API endpoints using these models
-- [Security Guidelines](../SECURITY.md) - Security best practices
+- [API Reference](./API_REFERENCE.md) - API endpoints using these models
+- [Security Considerations](./TECHNICAL_ARCHITECTURE.md#_8-security-considerations) - Security best practices
 
 ---
 

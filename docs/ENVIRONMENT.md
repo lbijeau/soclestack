@@ -527,11 +527,10 @@ Next.js loads environment variables in this order (later overrides earlier):
 
 ## Related Documentation
 
-- [Development Setup Guide](./SETUP.md) - Local development configuration
-- [Deployment Guide](./DEPLOYMENT.md) - Production deployment
-- [Security Guidelines](../SECURITY.md) - Security best practices
+- [Getting Started](./PROGRESS.md) - Project setup and progress
+- [Security Considerations](./TECHNICAL_ARCHITECTURE.md#_8-security-considerations) - Security best practices
 - [Database Documentation](./DATABASE.md) - Database schema and setup
-- [Email Service Documentation](./EMAIL.md) - Email configuration
+- [Email Notifications Design](./plans/2025-11-30-email-notifications-design.md) - Email configuration
 
 ---
 
