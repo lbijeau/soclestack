@@ -58,8 +58,14 @@ export async function GET(req: NextRequest) {
       validationResult.data;
     const locked = searchParams.get('locked') === 'true';
 
-    // Build where clause
+    // Build where clause with organization filter
+    // Platform super-admins (no org) can see all users
+    // Organization-bound admins can only see users in their org
     const where: Prisma.UserWhereInput = {
+      // Organization-level access filter
+      ...(currentUser.organizationId !== null && {
+        organizationId: currentUser.organizationId,
+      }),
       ...(search && {
         OR: [
           { email: { contains: search } },

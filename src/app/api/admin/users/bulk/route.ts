@@ -4,6 +4,7 @@ import { getSession, getClientIP } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import { AuthError } from '@/types/auth';
 import { z } from 'zod';
+import { canAccessUserInOrg } from '@/lib/organization';
 
 export const runtime = 'nodejs';
 
@@ -74,10 +75,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get current user's organization
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { organizationId: true },
+    });
+
     // Get target users to verify they exist and check for other admins
     const targetUsers = await prisma.user.findMany({
       where: { id: { in: userIds } },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, organizationId: true },
     });
 
     if (targetUsers.length === 0) {
@@ -92,8 +99,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Filter to only users in the same organization (unless platform super-admin)
+    const accessibleUsers = targetUsers.filter((u) =>
+      canAccessUserInOrg(currentUser?.organizationId ?? null, u.organizationId)
+    );
+
+    if (accessibleUsers.length === 0) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'NOT_FOUND',
+            message: 'No valid users found',
+          } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
     // Prevent actions on other admins
-    const adminTargets = targetUsers.filter((u) => u.role === 'ADMIN');
+    const adminTargets = accessibleUsers.filter((u) => u.role === 'ADMIN');
     if (adminTargets.length > 0) {
       return NextResponse.json(
         {
@@ -106,7 +130,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const validUserIds = targetUsers.map((u) => u.id);
+    const validUserIds = accessibleUsers.map((u) => u.id);
     let affectedCount = 0;
 
     switch (action) {
@@ -158,7 +182,7 @@ export async function POST(req: NextRequest) {
           ipAddress: clientIP,
           userAgent,
           metadata: {
-            deletedUsers: targetUsers.map((u) => ({
+            deletedUsers: accessibleUsers.map((u) => ({
               id: u.id,
               email: u.email,
             })),

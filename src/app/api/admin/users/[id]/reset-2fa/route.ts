@@ -3,6 +3,7 @@ import { getSession, getClientIP } from '@/lib/auth';
 import { deleteAllBackupCodes } from '@/lib/auth/backup-codes';
 import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
+import { canAccessUserInOrg } from '@/lib/organization';
 
 export const runtime = 'nodejs';
 
@@ -39,13 +40,32 @@ export async function POST(
       );
     }
 
+    // Get current user's organization
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { organizationId: true },
+    });
+
     // Check target user exists
     const targetUser = await prisma.user.findUnique({
       where: { id: targetUserId },
-      select: { id: true, email: true, twoFactorEnabled: true },
+      select: { id: true, email: true, twoFactorEnabled: true, organizationId: true },
     });
 
     if (!targetUser) {
+      return NextResponse.json(
+        { error: { type: 'NOT_FOUND', message: 'User not found' } },
+        { status: 404 }
+      );
+    }
+
+    // Check organization-level access
+    if (
+      !canAccessUserInOrg(
+        currentUser?.organizationId ?? null,
+        targetUser.organizationId
+      )
+    ) {
       return NextResponse.json(
         { error: { type: 'NOT_FOUND', message: 'User not found' } },
         { status: 404 }

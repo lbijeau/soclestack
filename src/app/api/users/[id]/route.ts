@@ -6,6 +6,7 @@ import {
 } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
+import { canAccessUserInOrg } from '@/lib/organization';
 
 export const runtime = 'nodejs';
 
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
 
-    // Users can view their own profile, admins/moderators can view any profile
+    // Users can view their own profile, admins/moderators can view profiles in their org
     if (
       currentUser.id !== id &&
       !hasRequiredRole(currentUser.role, 'MODERATOR')
@@ -63,6 +64,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
+        organizationId: true,
         sessions: {
           where: { isActive: true },
           select: {
@@ -78,6 +80,22 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     });
 
     if (!user) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'NOT_FOUND',
+            message: 'User not found',
+          } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check organization-level access for non-self requests
+    if (
+      currentUser.id !== id &&
+      !canAccessUserInOrg(currentUser.organizationId, user.organizationId)
+    ) {
       return NextResponse.json(
         {
           error: {
@@ -126,10 +144,25 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     // Find target user
     const targetUser = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true, email: true },
+      select: { id: true, role: true, email: true, organizationId: true },
     });
 
     if (!targetUser) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'NOT_FOUND',
+            message: 'User not found',
+          } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check organization-level access
+    if (
+      !canAccessUserInOrg(currentUser.organizationId, targetUser.organizationId)
+    ) {
       return NextResponse.json(
         {
           error: {
@@ -350,10 +383,25 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     // Check if user exists
     const targetUser = await prisma.user.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, organizationId: true },
     });
 
     if (!targetUser) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'NOT_FOUND',
+            message: 'User not found',
+          } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check organization-level access
+    if (
+      !canAccessUserInOrg(currentUser.organizationId, targetUser.organizationId)
+    ) {
       return NextResponse.json(
         {
           error: {
