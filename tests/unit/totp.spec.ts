@@ -85,10 +85,22 @@ describe('TOTP Verification', () => {
     it('should reject an invalid TOTP code', async () => {
       const result = await generateTOTPSecret('test@example.com');
 
-      const isValid = verifyTOTPCode(result.secret, '000000');
+      // Generate the valid code, then modify one digit to ensure invalidity
+      const totp = new OTPAuth.TOTP({
+        issuer: 'SocleStack',
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: OTPAuth.Secret.fromBase32(result.secret),
+      });
 
-      // This might occasionally pass if 000000 happens to be valid,
-      // but statistically very unlikely
+      const validCode = totp.generate();
+      // Modify the last digit to create an invalid code
+      const lastDigit = parseInt(validCode[5], 10);
+      const invalidLastDigit = (lastDigit + 1) % 10;
+      const invalidCode = validCode.slice(0, 5) + invalidLastDigit.toString();
+
+      const isValid = verifyTOTPCode(result.secret, invalidCode);
       expect(isValid).toBe(false);
     });
 

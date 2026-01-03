@@ -48,44 +48,65 @@ describe('Password Strength Calculation', () => {
   });
 
   describe('Password Requirements', () => {
+    // Helper to find requirement by label keyword
+    const findRequirement = (
+      requirements: { label: string; met: boolean }[],
+      keyword: string
+    ) => requirements.find((r) => r.label.toLowerCase().includes(keyword));
+
     it('should track length requirement', () => {
       const shortPassword = calculatePasswordStrength('Ab1!');
       const longPassword = calculatePasswordStrength('Abcd1234!');
 
-      expect(shortPassword.requirements[0].met).toBe(false);
-      expect(longPassword.requirements[0].met).toBe(true);
+      const shortLengthReq = findRequirement(shortPassword.requirements, 'character');
+      const longLengthReq = findRequirement(longPassword.requirements, 'character');
+
+      expect(shortLengthReq?.met).toBe(false);
+      expect(longLengthReq?.met).toBe(true);
     });
 
     it('should track uppercase requirement', () => {
       const noUpper = calculatePasswordStrength('abcdefgh1!');
       const withUpper = calculatePasswordStrength('Abcdefgh1!');
 
-      expect(noUpper.requirements[1].met).toBe(false);
-      expect(withUpper.requirements[1].met).toBe(true);
+      const noUpperReq = findRequirement(noUpper.requirements, 'uppercase');
+      const withUpperReq = findRequirement(withUpper.requirements, 'uppercase');
+
+      expect(noUpperReq?.met).toBe(false);
+      expect(withUpperReq?.met).toBe(true);
     });
 
     it('should track lowercase requirement', () => {
       const noLower = calculatePasswordStrength('ABCDEFGH1!');
       const withLower = calculatePasswordStrength('ABCDEFGh1!');
 
-      expect(noLower.requirements[2].met).toBe(false);
-      expect(withLower.requirements[2].met).toBe(true);
+      const noLowerReq = findRequirement(noLower.requirements, 'lowercase');
+      const withLowerReq = findRequirement(withLower.requirements, 'lowercase');
+
+      expect(noLowerReq?.met).toBe(false);
+      expect(withLowerReq?.met).toBe(true);
     });
 
     it('should track number requirement', () => {
       const noNumber = calculatePasswordStrength('Abcdefgh!');
       const withNumber = calculatePasswordStrength('Abcdefg1!');
 
-      expect(noNumber.requirements[3].met).toBe(false);
-      expect(withNumber.requirements[3].met).toBe(true);
+      const noNumberReq = findRequirement(noNumber.requirements, 'number');
+      const withNumberReq = findRequirement(withNumber.requirements, 'number');
+
+      expect(noNumberReq?.met).toBe(false);
+      expect(withNumberReq?.met).toBe(true);
     });
 
     it('should track special character requirement', () => {
       const noSpecial = calculatePasswordStrength('Abcdefgh1');
       const withSpecial = calculatePasswordStrength('Abcdefg1!');
 
-      expect(noSpecial.requirements[4].met).toBe(false);
-      expect(withSpecial.requirements[4].met).toBe(true);
+      const noSpecialReq = findRequirement(noSpecial.requirements, 'special');
+      const withSpecialReq = findRequirement(withSpecial.requirements, 'special');
+
+      expect(noSpecialReq?.met).toBe(false);
+      expect(withSpecialReq?.met).toBe(true);
     });
   });
 
@@ -234,6 +255,12 @@ describe('Password Strength Calculation', () => {
   });
 
   describe('Edge Cases', () => {
+    // Helper to find requirement by label keyword
+    const findRequirement = (
+      requirements: { label: string; met: boolean }[],
+      keyword: string
+    ) => requirements.find((r) => r.label.toLowerCase().includes(keyword));
+
     it('should handle very long passwords', () => {
       const longPassword = 'A'.repeat(100) + 'a1!';
       const result = calculatePasswordStrength(longPassword);
@@ -246,13 +273,15 @@ describe('Password Strength Calculation', () => {
       const result = calculatePasswordStrength('Pässwörd123!');
 
       expect(result).toBeDefined();
-      expect(result.requirements[0].met).toBe(true); // Length >= 8
+      const lengthReq = findRequirement(result.requirements, 'character');
+      expect(lengthReq?.met).toBe(true); // Length >= 8
     });
 
     it('should handle special characters in password', () => {
       const result = calculatePasswordStrength('P@$$w0rd!#$%');
 
-      expect(result.requirements[4].met).toBe(true); // Special chars
+      const specialReq = findRequirement(result.requirements, 'special');
+      expect(specialReq?.met).toBe(true);
     });
 
     it('should return consistent results for same password', () => {

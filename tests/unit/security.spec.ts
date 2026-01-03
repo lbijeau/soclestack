@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   hashPassword,
   verifyPassword,
@@ -155,6 +155,9 @@ describe('JWT Token Generation and Verification', () => {
       // Token should expire in the future
       expect(payload.exp).toBeGreaterThan(Math.floor(Date.now() / 1000));
     });
+
+    // Note: Testing expired token rejection requires time mocking or waiting.
+    // Expired token behavior is covered by integration/e2e tests.
 
     it('should throw for invalid token', () => {
       expect(() => verifyAccessToken('invalid-token')).toThrow(

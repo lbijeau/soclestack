@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { checkPasswordAge } from '@/lib/auth/password-age';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 
