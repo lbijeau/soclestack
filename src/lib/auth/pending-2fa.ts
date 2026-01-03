@@ -1,40 +1,50 @@
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import { SECURITY_CONFIG } from '../config/security';
+import { env } from '../env';
 
 const { pendingTokenExpiryMinutes } = SECURITY_CONFIG.twoFactor;
 
-interface Pending2FAPayload {
-  userId: string;
-  type: 'pending_2fa';
-  iat: number;
-  exp: number;
-}
+// Cache encoded secret
+let cachedSecret: Uint8Array | null = null;
+let cachedSecretValue: string | null = null;
 
-export function createPending2FAToken(userId: string): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET is not defined');
+function getJwtSecret(): Uint8Array {
+  const secret = env.JWT_SECRET as string;
+  if (cachedSecret && cachedSecretValue === secret) {
+    return cachedSecret;
   }
-
-  // Only include userId - no PII in the token
-  return jwt.sign({ userId, type: 'pending_2fa' }, secret, {
-    expiresIn: `${pendingTokenExpiryMinutes}m`,
-  });
+  cachedSecretValue = secret;
+  cachedSecret = new TextEncoder().encode(secret);
+  return cachedSecret;
 }
 
-export function verifyPending2FAToken(
+function isValidPending2FAPayload(
+  payload: JWTPayload
+): payload is JWTPayload & { userId: string; type: 'pending_2fa' } {
+  return (
+    typeof payload.userId === 'string' &&
+    payload.type === 'pending_2fa'
+  );
+}
+
+export async function createPending2FAToken(userId: string): Promise<string> {
+  return new SignJWT({ userId, type: 'pending_2fa' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(`${pendingTokenExpiryMinutes}m`)
+    .sign(getJwtSecret());
+}
+
+export async function verifyPending2FAToken(
   token: string
-): { userId: string } | null {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET is not defined');
-  }
-
+): Promise<{ userId: string } | null> {
   try {
-    const payload = jwt.verify(token, secret) as Pending2FAPayload;
-    if (payload.type !== 'pending_2fa') {
+    const { payload } = await jwtVerify(token, getJwtSecret());
+
+    if (!isValidPending2FAPayload(payload)) {
       return null;
     }
+
     return { userId: payload.userId };
   } catch {
     return null;

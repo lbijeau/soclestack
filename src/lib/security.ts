@@ -1,8 +1,62 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify, JWTPayload as JoseJWTPayload } from 'jose';
 import { JWTPayload, RefreshTokenPayload } from '@/types/auth';
 import { Role } from '@prisma/client';
 import { env } from './env';
+
+// Valid roles for runtime validation
+const VALID_ROLES: Role[] = ['USER', 'MODERATOR', 'ADMIN'];
+
+function isValidAccessTokenPayload(payload: JoseJWTPayload): payload is JoseJWTPayload & {
+  sub: string;
+  email: string;
+  role: Role;
+  jti: string;
+} {
+  return (
+    typeof payload.sub === 'string' &&
+    typeof payload.email === 'string' &&
+    typeof payload.role === 'string' &&
+    VALID_ROLES.includes(payload.role as Role) &&
+    typeof payload.jti === 'string'
+  );
+}
+
+function isValidRefreshTokenPayload(payload: JoseJWTPayload): payload is JoseJWTPayload & {
+  sub: string;
+  jti: string;
+} {
+  return (
+    typeof payload.sub === 'string' &&
+    typeof payload.jti === 'string'
+  );
+}
+
+// Cache encoded secrets for jose
+let cachedJwtSecret: Uint8Array | null = null;
+let cachedJwtSecretValue: string | null = null;
+let cachedRefreshSecret: Uint8Array | null = null;
+let cachedRefreshSecretValue: string | null = null;
+
+function getJwtSecret(): Uint8Array {
+  const secret = env.JWT_SECRET as string;
+  if (cachedJwtSecret && cachedJwtSecretValue === secret) {
+    return cachedJwtSecret;
+  }
+  cachedJwtSecretValue = secret;
+  cachedJwtSecret = new TextEncoder().encode(secret);
+  return cachedJwtSecret;
+}
+
+function getRefreshSecret(): Uint8Array {
+  const secret = env.JWT_REFRESH_SECRET as string;
+  if (cachedRefreshSecret && cachedRefreshSecretValue === secret) {
+    return cachedRefreshSecret;
+  }
+  cachedRefreshSecretValue = secret;
+  cachedRefreshSecret = new TextEncoder().encode(secret);
+  return cachedRefreshSecret;
+}
 
 // Dynamic crypto import for Edge Runtime compatibility
 async function getCrypto() {
@@ -60,18 +114,18 @@ export async function generateAccessToken(payload: {
 }): Promise<string> {
   const crypto = await getCrypto();
 
-  const jwtPayload: Omit<JWTPayload, 'iat' | 'exp'> = {
+  return new SignJWT({
     sub: payload.userId,
     email: payload.email,
     role: payload.role,
     jti: crypto.randomUUID(),
-  };
-
-  return jwt.sign(jwtPayload, env.JWT_SECRET as string, {
-    expiresIn: '15m',
-    issuer: 'soclestack',
-    audience: 'soclestack-users',
-  });
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('15m')
+    .setIssuer('soclestack')
+    .setAudience('soclestack-users')
+    .sign(getJwtSecret());
 }
 
 export async function generateRefreshToken(payload: {
@@ -79,35 +133,61 @@ export async function generateRefreshToken(payload: {
 }): Promise<string> {
   const crypto = await getCrypto();
 
-  const refreshPayload: Omit<RefreshTokenPayload, 'iat' | 'exp'> = {
+  return new SignJWT({
     sub: payload.userId,
     jti: crypto.randomUUID(),
-  };
-
-  return jwt.sign(refreshPayload, env.JWT_REFRESH_SECRET as string, {
-    expiresIn: '7d',
-    issuer: 'soclestack',
-    audience: 'soclestack-refresh',
-  });
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .setIssuer('soclestack')
+    .setAudience('soclestack-refresh')
+    .sign(getRefreshSecret());
 }
 
-export function verifyAccessToken(token: string): JWTPayload {
+export async function verifyAccessToken(token: string): Promise<JWTPayload> {
   try {
-    return jwt.verify(token, env.JWT_SECRET as string, {
+    const { payload } = await jwtVerify(token, getJwtSecret(), {
       issuer: 'soclestack',
       audience: 'soclestack-users',
-    }) as JWTPayload;
+    });
+
+    if (!isValidAccessTokenPayload(payload)) {
+      throw new Error('Invalid access token payload');
+    }
+
+    return {
+      sub: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      jti: payload.jti,
+      iat: payload.iat!,
+      exp: payload.exp!,
+    };
   } catch {
     throw new Error('Invalid access token');
   }
 }
 
-export function verifyRefreshToken(token: string): RefreshTokenPayload {
+export async function verifyRefreshToken(
+  token: string
+): Promise<RefreshTokenPayload> {
   try {
-    return jwt.verify(token, env.JWT_REFRESH_SECRET as string, {
+    const { payload } = await jwtVerify(token, getRefreshSecret(), {
       issuer: 'soclestack',
       audience: 'soclestack-refresh',
-    }) as RefreshTokenPayload;
+    });
+
+    if (!isValidRefreshTokenPayload(payload)) {
+      throw new Error('Invalid refresh token payload');
+    }
+
+    return {
+      sub: payload.sub,
+      jti: payload.jti,
+      iat: payload.iat!,
+      exp: payload.exp!,
+    };
   } catch {
     throw new Error('Invalid refresh token');
   }

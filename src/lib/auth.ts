@@ -226,7 +226,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
   refreshToken: string;
 } | null> {
   try {
-    const payload = verifyRefreshToken(refreshToken);
+    const payload = await verifyRefreshToken(refreshToken);
 
     const user = await prisma.user.findUnique({
       where: {
@@ -263,7 +263,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
 // Validate access token
 export async function validateAccessToken(token: string): Promise<User | null> {
   try {
-    const payload = verifyAccessToken(token);
+    const payload = await verifyAccessToken(token);
 
     const user = await prisma.user.findUnique({
       where: {

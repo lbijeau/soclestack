@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const { pendingToken, code, isBackupCode } = validationResult.data;
 
     // Verify pending token
-    const pending = verifyPending2FAToken(pendingToken);
+    const pending = await verifyPending2FAToken(pendingToken);
     if (!pending) {
       return NextResponse.json(
         {
