@@ -811,8 +811,7 @@ npx prisma migrate status
 
 - [Database Schema](./DATABASE.md) - Complete schema reference
 - [Environment Variables](./ENVIRONMENT.md) - Database connection configuration
-- [Deployment Guide](./DEPLOYMENT.md) - Production deployment workflow
-- [Development Setup](./SETUP.md) - Local environment setup
+- [Getting Started](./PROGRESS.md) - Project setup and progress
 
 ---
 
