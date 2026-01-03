@@ -1,5 +1,11 @@
 # SocleStack - Next.js User Management Application
 
+> **Warning**
+> **NOT PRODUCTION READY** - This project is under active development and has known security vulnerabilities and incomplete implementations. Do not deploy to production without addressing critical issues documented in the GitHub issues.
+
+[![Status](https://img.shields.io/badge/status-development-orange)](#known-limitations)
+[![Security](https://img.shields.io/badge/security-needs%20review-red)](#known-limitations)
+
 A complete Next.js 14 application with Enterprise-grade user management features, built with TypeScript, Prisma, and modern React components. "SocleStack" is the foundational block upon which your SaaS application is built.
 
 ## Features
@@ -19,11 +25,13 @@ A complete Next.js 14 application with Enterprise-grade user management features
 
 ### 🛡️ Security Features
 - Password hashing with bcrypt
-- Rate limiting on authentication endpoints
-- CSRF protection
+- Rate limiting on authentication endpoints (in-memory - not production ready)
+- CSRF token generation (validation not yet implemented)
 - Input validation with Zod
-- Security headers and CSP
+- Security headers and CSP (needs hardening)
 - Password history tracking
+
+> **Note**: See [Known Limitations](#known-limitations) for security issues that need to be addressed before production use.
 
 ### 📱 Modern UI/UX
 - Responsive design with Tailwind CSS
@@ -221,14 +229,62 @@ npm run build
 npm run lint
 ```
 
+## Known Limitations
+
+> **Warning**: The following issues must be addressed before production deployment.
+
+### Critical Security Issues
+
+| Issue | Status | Description |
+|-------|--------|-------------|
+| CSP Policy | Needs Fix | `unsafe-eval` and `unsafe-inline` defeat XSS protection |
+| CSRF Protection | Incomplete | Tokens generated but never validated |
+| Rate Limiting | In-Memory | Lost on restart; doesn't scale horizontally |
+| Database | SQLite | Cannot handle concurrent writes; use PostgreSQL |
+| Fallback Secrets | Insecure | Hardcoded fallbacks if env vars missing |
+
+### Incomplete Features
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Email System | TODO | Verification and password reset emails not sent |
+| Unit Tests | Missing | No unit tests for auth/security functions |
+| CSRF Validation | Missing | Middleware not implemented |
+| Organization Auth | Incomplete | Cross-org access not properly blocked |
+
+### Technical Debt
+
+- No service layer (business logic in route handlers)
+- Session management duplicated across files
+- Dual JWT libraries (`jose` and `jsonwebtoken`)
+- No structured logging
+
+See GitHub Issues for full tracking of all known problems.
+
 ## Production Deployment
 
-1. **Environment Variables:** Update all secrets in production
-2. **Database:** Set up production PostgreSQL database
-3. **Security:** Enable HTTPS and update CSRF/security settings
-4. **Email:** Implement actual email sending service
-5. **Rate Limiting:** Consider Redis for distributed rate limiting
-6. **Monitoring:** Add error tracking and performance monitoring
+> **Warning**: Do not deploy without addressing [Known Limitations](#known-limitations).
+
+### Prerequisites for Production
+
+1. **Database:** Switch from SQLite to PostgreSQL
+2. **Rate Limiting:** Implement Redis-backed rate limiting
+3. **CSRF:** Implement token validation middleware
+4. **CSP:** Remove `unsafe-eval` and `unsafe-inline`
+5. **Email:** Configure Resend or alternative email provider
+6. **Secrets:** Ensure all environment variables are set (no fallbacks)
+
+### Deployment Checklist
+
+- [ ] All critical security issues resolved
+- [ ] Unit tests for auth functions passing
+- [ ] PostgreSQL configured and migrated
+- [ ] Redis configured for rate limiting
+- [ ] Email service configured and tested
+- [ ] All environment variables set
+- [ ] HTTPS enabled
+- [ ] Security headers reviewed
+- [ ] Error monitoring configured
 
 ## Contributing
 
