@@ -7,9 +7,15 @@
  */
 
 import { prisma } from '@/lib/db';
+import { log } from '@/lib/logger';
 
 import type { User, UserRole } from '@prisma/client';
 import type { PlatformRole } from '@/types/auth';
+import { VoteResult } from './voter';
+import { voters } from './voters';
+
+// Voter class names for debug logging
+const VOTER_NAMES = ['OrganizationVoter', 'UserVoter'] as const;
 
 /**
  * Role name constants to avoid magic strings
@@ -24,6 +30,9 @@ export type RoleName = (typeof ROLES)[keyof typeof ROLES];
 
 // Cache for role hierarchy (invalidate on role changes)
 let roleHierarchyCache: Map<string, Set<string>> | null = null;
+
+// Cache for voter lookup by attribute (maps attribute -> voter index or -1 if none)
+const voterCache = new Map<string, number>();
 
 /**
  * User type with roles included
@@ -55,14 +64,16 @@ export type UserWithComputedRole = User & {
 /**
  * Main authorization check - like Symfony's isGranted()
  *
+ * Uses affirmative voting strategy: first voter to GRANT wins.
+ * If no voter grants, returns false (denied by default).
+ *
  * @param user - User object (must include userRoles relation)
  * @param attribute - Role name (e.g., 'ROLE_ADMIN') or permission (e.g., 'organization.edit')
- * @param subject - Optional subject for voter-based contextual checks (future: organization, resource, etc.)
+ * @param subject - Optional subject for voter-based contextual checks
  */
 export async function isGranted(
   user: UserWithRoles | null,
   attribute: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   subject?: unknown
 ): Promise<boolean> {
   if (!user) return false;
@@ -72,9 +83,51 @@ export async function isGranted(
     return hasRole(user, attribute);
   }
 
-  // Voter-based checks for contextual permissions will be added in future PRs
-  // Example: isGranted(user, 'organization.edit', organization)
-  // For now, only role checks are implemented
+  // Check voter cache first
+  const cachedIndex = voterCache.get(attribute);
+  if (cachedIndex !== undefined) {
+    if (cachedIndex === -1) {
+      // Cached as "no voter supports this attribute"
+      return false;
+    }
+    const voter = voters[cachedIndex];
+    const voterName = VOTER_NAMES[cachedIndex];
+    // Still need to check supports() for subject validation
+    if (await voter.supports(attribute, subject)) {
+      const result = await voter.vote(user, attribute, subject);
+      log.debug('voter decision', { voterName, attribute, result, userId: user.id });
+      if (result === VoteResult.GRANTED) return true;
+      if (result === VoteResult.DENIED) return false;
+    }
+    // Voter didn't support this subject, fall through to full search
+  }
+
+  // Voter-based checks for contextual permissions
+  for (let i = 0; i < voters.length; i++) {
+    const voter = voters[i];
+    const voterName = VOTER_NAMES[i];
+    const supports = await voter.supports(attribute, subject);
+    if (supports) {
+      // Cache this attribute -> voter mapping
+      voterCache.set(attribute, i);
+      const result = await voter.vote(user, attribute, subject);
+      log.debug('voter decision', { voterName, attribute, result, userId: user.id });
+      if (result === VoteResult.GRANTED) {
+        return true;
+      }
+      if (result === VoteResult.DENIED) {
+        return false;
+      }
+      // ABSTAIN continues to next voter
+    }
+  }
+
+  // No voter supports this attribute - cache as -1
+  if (!voterCache.has(attribute)) {
+    voterCache.set(attribute, -1);
+  }
+
+  // No voter granted - deny by default
   return false;
 }
 
@@ -203,6 +256,13 @@ async function getRoleHierarchy(): Promise<Map<string, Set<string>>> {
  */
 export function clearRoleHierarchyCache(): void {
   roleHierarchyCache = null;
+}
+
+/**
+ * Clear voter lookup cache (call if voters are dynamically modified)
+ */
+export function clearVoterCache(): void {
+  voterCache.clear();
 }
 
 /**
