@@ -38,23 +38,10 @@ const baseConfig: pino.LoggerOptions = {
   timestamp: pino.stdTimeFunctions.isoTime,
 };
 
-// Development: pretty print logs
-// Production: JSON logs for log aggregation
-const isDevelopment = process.env.NODE_ENV !== 'production';
-
-const logger = pino({
-  ...baseConfig,
-  transport: isDevelopment
-    ? {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'SYS:standard',
-          ignore: 'pid,hostname',
-        },
-      }
-    : undefined,
-});
+// Note: pino-pretty transport disabled due to thread-stream worker path issues
+// with Next.js Turbopack. Logs are JSON in all environments.
+// See: https://github.com/pinojs/pino/issues/1831
+const logger = pino(baseConfig);
 
 // Create a child logger with request context
 // Note: Available for future use when request correlation IDs are implemented
