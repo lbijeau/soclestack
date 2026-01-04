@@ -37,13 +37,28 @@
  */
 
 // Security headers configuration - Edge Runtime compatible
+// Note: HSTS is added conditionally in getSecurityHeaders() for production only
 export const securityHeaders = {
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'origin-when-cross-origin',
   'X-XSS-Protection': '1; mode=block',
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
 } as const;
+
+/**
+ * Get security headers with environment-aware HSTS
+ * HSTS should only be enabled in production to avoid breaking local dev
+ */
+export function getSecurityHeaders(isDev: boolean = false): Record<string, string> {
+  const headers: Record<string, string> = { ...securityHeaders };
+
+  // Only add HSTS in production - it breaks HTTP-only local dev
+  if (!isDev) {
+    headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+  }
+
+  return headers;
+}
 
 /**
  * Build Content Security Policy with per-request nonce
@@ -59,7 +74,7 @@ export function buildCSP(nonce: string, isDev: boolean = false): string {
     ? `'self' 'nonce-${nonce}' 'unsafe-eval'`
     : `'self' 'nonce-${nonce}'`;
 
-  return [
+  const directives = [
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'", // Keep for now - can be nonced in follow-up
@@ -69,6 +84,12 @@ export function buildCSP(nonce: string, isDev: boolean = false): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    'upgrade-insecure-requests',
-  ].join('; ');
+  ];
+
+  // Only upgrade insecure requests in production - breaks HTTP-only local dev
+  if (!isDev) {
+    directives.push('upgrade-insecure-requests');
+  }
+
+  return directives.join('; ');
 }
