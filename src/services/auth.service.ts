@@ -72,7 +72,9 @@ import type { LegacyRole } from '@/types/auth';
 function getUserRole(user: any): LegacyRole {
   // Check for new RBAC system (userRoles relation)
   if (user.userRoles?.length) {
-    const roleNames = user.userRoles.map((ur: { role: { name: string } }) => ur.role.name);
+    const roleNames = user.userRoles.map(
+      (ur: { role: { name: string } }) => ur.role.name
+    );
     if (roleNames.includes('ROLE_ADMIN')) return 'ADMIN';
     if (roleNames.includes('ROLE_MODERATOR')) return 'MODERATOR';
     return 'USER';

@@ -85,7 +85,12 @@ export async function POST(req: NextRequest) {
     // Get target users to verify they exist and check for other admins
     const targetUsers = await prisma.user.findMany({
       where: { id: { in: userIds } },
-      select: { id: true, email: true, organizationId: true, ...userWithRolesInclude },
+      select: {
+        id: true,
+        email: true,
+        organizationId: true,
+        ...userWithRolesInclude,
+      },
     });
 
     if (targetUsers.length === 0) {
@@ -118,7 +123,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Prevent actions on other admins
-    const adminTargets = accessibleUsers.filter((u) => computeLegacyRole(u) === 'ADMIN');
+    const adminTargets = accessibleUsers.filter(
+      (u) => computeLegacyRole(u) === 'ADMIN'
+    );
     if (adminTargets.length > 0) {
       return NextResponse.json(
         {

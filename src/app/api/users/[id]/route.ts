@@ -148,7 +148,12 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     // Find target user
     const targetUser = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, organizationId: true, ...userWithRolesInclude },
+      select: {
+        id: true,
+        email: true,
+        organizationId: true,
+        ...userWithRolesInclude,
+      },
     });
 
     if (!targetUser) {
@@ -273,7 +278,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
       return NextResponse.json({
         message: 'User role updated successfully',
-        user: updatedUser ? { ...updatedUser, role: computeLegacyRole(updatedUser) } : null,
+        user: updatedUser
+          ? { ...updatedUser, role: computeLegacyRole(updatedUser) }
+          : null,
       });
     }
 

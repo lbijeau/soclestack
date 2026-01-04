@@ -72,7 +72,10 @@ export async function GET(req: NextRequest) {
 
       if (user) {
         const userWithRole = { ...user, role: computeLegacyRole(user) };
-        const response: Record<string, unknown> = { user: userWithRole, authenticated: true };
+        const response: Record<string, unknown> = {
+          user: userWithRole,
+          authenticated: true,
+        };
 
         if (isImpersonating(session)) {
           response.impersonating = {
@@ -135,7 +138,9 @@ export async function GET(req: NextRequest) {
               username: user.username,
               firstName: user.firstName,
               lastName: user.lastName,
-              role: computeLegacyRole(user as Parameters<typeof computeLegacyRole>[0]),
+              role: computeLegacyRole(
+                user as Parameters<typeof computeLegacyRole>[0]
+              ),
               isActive: user.isActive,
               emailVerified: user.emailVerified,
             },
