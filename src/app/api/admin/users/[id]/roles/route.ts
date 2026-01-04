@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isGranted, ROLES } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
 
 export const runtime = 'nodejs';
+
+/** Rate limit: 50 role assignment changes per hour */
+const ROLE_ASSIGNMENT_LIMIT = 50;
+/** Rate limit window in milliseconds (1 hour) */
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -224,6 +229,23 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
           },
         },
         { status: 403 }
+      );
+    }
+
+    // Rate limit role assignment changes per admin
+    const rateLimitKey = `admin-user-roles:${currentUser.id}`;
+    if (
+      isRateLimited(rateLimitKey, ROLE_ASSIGNMENT_LIMIT, RATE_LIMIT_WINDOW_MS)
+    ) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'RATE_LIMIT_ERROR',
+            message:
+              'Too many role assignment changes. Please try again later.',
+          },
+        },
+        { status: 429, headers: { 'Retry-After': '3600' } }
       );
     }
 
