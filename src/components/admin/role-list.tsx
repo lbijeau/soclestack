@@ -6,7 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Users, ChevronRight } from 'lucide-react';
 
-interface Role {
+export interface Role {
   id: string;
   name: string;
   description: string | null;
@@ -16,7 +16,7 @@ interface Role {
   userCount: number;
 }
 
-interface TreeNode extends Role {
+export interface TreeNode extends Role {
   children: TreeNode[];
   depth: number;
 }
@@ -24,7 +24,7 @@ interface TreeNode extends Role {
 /**
  * Build tree structure from flat role list
  */
-function buildTree(roles: Role[]): TreeNode[] {
+export function buildTree(roles: Role[]): TreeNode[] {
   const roleMap = new Map<string, TreeNode>();
   const roots: TreeNode[] = [];
 
@@ -62,7 +62,7 @@ function buildTree(roles: Role[]): TreeNode[] {
 /**
  * Flatten tree for rendering while preserving depth
  */
-function flattenTree(nodes: TreeNode[]): TreeNode[] {
+export function flattenTree(nodes: TreeNode[]): TreeNode[] {
   const result: TreeNode[] = [];
 
   function traverse(node: TreeNode) {
@@ -120,10 +120,7 @@ export function RoleList() {
           // Loading skeleton
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex items-center px-6 py-4">
-              <div
-                className="h-5 w-5 animate-pulse rounded bg-gray-200"
-                style={{ marginLeft: `${i * 24}px` }}
-              />
+              <div className="h-5 w-5 animate-pulse rounded bg-gray-200" />
               <div className="ml-3 h-4 w-32 animate-pulse rounded bg-gray-200" />
               <div className="ml-auto h-4 w-16 animate-pulse rounded bg-gray-200" />
             </div>
@@ -139,8 +136,16 @@ export function RoleList() {
           roles.map((role) => (
             <div
               key={role.id}
-              className="group flex cursor-pointer items-center px-6 py-4 hover:bg-gray-50"
+              role="button"
+              tabIndex={0}
+              className="group flex cursor-pointer items-center px-6 py-4 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
               onClick={() => router.push(`/admin/roles/${role.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  router.push(`/admin/roles/${role.id}`);
+                }
+              }}
             >
               {/* Indentation and icon */}
               <div
