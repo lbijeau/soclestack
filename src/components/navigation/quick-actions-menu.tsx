@@ -67,14 +67,21 @@ const organizationItems = [
   {
     group: 'Organization',
     items: [
-      { label: 'Organization Settings', href: '/organization', icon: Building2 },
+      {
+        label: 'Organization Settings',
+        href: '/organization',
+        icon: Building2,
+      },
       { label: 'Members', href: '/organization/members', icon: Users },
       { label: 'Invitations', href: '/organization/invites', icon: Mail },
     ],
   },
 ];
 
-export function QuickActionsMenu({ userRole, organizationId }: QuickActionsMenuProps) {
+export function QuickActionsMenu({
+  userRole,
+  organizationId,
+}: QuickActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

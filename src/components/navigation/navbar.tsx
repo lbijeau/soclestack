@@ -209,7 +209,10 @@ export function Navbar() {
                     <span>Admin</span>
                   </Link>
                 )}
-                <QuickActionsMenu userRole={user.role} organizationId={user.organizationId} />
+                <QuickActionsMenu
+                  userRole={user.role}
+                  organizationId={user.organizationId}
+                />
               </div>
             </div>
 

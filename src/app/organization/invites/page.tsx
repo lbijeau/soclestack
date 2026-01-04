@@ -178,163 +178,160 @@ export default function InvitesPage() {
         </Link>
       </div>
 
-        <div className="mb-8">
-          <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900">
-            <Mail className="h-8 w-8" />
-            Invitations
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Invite new members to your organization.
-          </p>
+      <div className="mb-8">
+        <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900">
+          <Mail className="h-8 w-8" />
+          Invitations
+        </h1>
+        <p className="mt-2 text-gray-600">
+          Invite new members to your organization.
+        </p>
+      </div>
+
+      {error && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+      {success && (
+        <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+          {success}
+        </div>
+      )}
 
-        {success && (
-          <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-            {success}
-          </div>
-        )}
+      {/* Send Invite Form */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Send Invite
+          </CardTitle>
+          <CardDescription>
+            Invite someone to join your organization via email.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSendInvite} className="flex gap-4">
+            <div className="flex-1">
+              <label htmlFor="email" className="sr-only">
+                Email address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={sending}
+              />
+            </div>
+            <div className="w-32">
+              <label htmlFor="role" className="sr-only">
+                Role
+              </label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as 'ADMIN' | 'MEMBER')}
+                disabled={sending}
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="MEMBER">Member</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+            <Button type="submit" disabled={sending || !email.trim()}>
+              {sending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send Invite'
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-        {/* Send Invite Form */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5" />
-              Send Invite
-            </CardTitle>
-            <CardDescription>
-              Invite someone to join your organization via email.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSendInvite} className="flex gap-4">
-              <div className="flex-1">
-                <label htmlFor="email" className="sr-only">
-                  Email address
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={sending}
-                />
-              </div>
-              <div className="w-32">
-                <label htmlFor="role" className="sr-only">
-                  Role
-                </label>
-                <select
-                  id="role"
-                  value={role}
-                  onChange={(e) =>
-                    setRole(e.target.value as 'ADMIN' | 'MEMBER')
-                  }
-                  disabled={sending}
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+      {/* Pending Invites */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Pending Invites
+          </CardTitle>
+          <CardDescription>
+            {invites.length === 0
+              ? 'No pending invitations.'
+              : `${invites.length} pending invitation${invites.length !== 1 ? 's' : ''}.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {invites.length === 0 ? (
+            <p className="py-8 text-center text-gray-500">
+              No pending invitations. Send an invite above to add team members.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {invites.map((invite) => (
+                <div
+                  key={invite.id}
+                  className={`flex items-center justify-between rounded-lg border p-4 ${
+                    isExpired(invite.expiresAt) ? 'bg-gray-50 opacity-75' : ''
+                  }`}
                 >
-                  <option value="MEMBER">Member</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
-              </div>
-              <Button type="submit" disabled={sending || !email.trim()}>
-                {sending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  'Send Invite'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Pending Invites */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Pending Invites
-            </CardTitle>
-            <CardDescription>
-              {invites.length === 0
-                ? 'No pending invitations.'
-                : `${invites.length} pending invitation${invites.length !== 1 ? 's' : ''}.`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {invites.length === 0 ? (
-              <p className="py-8 text-center text-gray-500">
-                No pending invitations. Send an invite above to add team
-                members.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {invites.map((invite) => (
-                  <div
-                    key={invite.id}
-                    className={`flex items-center justify-between rounded-lg border p-4 ${
-                      isExpired(invite.expiresAt) ? 'bg-gray-50 opacity-75' : ''
-                    }`}
-                  >
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {invite.email}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Invited by{' '}
-                        {invite.invitedBy.firstName || invite.invitedBy.email}{' '}
-                        on {formatDate(invite.createdAt)}
-                      </div>
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {invite.email}
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <Badge className={getRoleBadgeColor(invite.role)}>
-                        {invite.role}
-                      </Badge>
-
-                      {isExpired(invite.expiresAt) ? (
-                        <Badge
-                          variant="outline"
-                          className="border-red-200 text-red-600"
-                        >
-                          Expired
-                        </Badge>
-                      ) : (
-                        <span className="text-sm text-gray-500">
-                          Expires {formatDate(invite.expiresAt)}
-                        </span>
-                      )}
-
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() =>
-                          handleCancelInvite(invite.id, invite.email)
-                        }
-                        disabled={cancelling === invite.id}
-                      >
-                        {cancelling === invite.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <X className="h-4 w-4" />
-                        )}
-                      </Button>
+                    <div className="text-sm text-gray-500">
+                      Invited by{' '}
+                      {invite.invitedBy.firstName || invite.invitedBy.email} on{' '}
+                      {formatDate(invite.createdAt)}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
+
+                  <div className="flex items-center gap-3">
+                    <Badge className={getRoleBadgeColor(invite.role)}>
+                      {invite.role}
+                    </Badge>
+
+                    {isExpired(invite.expiresAt) ? (
+                      <Badge
+                        variant="outline"
+                        className="border-red-200 text-red-600"
+                      >
+                        Expired
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-gray-500">
+                        Expires {formatDate(invite.expiresAt)}
+                      </span>
+                    )}
+
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() =>
+                        handleCancelInvite(invite.id, invite.email)
+                      }
+                      disabled={cancelling === invite.id}
+                    >
+                      {cancelling === invite.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
       </Card>
     </main>
   );
