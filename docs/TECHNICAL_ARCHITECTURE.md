@@ -200,9 +200,48 @@ interface AuthActions {
 #### RBAC System (Symfony-style)
 - **Hierarchical roles**: Roles inherit permissions from parent roles
 - **Database-driven**: New roles can be created without code changes
-- **Role pattern**: `ROLE_[A-Z][A-Z0-9_]*` (e.g., `ROLE_BILLING_ADMIN`)
+- **Role pattern**: `ROLE_[A-Z][A-Z0-9_]+` (minimum 2 chars after ROLE_ prefix)
 - **Authorization**: `isGranted(user, 'ROLE_ADMIN')` checks role hierarchy from database
 - **Voters**: Support contextual authorization (e.g., organization-level permissions)
+
+**Creating Custom Roles:**
+
+```typescript
+import { isPlatformRole } from '@/lib/security';
+import { prisma } from '@/lib/db';
+
+// 1. Validate role name format at runtime
+const roleName = "ROLE_BILLING_ADMIN";
+if (!isPlatformRole(roleName)) {
+  throw new Error('Invalid role format');
+}
+
+// 2. Create role in database
+const newRole = await prisma.role.create({
+  data: {
+    name: roleName,
+    description: "Manages billing and invoices",
+    parentId: adminRoleId // Optional: inherit from ROLE_ADMIN
+  }
+});
+
+// 3. Use in authorization checks
+const user = await getCurrentUser();
+if (await isGranted(user, 'ROLE_BILLING_ADMIN')) {
+  // User has this role or inherits it from a parent role
+}
+```
+
+**Valid Role Examples:**
+- `ROLE_USER`, `ROLE_ADMIN`, `ROLE_MODERATOR` (base roles)
+- `ROLE_BILLING_ADMIN`, `ROLE_SUPPORT_TIER_1` (custom roles)
+- `ROLE_API_READ_ONLY`, `ROLE_ORG_OWNER` (specialized roles)
+
+**Invalid Role Examples:**
+- `ROLE_A` (too short, minimum 2 chars)
+- `admin` (missing ROLE_ prefix)
+- `ROLE_admin` (lowercase not allowed)
+- `ROLE-ADMIN` (hyphen not allowed, use underscore)
 
 See [Arbitrary Role Support Spike](./spikes/2026-01-04-jwt-arbitrary-roles.md) for detailed architecture.
 

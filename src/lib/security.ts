@@ -5,16 +5,42 @@ import { env } from './env';
 
 /**
  * Pattern for valid role names in JWT tokens.
- * Roles must follow the format: ROLE_[A-Z][A-Z0-9_]*
+ * Roles must follow the format: ROLE_[A-Z][A-Z0-9_]+
+ * (minimum 2 characters after ROLE_ prefix)
  *
  * Examples of valid roles:
  * - ROLE_USER, ROLE_ADMIN, ROLE_MODERATOR (base roles)
  * - ROLE_BILLING_ADMIN, ROLE_SUPPORT (custom roles)
  *
- * This enables database-driven arbitrary roles without code changes.
- * Actual role validity is verified by isGranted() against the database.
+ * JWT Validation Flow:
+ * 1. Token generation: generateAccessToken() creates token with role from database
+ * 2. Token verification: verifyAccessToken() validates role STRUCTURE only (pattern match)
+ * 3. Authorization: isGranted() verifies role VALIDITY and permissions against database
+ *
+ * This separation enables database-driven arbitrary roles without code changes
+ * while maintaining defense-in-depth security.
  */
-const ROLE_PATTERN = /^ROLE_[A-Z][A-Z0-9_]*$/;
+const ROLE_PATTERN = /^ROLE_[A-Z][A-Z0-9_]+$/;
+
+/**
+ * Runtime type guard for PlatformRole.
+ * Checks if a string matches the valid role pattern.
+ *
+ * @param value - String to check
+ * @returns true if value is a valid PlatformRole format
+ *
+ * @example
+ * ```typescript
+ * const userInput = "ROLE_CUSTOM_ADMIN";
+ * if (isPlatformRole(userInput)) {
+ *   // TypeScript knows userInput is PlatformRole here
+ *   const token = await generateAccessToken({ userId, email, role: userInput });
+ * }
+ * ```
+ */
+export function isPlatformRole(value: string): value is PlatformRole {
+  return ROLE_PATTERN.test(value);
+}
 
 function isValidAccessTokenPayload(
   payload: JoseJWTPayload

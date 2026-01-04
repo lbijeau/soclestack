@@ -5,7 +5,15 @@ import { User, OrganizationRole } from '@prisma/client';
  * ROLE_ADMIN inherits from ROLE_MODERATOR inherits from ROLE_USER
  *
  * Uses template literal type to support arbitrary database-driven roles.
- * Role names must follow the pattern: ROLE_[A-Z][A-Z0-9_]*
+ * Role names must follow the pattern: ROLE_[A-Z][A-Z0-9_]+ (minimum 2 chars after ROLE_)
+ *
+ * Runtime validation: Use isPlatformRole() from @/lib/security to validate role format.
+ *
+ * Design Decision: Template Literal Type vs Branded Type
+ * - Template literal provides compile-time documentation without runtime overhead
+ * - Branded types would require validation at every DB boundary (complex, verbose)
+ * - Runtime type guard (isPlatformRole) provides validation where needed
+ * - Balances type safety with pragmatism for database-driven roles
  */
 export type PlatformRole = `ROLE_${string}`;
 

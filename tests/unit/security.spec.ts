@@ -14,6 +14,7 @@ import {
   createRateLimitKey,
   sanitizeInput,
   timeSafeEqual,
+  isPlatformRole,
 } from '@/lib/security';
 
 /**
@@ -423,10 +424,42 @@ describe('Time-Safe String Comparison', () => {
   });
 });
 
+describe('PlatformRole Runtime Type Guard', () => {
+  describe('isPlatformRole', () => {
+    it('should return true for valid role patterns', () => {
+      expect(isPlatformRole('ROLE_USER')).toBe(true);
+      expect(isPlatformRole('ROLE_ADMIN')).toBe(true);
+      expect(isPlatformRole('ROLE_BILLING_ADMIN')).toBe(true);
+      expect(isPlatformRole('ROLE_A1')).toBe(true);
+      expect(isPlatformRole('ROLE_TEST123')).toBe(true);
+    });
+
+    it('should return false for invalid role patterns', () => {
+      expect(isPlatformRole('admin')).toBe(false);
+      expect(isPlatformRole('ADMIN')).toBe(false);
+      expect(isPlatformRole('ROLE_A')).toBe(false); // Too short
+      expect(isPlatformRole('ROLE_')).toBe(false);
+      expect(isPlatformRole('ROLE_admin')).toBe(false);
+      expect(isPlatformRole('ROLE-ADMIN')).toBe(false);
+      expect(isPlatformRole('')).toBe(false);
+    });
+
+    it('should work as type guard in TypeScript', () => {
+      const userInput: string = 'ROLE_CUSTOM_ADMIN';
+
+      if (isPlatformRole(userInput)) {
+        // TypeScript should narrow the type to PlatformRole
+        const role: typeof userInput = userInput;
+        expect(role).toBe('ROLE_CUSTOM_ADMIN');
+      }
+    });
+  });
+});
+
 describe('JWT Role Pattern Validation', () => {
   /**
    * Tests for arbitrary role support in JWT tokens.
-   * Role pattern: ROLE_[A-Z][A-Z0-9_]*
+   * Role pattern: ROLE_[A-Z][A-Z0-9_]+ (minimum 2 chars after ROLE_)
    */
 
   describe('valid role patterns', () => {
@@ -439,9 +472,10 @@ describe('JWT Role Pattern Validation', () => {
       'ROLE_SUPPORT_TIER_1',
       'ROLE_API_READ_ONLY',
       'ROLE_ORG_OWNER',
-      'ROLE_A',
-      'ROLE_A1',
+      'ROLE_A1', // Minimum 2 chars after ROLE_
+      'ROLE_AB',
       'ROLE_TEST123',
+      'ROLE_VERY_LONG_ROLE_NAME_WITH_MANY_UNDERSCORES_AND_NUMBERS_12345',
     ];
 
     it.each(validRoles)(
@@ -468,6 +502,7 @@ describe('JWT Role Pattern Validation', () => {
       { role: 'ROLE-ADMIN', reason: 'hyphen instead of underscore' },
       { role: 'role_admin', reason: 'lowercase prefix' },
       { role: 'ROLE_', reason: 'empty suffix' },
+      { role: 'ROLE_A', reason: 'suffix too short (minimum 2 chars)' },
       { role: 'ROLE_123', reason: 'suffix starts with number' },
       { role: 'ADMIN_ROLE', reason: 'wrong prefix position' },
       { role: 'ROLE_admin', reason: 'lowercase suffix' },
