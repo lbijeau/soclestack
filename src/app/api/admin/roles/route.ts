@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import {
   isGranted,
@@ -133,6 +133,20 @@ export async function POST(req: NextRequest) {
           },
         },
         { status: 403 }
+      );
+    }
+
+    // Rate limit: 20 role creations per hour per admin
+    const rateLimitKey = `admin-role-create:${user.id}`;
+    if (isRateLimited(rateLimitKey, 20, 60 * 60 * 1000)) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'RATE_LIMIT_ERROR',
+            message: 'Too many role creations. Please try again later.',
+          },
+        },
+        { status: 429 }
       );
     }
 
