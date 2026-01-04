@@ -2,7 +2,7 @@
 
 Visual reference for all UI components in the design system.
 
-Source: [`src/components/ui/`](../../src/components/ui/)
+Source: [`src/components/ui/`](https://github.com/lbijeau/soclestack/tree/master/src/components/ui)
 
 ## Quick Reference
 
@@ -21,6 +21,13 @@ Source: [`src/components/ui/`](../../src/components/ui/)
 ## Button
 
 Versatile button component for actions and navigation.
+
+**When to use:**
+- `primary`: Main action on page (Submit, Save, Confirm)
+- `secondary`: Cancel, Back, or less important actions
+- `destructive`: Delete, Remove, or irreversible actions
+- `ghost`: Subtle actions, toolbar buttons, or icon-only buttons
+- `outline`: Alternative to secondary when more visual weight is needed
 
 ### Props
 
@@ -252,6 +259,12 @@ import {
 
 Status message component with icon and color variants.
 
+**When to use:**
+- `default`: General information, tips, or neutral messages
+- `success`: Confirmation of completed actions
+- `warning`: Caution about potential issues or expiring states
+- `error`: Failed actions or validation errors requiring attention
+
 ### Props
 
 | Prop | Type | Default | Description |
@@ -324,6 +337,12 @@ import { Alert } from '@/components/ui/alert';
 ## Badge
 
 Small status indicator labels.
+
+**When to use:**
+- `default`: Active or positive states (Active, Enabled, Online)
+- `secondary`: Neutral or pending states (Pending, Draft, Idle)
+- `destructive`: Negative states (Expired, Revoked, Inactive)
+- `outline`: Labels or categories (role badges, tags)
 
 ### Props
 
