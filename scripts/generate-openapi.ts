@@ -40,6 +40,56 @@ const UserSchema = registry.register(
   })
 );
 
+const RoleSchema = registry.register(
+  'Role',
+  z.object({
+    id: z.string().cuid(),
+    name: z
+      .string()
+      .regex(/^ROLE_[A-Z][A-Z0-9_]+$/)
+      .openapi({
+        description: `Role name must follow the pattern: ROLE_[A-Z][A-Z0-9_]+
+- Must start with "ROLE_"
+- Followed by at least 2 uppercase letters, numbers, or underscores
+- First character after ROLE_ must be a letter
+
+Valid examples: ROLE_USER, ROLE_BILLING_ADMIN, ROLE_SUPPORT_TIER_1
+Invalid examples: ROLE_A (too short), ROLE_admin (lowercase), ROLE-ADMIN (hyphen)`,
+        example: 'ROLE_BILLING_ADMIN',
+      }),
+    description: z.string().nullable(),
+    parentId: z.string().cuid().nullable(),
+    parentName: z.string().nullable(),
+    isSystem: z.boolean(),
+    userCount: z.number(),
+    childCount: z.number(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+);
+
+const CreateRoleSchema = registry.register(
+  'CreateRole',
+  z.object({
+    name: z
+      .string()
+      .min(7, 'Minimum length is 7 (ROLE_ prefix + 2 characters)')
+      .regex(/^ROLE_[A-Z][A-Z0-9_]+$/)
+      .openapi({
+        description: `Role name must follow the pattern: ROLE_[A-Z][A-Z0-9_]+
+- Must start with "ROLE_"
+- Followed by at least 2 uppercase letters, numbers, or underscores
+- First character after ROLE_ must be a letter
+
+Valid examples: ROLE_USER, ROLE_BILLING_ADMIN, ROLE_SUPPORT_TIER_1
+Invalid examples: ROLE_A (too short), ROLE_admin (lowercase), ROLE-ADMIN (hyphen)`,
+        example: 'ROLE_BILLING_ADMIN',
+      }),
+    description: z.string().optional(),
+    parentId: z.string().cuid().optional(),
+  })
+);
+
 // 2. Register Paths
 registry.registerPath({
   method: 'post',
@@ -100,6 +150,64 @@ registry.registerPath({
         },
       },
     },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/admin/roles',
+  summary: 'List All Roles',
+  description: 'List all roles with hierarchy info and user counts. Requires ROLE_ADMIN access.',
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'List of roles',
+      content: {
+        'application/json': {
+          schema: z.object({
+            roles: z.array(RoleSchema),
+          }),
+        },
+      },
+    },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorSchema } } },
+    403: { description: 'Forbidden - ROLE_ADMIN required', content: { 'application/json': { schema: ErrorSchema } } },
+    500: { description: 'Internal Server Error', content: { 'application/json': { schema: ErrorSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/admin/roles',
+  summary: 'Create a New Role',
+  description: 'Create a new platform role. Requires ROLE_ADMIN access.',
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: CreateRoleSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: 'Role created successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            role: RoleSchema,
+          }),
+        },
+      },
+    },
+    400: { description: 'Validation Error', content: { 'application/json': { schema: ErrorSchema } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorSchema } } },
+    403: { description: 'Forbidden - ROLE_ADMIN required', content: { 'application/json': { schema: ErrorSchema } } },
+    409: { description: 'Conflict - Role name already exists', content: { 'application/json': { schema: ErrorSchema } } },
+    429: { description: 'Rate Limit Exceeded', content: { 'application/json': { schema: ErrorSchema } } },
+    500: { description: 'Internal Server Error', content: { 'application/json': { schema: ErrorSchema } } },
   },
 });
 
