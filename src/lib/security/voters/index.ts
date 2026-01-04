@@ -1,0 +1,5 @@
+/**
+ * Voter implementations for the security system
+ */
+
+export { OrganizationVoter, organizationVoter } from './organization-voter';
