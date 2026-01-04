@@ -11,6 +11,9 @@ import { logAuditEvent } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
+/** Maximum number of users to return in a single request */
+const MAX_USERS_LIMIT = 100;
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
@@ -93,7 +96,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const usersLimitParam = searchParams.get('usersLimit');
     const usersOffsetParam = searchParams.get('usersOffset');
 
-    const MAX_USERS_LIMIT = 100;
     const usersLimit = usersLimitParam
       ? Math.min(parseInt(usersLimitParam, 10), MAX_USERS_LIMIT)
       : undefined;
@@ -191,7 +193,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           lastName: ur.user.lastName,
         })),
         totalUsers: role._count.userRoles,
-        hasMoreUsers: usersOffset + role.userRoles.length < role._count.userRoles,
+        hasMoreUsers:
+          usersOffset + role.userRoles.length < role._count.userRoles,
         childRoles: role.children.map((child) => ({
           id: child.id,
           name: child.name,
