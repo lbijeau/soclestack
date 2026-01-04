@@ -11,6 +11,11 @@ import { logAuditEvent } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
+/** Rate limit: 20 role creations per hour */
+const ROLE_CREATE_LIMIT = 20;
+/** Rate limit window in milliseconds (1 hour) */
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
 /**
  * Validation schema for creating a new role
  */
@@ -136,9 +141,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Rate limit: 20 role creations per hour per admin
+    // Rate limit role creations per admin
     const rateLimitKey = `admin-role-create:${user.id}`;
-    if (isRateLimited(rateLimitKey, 20, 60 * 60 * 1000)) {
+    if (isRateLimited(rateLimitKey, ROLE_CREATE_LIMIT, RATE_LIMIT_WINDOW_MS)) {
       return NextResponse.json(
         {
           error: {
@@ -146,7 +151,7 @@ export async function POST(req: NextRequest) {
             message: 'Too many role creations. Please try again later.',
           },
         },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': '3600' } }
       );
     }
 

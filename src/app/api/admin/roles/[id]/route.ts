@@ -14,6 +14,13 @@ export const runtime = 'nodejs';
 /** Maximum number of users to return in a single request */
 const MAX_USERS_LIMIT = 100;
 
+/** Rate limit: 30 role updates per hour */
+const ROLE_UPDATE_LIMIT = 30;
+/** Rate limit: 10 role deletions per hour */
+const ROLE_DELETE_LIMIT = 10;
+/** Rate limit window in milliseconds (1 hour) */
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
@@ -248,9 +255,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Rate limit: 30 role updates per hour per admin
+    // Rate limit role updates per admin
     const rateLimitKey = `admin-role-update:${user.id}`;
-    if (isRateLimited(rateLimitKey, 30, 60 * 60 * 1000)) {
+    if (isRateLimited(rateLimitKey, ROLE_UPDATE_LIMIT, RATE_LIMIT_WINDOW_MS)) {
       return NextResponse.json(
         {
           error: {
@@ -258,7 +265,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             message: 'Too many role updates. Please try again later.',
           },
         },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': '3600' } }
       );
     }
 
@@ -452,9 +459,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Rate limit: 10 role deletions per hour per admin
+    // Rate limit role deletions per admin
     const rateLimitKey = `admin-role-delete:${user.id}`;
-    if (isRateLimited(rateLimitKey, 10, 60 * 60 * 1000)) {
+    if (isRateLimited(rateLimitKey, ROLE_DELETE_LIMIT, RATE_LIMIT_WINDOW_MS)) {
       return NextResponse.json(
         {
           error: {
@@ -462,7 +469,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
             message: 'Too many role deletions. Please try again later.',
           },
         },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': '3600' } }
       );
     }
 
