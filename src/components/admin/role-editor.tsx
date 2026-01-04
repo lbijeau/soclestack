@@ -117,6 +117,14 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
     description !== initialValues.description ||
     parentId !== initialValues.parentId;
 
+  // Navigate back with unsaved changes confirmation
+  const handleNavigateBack = useCallback(() => {
+    if (isDirty && !window.confirm('You have unsaved changes. Leave anyway?')) {
+      return;
+    }
+    router.push('/admin/roles');
+  }, [isDirty, router]);
+
   // Fetch data
   const fetchData = useCallback(async () => {
     try {
@@ -333,7 +341,8 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push('/admin/roles')}
+            onClick={handleNavigateBack}
+            aria-label="Go back to roles list"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -393,6 +402,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                   }}
                   placeholder="ROLE_CUSTOM_NAME"
                   aria-describedby={fieldErrors.name ? 'name-error' : undefined}
+                  aria-invalid={!!fieldErrors.name}
                 />
                 {fieldErrors.name && (
                   <p
@@ -438,6 +448,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                   aria-describedby={
                     fieldErrors.description ? 'description-error' : undefined
                   }
+                  aria-invalid={!!fieldErrors.description}
                 />
                 {fieldErrors.description && (
                   <p
@@ -503,10 +514,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
               )}
             </div>
             <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => router.push('/admin/roles')}
-              >
+              <Button variant="outline" onClick={handleNavigateBack}>
                 Cancel
               </Button>
               <Button onClick={handleSave} disabled={isSaving}>
