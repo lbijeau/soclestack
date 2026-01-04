@@ -56,6 +56,10 @@ async function isDescendant(
  *
  * Get role details with assigned users and child roles.
  * Requires ROLE_ADMIN access.
+ *
+ * Query params:
+ * - usersLimit: number (optional) - Max users to return (default: all)
+ * - usersOffset: number (optional) - Offset for pagination (default: 0)
  */
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
@@ -84,6 +88,39 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
 
+    // Parse pagination params
+    const searchParams = req.nextUrl.searchParams;
+    const usersLimitParam = searchParams.get('usersLimit');
+    const usersOffsetParam = searchParams.get('usersOffset');
+
+    const usersLimit = usersLimitParam ? parseInt(usersLimitParam, 10) : undefined;
+    const usersOffset = usersOffsetParam ? parseInt(usersOffsetParam, 10) : 0;
+
+    // Validate pagination params
+    if (usersLimit !== undefined && (isNaN(usersLimit) || usersLimit < 0)) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'usersLimit must be a non-negative integer',
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(usersOffset) || usersOffset < 0) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'usersOffset must be a non-negative integer',
+          },
+        },
+        { status: 400 }
+      );
+    }
+
     const role = await prisma.role.findUnique({
       where: { id },
       include: {
@@ -100,6 +137,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           },
         },
         userRoles: {
+          skip: usersOffset,
+          take: usersLimit,
           include: {
             user: {
               select: {
@@ -109,6 +148,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
                 lastName: true,
               },
             },
+          },
+        },
+        _count: {
+          select: {
+            userRoles: true,
           },
         },
       },
@@ -140,6 +184,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           firstName: ur.user.firstName,
           lastName: ur.user.lastName,
         })),
+        totalUsers: role._count.userRoles,
         childRoles: role.children.map((child) => ({
           id: child.id,
           name: child.name,
