@@ -1,5 +1,4 @@
 import { getCurrentUser, hasRequiredRole } from '@/lib/auth';
-import { Navbar } from '@/components/navigation/navbar';
 import { UserManagement } from '@/components/admin/user-management';
 import {
   Card,
@@ -124,112 +123,104 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="mt-2 text-gray-600">
-              Manage users and system settings.
-            </p>
-          </div>
-
-          {/* User Stats */}
-          <div className="mb-6">
-            <h2 className="mb-3 text-sm font-medium text-gray-500">Users</h2>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              {userStats.map((stat) => (
-                <Card key={stat.title}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center">
-                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                      <div className="ml-3">
-                        <div className="text-xs text-gray-500">
-                          {stat.title}
-                        </div>
-                        <div className="text-xl font-bold text-gray-900">
-                          {stat.value}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Security Stats */}
-          <div className="mb-8">
-            <h2 className="mb-3 text-sm font-medium text-gray-500">
-              Security & Activity
-            </h2>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              {securityStats.map((stat) => (
-                <Card key={stat.title}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center">
-                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                      <div className="ml-3">
-                        <div className="text-xs text-gray-500">
-                          {stat.title}
-                        </div>
-                        <div className="text-xl font-bold text-gray-900">
-                          {stat.value}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Links - Only for ADMIN */}
-          {user.role === 'ADMIN' && (
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                Admin Tools
-              </h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <Link href="/admin/audit-logs">
-                  <Card className="cursor-pointer transition-shadow hover:shadow-md">
-                    <CardContent className="p-6">
-                      <div className="flex items-center">
-                        <FileText className="h-8 w-8 text-indigo-600" />
-                        <div className="ml-4">
-                          <div className="font-medium text-gray-900">
-                            Audit Logs
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            View security events
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* User Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>
-                View and manage all users in the system.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UserManagement currentUser={user} />
-            </CardContent>
-          </Card>
+    <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+      <div className="px-4 py-6 sm:px-0">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
+          <p className="mt-2 text-gray-600">
+            Manage users and system settings.
+          </p>
         </div>
-      </main>
-    </div>
+
+        {/* User Stats */}
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-medium text-gray-500">Users</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {userStats.map((stat) => (
+              <Card key={stat.title}>
+                <CardContent className="p-4">
+                  <div className="flex items-center">
+                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    <div className="ml-3">
+                      <div className="text-xs text-gray-500">{stat.title}</div>
+                      <div className="text-xl font-bold text-gray-900">
+                        {stat.value}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Security Stats */}
+        <div className="mb-8">
+          <h2 className="mb-3 text-sm font-medium text-gray-500">
+            Security & Activity
+          </h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {securityStats.map((stat) => (
+              <Card key={stat.title}>
+                <CardContent className="p-4">
+                  <div className="flex items-center">
+                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    <div className="ml-3">
+                      <div className="text-xs text-gray-500">{stat.title}</div>
+                      <div className="text-xl font-bold text-gray-900">
+                        {stat.value}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Links - Only for ADMIN */}
+        {user.role === 'ADMIN' && (
+          <div className="mb-8">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              Admin Tools
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Link href="/admin/audit-logs">
+                <Card className="cursor-pointer transition-shadow hover:shadow-md">
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <FileText className="h-8 w-8 text-indigo-600" />
+                      <div className="ml-4">
+                        <div className="font-medium text-gray-900">
+                          Audit Logs
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          View security events
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* User Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle>User Management</CardTitle>
+            <CardDescription>
+              View and manage all users in the system.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UserManagement currentUser={user} />
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   );
 }
 

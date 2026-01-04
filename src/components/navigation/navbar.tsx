@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
 import { QuickActionsMenu } from './quick-actions-menu';
 import { User, Settings, LogOut, Users } from 'lucide-react';
@@ -138,11 +137,17 @@ export function Navbar() {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/login">
-                <Button variant="ghost">Sign In</Button>
+              <Link
+                href="/login"
+                className="inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              >
+                Sign In
               </Link>
-              <Link href="/register">
-                <Button>Sign Up</Button>
+              <Link
+                href="/register"
+                className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              >
+                Sign Up
               </Link>
             </div>
           </div>
@@ -212,19 +217,21 @@ export function Navbar() {
               </div>
 
               <div className="flex items-center space-x-2">
-                <Link href="/profile">
-                  <Button variant="ghost" size="sm">
-                    <Settings size={16} />
-                  </Button>
+                <Link
+                  href="/profile"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  aria-label="Settings"
+                >
+                  <Settings size={16} />
                 </Link>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   onClick={handleLogout}
+                  aria-label="Logout"
                 >
                   <LogOut size={16} />
-                </Button>
+                </button>
               </div>
             </div>
           </div>
