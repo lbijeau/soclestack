@@ -95,7 +95,7 @@ interface EdgeMockResponse {
 export const EMPTY_SESSION: SessionData = {
   userId: '',
   email: '',
-  role: 'USER',
+  role: 'ROLE_USER',
   isLoggedIn: false,
 };
 

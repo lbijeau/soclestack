@@ -9,7 +9,7 @@
 import { prisma } from '@/lib/db';
 
 import type { User, UserRole } from '@prisma/client';
-import type { LegacyRole } from '@/types/auth';
+import type { PlatformRole } from '@/types/auth';
 
 /**
  * Role name constants to avoid magic strings
@@ -48,8 +48,8 @@ export type UserWithComputedRole = User & {
       role: { id: string; name: string; parentId: string | null };
     }
   >;
-  /** Computed legacy role for backward compatibility */
-  role: LegacyRole;
+  /** Computed platform role (highest role from userRoles) */
+  role: PlatformRole;
 };
 
 /**
@@ -220,34 +220,34 @@ export async function hasRequiredRoleAsync(
 /**
  * Get user's highest role name (for display purposes)
  *
- * Returns the most privileged role: ADMIN > MODERATOR > USER
+ * Returns the most privileged role: ROLE_ADMIN > ROLE_MODERATOR > ROLE_USER
  */
 export async function getUserRoleDisplay(
   user: UserWithRoles | null
-): Promise<LegacyRole> {
-  if (!user) return 'USER';
+): Promise<PlatformRole> {
+  if (!user) return ROLES.USER;
 
-  if (await hasRole(user, ROLES.ADMIN)) return 'ADMIN';
-  if (await hasRole(user, ROLES.MODERATOR)) return 'MODERATOR';
-  return 'USER';
+  if (await hasRole(user, ROLES.ADMIN)) return ROLES.ADMIN;
+  if (await hasRole(user, ROLES.MODERATOR)) return ROLES.MODERATOR;
+  return ROLES.USER;
 }
 
 /**
  * Get user's highest role for display purposes (no DB call)
  *
- * Returns the most privileged role: ADMIN > MODERATOR > USER
+ * Returns the most privileged role: ROLE_ADMIN > ROLE_MODERATOR > ROLE_USER
  * Use this for UI display, not authorization. For permission checks,
  * use hasRole() or isGranted() instead.
  */
-export function getHighestRole(user: UserWithRoles | null): LegacyRole {
-  if (!user?.userRoles?.length) return 'USER';
+export function getHighestRole(user: UserWithRoles | null): PlatformRole {
+  if (!user?.userRoles?.length) return ROLES.USER;
 
   const roleNames = user.userRoles.map((ur) => ur.role.name);
 
   // Check highest first (ADMIN > MODERATOR > USER)
-  if (roleNames.includes(ROLES.ADMIN)) return 'ADMIN';
-  if (roleNames.includes(ROLES.MODERATOR)) return 'MODERATOR';
-  return 'USER';
+  if (roleNames.includes(ROLES.ADMIN)) return ROLES.ADMIN;
+  if (roleNames.includes(ROLES.MODERATOR)) return ROLES.MODERATOR;
+  return ROLES.USER;
 }
 
 /**

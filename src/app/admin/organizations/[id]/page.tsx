@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { OrganizationDetail } from '@/components/admin/organization-detail';
 import { redirect } from 'next/navigation';
+import { ROLES } from '@/lib/security/index';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export default async function AdminOrganizationDetailPage({
     redirect('/login?returnUrl=/admin/organizations');
   }
 
-  if (user.role !== 'ADMIN') {
+  if (user.role !== ROLES.ADMIN) {
     redirect('/admin');
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, getClientIP } from '@/lib/auth';
 import { unlockAccount } from '@/lib/auth/lockout';
 import { prisma } from '@/lib/db';
+import { ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -24,7 +25,7 @@ export async function POST(
     }
 
     // Check admin role
-    if (session.role !== 'ADMIN') {
+    if (session.role !== ROLES.ADMIN) {
       return NextResponse.json(
         {
           error: {

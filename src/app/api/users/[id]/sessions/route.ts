@@ -6,6 +6,7 @@ import {
   revokeAllUserTokens,
 } from '@/lib/auth/remember-me';
 import { logAuditEvent } from '@/lib/audit';
+import { ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -28,7 +29,7 @@ export async function GET(
     }
 
     // Users can only view their own sessions, admins can view any
-    if (session.userId !== userId && session.role !== 'ADMIN') {
+    if (session.userId !== userId && session.role !== ROLES.ADMIN) {
       return NextResponse.json(
         { error: { type: 'AUTHORIZATION_ERROR', message: 'Not authorized' } },
         { status: 403 }
@@ -66,7 +67,7 @@ export async function DELETE(
     }
 
     // Users can only revoke their own sessions, admins can revoke any
-    if (session.userId !== userId && session.role !== 'ADMIN') {
+    if (session.userId !== userId && session.role !== ROLES.ADMIN) {
       return NextResponse.json(
         { error: { type: 'AUTHORIZATION_ERROR', message: 'Not authorized' } },
         { status: 403 }
