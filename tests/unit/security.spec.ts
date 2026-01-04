@@ -99,7 +99,7 @@ describe('JWT Token Generation and Verification', () => {
   const testPayload = {
     userId: 'user-123',
     email: 'test@example.com',
-    role: 'USER' as const,
+    role: 'ROLE_USER' as const,
   };
 
   describe('generateAccessToken', () => {
@@ -419,6 +419,110 @@ describe('Time-Safe String Comparison', () => {
     it('should handle unicode characters', () => {
       expect(timeSafeEqual('héllo', 'héllo')).toBe(true);
       expect(timeSafeEqual('héllo', 'hello')).toBe(false);
+    });
+  });
+});
+
+describe('JWT Role Pattern Validation', () => {
+  /**
+   * Tests for arbitrary role support in JWT tokens.
+   * Role pattern: ROLE_[A-Z][A-Z0-9_]*
+   */
+
+  describe('valid role patterns', () => {
+    const validRoles = [
+      'ROLE_USER',
+      'ROLE_ADMIN',
+      'ROLE_MODERATOR',
+      'ROLE_BILLING_ADMIN',
+      'ROLE_SUPER_ADMIN',
+      'ROLE_SUPPORT_TIER_1',
+      'ROLE_API_READ_ONLY',
+      'ROLE_ORG_OWNER',
+      'ROLE_A',
+      'ROLE_A1',
+      'ROLE_TEST123',
+    ];
+
+    it.each(validRoles)(
+      'should accept valid role pattern: %s',
+      async (role) => {
+        const payload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          role: role as `ROLE_${string}`,
+        };
+
+        const token = await generateAccessToken(payload);
+        const verified = await verifyAccessToken(token);
+
+        expect(verified.role).toBe(role);
+      }
+    );
+  });
+
+  describe('invalid role patterns', () => {
+    const invalidRoles = [
+      { role: 'admin', reason: 'no ROLE_ prefix' },
+      { role: 'ADMIN', reason: 'no ROLE_ prefix' },
+      { role: 'ROLE-ADMIN', reason: 'hyphen instead of underscore' },
+      { role: 'role_admin', reason: 'lowercase prefix' },
+      { role: 'ROLE_', reason: 'empty suffix' },
+      { role: 'ROLE_123', reason: 'suffix starts with number' },
+      { role: 'ADMIN_ROLE', reason: 'wrong prefix position' },
+      { role: 'ROLE_admin', reason: 'lowercase suffix' },
+      { role: 'ROLE_Admin', reason: 'mixed case suffix' },
+      { role: '', reason: 'empty string' },
+      { role: 'ROLE', reason: 'missing underscore and suffix' },
+    ];
+
+    it.each(invalidRoles)(
+      'should reject invalid role pattern: $role ($reason)',
+      async ({ role }) => {
+        const payload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          role: role as `ROLE_${string}`,
+        };
+
+        const token = await generateAccessToken(payload);
+
+        await expect(verifyAccessToken(token)).rejects.toThrow(
+          'Invalid access token'
+        );
+      }
+    );
+  });
+
+  describe('role roundtrip', () => {
+    it('should preserve custom role through token generation and verification', async () => {
+      const customRole = 'ROLE_BILLING_ADMIN';
+      const payload = {
+        userId: 'user-456',
+        email: 'billing@example.com',
+        role: customRole as `ROLE_${string}`,
+      };
+
+      const token = await generateAccessToken(payload);
+      const verified = await verifyAccessToken(token);
+
+      expect(verified.role).toBe(customRole);
+      expect(verified.sub).toBe(payload.userId);
+      expect(verified.email).toBe(payload.email);
+    });
+
+    it('should handle role with numbers', async () => {
+      const roleWithNumbers = 'ROLE_SUPPORT_TIER_2';
+      const payload = {
+        userId: 'user-789',
+        email: 'support@example.com',
+        role: roleWithNumbers as `ROLE_${string}`,
+      };
+
+      const token = await generateAccessToken(payload);
+      const verified = await verifyAccessToken(token);
+
+      expect(verified.role).toBe(roleWithNumbers);
     });
   });
 });
