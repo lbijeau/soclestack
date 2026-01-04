@@ -429,29 +429,67 @@ describe('PlatformRole Runtime Type Guard', () => {
     it('should return true for valid role patterns', () => {
       expect(isPlatformRole('ROLE_USER')).toBe(true);
       expect(isPlatformRole('ROLE_ADMIN')).toBe(true);
+      expect(isPlatformRole('ROLE_MODERATOR')).toBe(true);
       expect(isPlatformRole('ROLE_BILLING_ADMIN')).toBe(true);
+      expect(isPlatformRole('ROLE_SUPER_ADMIN')).toBe(true);
+      expect(isPlatformRole('ROLE_SUPPORT_TIER_1')).toBe(true);
+      expect(isPlatformRole('ROLE_API_READ_ONLY')).toBe(true);
+      expect(isPlatformRole('ROLE_ORG_OWNER')).toBe(true);
+      expect(isPlatformRole('ROLE_AB')).toBe(true);
       expect(isPlatformRole('ROLE_A1')).toBe(true);
       expect(isPlatformRole('ROLE_TEST123')).toBe(true);
     });
 
-    it('should return false for invalid role patterns', () => {
-      expect(isPlatformRole('admin')).toBe(false);
-      expect(isPlatformRole('ADMIN')).toBe(false);
-      expect(isPlatformRole('ROLE_A')).toBe(false); // Too short
-      expect(isPlatformRole('ROLE_')).toBe(false);
-      expect(isPlatformRole('ROLE_admin')).toBe(false);
-      expect(isPlatformRole('ROLE-ADMIN')).toBe(false);
-      expect(isPlatformRole('')).toBe(false);
+    it('should return false for invalid role patterns - too short', () => {
+      expect(isPlatformRole('ROLE_A')).toBe(false); // Only 1 char after ROLE_
+      expect(isPlatformRole('ROLE_1')).toBe(false); // Number as first char
+      expect(isPlatformRole('ROLE_')).toBe(false); // No suffix
     });
 
-    it('should work as type guard in TypeScript', () => {
-      const userInput: string = 'ROLE_CUSTOM_ADMIN';
+    it('should return false for invalid role patterns - no prefix', () => {
+      expect(isPlatformRole('admin')).toBe(false);
+      expect(isPlatformRole('ADMIN')).toBe(false);
+      expect(isPlatformRole('USER')).toBe(false);
+    });
 
-      if (isPlatformRole(userInput)) {
-        // TypeScript should narrow the type to PlatformRole
-        const role: typeof userInput = userInput;
-        expect(role).toBe('ROLE_CUSTOM_ADMIN');
-      }
+    it('should return false for invalid role patterns - wrong case', () => {
+      expect(isPlatformRole('role_admin')).toBe(false); // Lowercase prefix
+      expect(isPlatformRole('ROLE_admin')).toBe(false); // Lowercase suffix
+      expect(isPlatformRole('ROLE_Admin')).toBe(false); // Mixed case suffix
+      expect(isPlatformRole('Role_ADMIN')).toBe(false); // Mixed case prefix
+    });
+
+    it('should return false for invalid role patterns - wrong separator', () => {
+      expect(isPlatformRole('ROLE-ADMIN')).toBe(false); // Hyphen
+      expect(isPlatformRole('ROLE.ADMIN')).toBe(false); // Dot
+      expect(isPlatformRole('ROLEADMIN')).toBe(false); // No separator
+    });
+
+    it('should return false for invalid role patterns - wrong prefix', () => {
+      expect(isPlatformRole('ADMIN_ROLE')).toBe(false);
+      expect(isPlatformRole('ROLES_ADMIN')).toBe(false);
+      expect(isPlatformRole('ROL_ADMIN')).toBe(false);
+    });
+
+    it('should return false for empty or whitespace strings', () => {
+      expect(isPlatformRole('')).toBe(false);
+      expect(isPlatformRole(' ')).toBe(false);
+      expect(isPlatformRole('ROLE')).toBe(false); // Missing underscore
+    });
+
+    it('should return false for special characters in suffix', () => {
+      expect(isPlatformRole('ROLE_ADMIN!')).toBe(false);
+      expect(isPlatformRole('ROLE_ADMIN@')).toBe(false);
+      expect(isPlatformRole('ROLE_ADMIN-TEST')).toBe(false);
+      expect(isPlatformRole('ROLE_ADMIN.TEST')).toBe(false);
+    });
+
+    it('should handle edge cases', () => {
+      expect(isPlatformRole('ROLE__ADMIN')).toBe(false); // Starts with underscore (invalid)
+      expect(isPlatformRole('ROLE_123')).toBe(false); // Starts with number
+      expect(isPlatformRole('ROLE_A_')).toBe(true); // Ends with underscore is valid
+      expect(isPlatformRole('ROLE_A__')).toBe(true); // Multiple trailing underscores
+      expect(isPlatformRole('ROLE_AB_CD')).toBe(true); // Underscore in middle is valid
     });
   });
 });
@@ -459,7 +497,7 @@ describe('PlatformRole Runtime Type Guard', () => {
 describe('JWT Role Pattern Validation', () => {
   /**
    * Tests for arbitrary role support in JWT tokens.
-   * Role pattern: ROLE_[A-Z][A-Z0-9_]+ (minimum 2 chars after ROLE_)
+   * Role pattern: ROLE_[A-Z][A-Z0-9_]+ (minimum 2 chars after ROLE_ prefix)
    */
 
   describe('valid role patterns', () => {
@@ -472,8 +510,8 @@ describe('JWT Role Pattern Validation', () => {
       'ROLE_SUPPORT_TIER_1',
       'ROLE_API_READ_ONLY',
       'ROLE_ORG_OWNER',
-      'ROLE_A1', // Minimum 2 chars after ROLE_
-      'ROLE_AB',
+      'ROLE_AB', // Minimum valid: 2 chars after ROLE_
+      'ROLE_A1',
       'ROLE_TEST123',
       'ROLE_VERY_LONG_ROLE_NAME_WITH_MANY_UNDERSCORES_AND_NUMBERS_12345',
     ];
