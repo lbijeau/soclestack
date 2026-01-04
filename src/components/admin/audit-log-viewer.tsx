@@ -191,6 +191,7 @@ export function AuditLogViewer() {
 
   useEffect(() => {
     fetchLogs(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally run only on mount; filter changes are applied via handleApplyFilters button
   }, []);
 
   const handleApplyFilters = () => {
