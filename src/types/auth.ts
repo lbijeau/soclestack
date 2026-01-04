@@ -3,8 +3,11 @@ import { User, OrganizationRole } from '@prisma/client';
 /**
  * Platform role names (stored in roles table)
  * ROLE_ADMIN inherits from ROLE_MODERATOR inherits from ROLE_USER
+ *
+ * Uses template literal type to support arbitrary database-driven roles.
+ * Role names must follow the pattern: ROLE_[A-Z][A-Z0-9_]*
  */
-export type PlatformRole = 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN';
+export type PlatformRole = `ROLE_${string}`;
 
 export interface LoginCredentials {
   email: string;

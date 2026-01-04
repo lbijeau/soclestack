@@ -20,7 +20,7 @@ import {
 import { ROLES } from '@/lib/security/client';
 
 interface QuickActionsMenuProps {
-  userRole: 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN';
+  userRole: string;
   organizationId?: string;
   organizationRole?: 'OWNER' | 'ADMIN' | 'MEMBER';
 }
@@ -55,9 +55,7 @@ const menuItems = [
   },
 ];
 
-function getAdminItems(
-  userRole: 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN'
-) {
+function getAdminItems(userRole: string) {
   const baseItems = [
     { label: 'User Management', href: '/admin', icon: UserCog },
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: Activity },
