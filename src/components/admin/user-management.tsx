@@ -135,8 +135,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     setError('');
 
     try {
+      // API expects short format (USER, MODERATOR, ADMIN) not ROLE_* format
       const response = await apiPatch(`/api/users/${userId}`, {
-        role: newRole,
+        role: displayRole(newRole),
       });
 
       if (!response.ok) {

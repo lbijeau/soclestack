@@ -19,9 +19,9 @@ export const ROLES = {
 
 // Role hierarchy for client-side permission checks (mirrors server-side isGranted)
 const ROLE_HIERARCHY: Record<string, number> = {
-  ROLE_USER: 1,
-  ROLE_MODERATOR: 2,
-  ROLE_ADMIN: 3,
+  [ROLES.USER]: 1,
+  [ROLES.MODERATOR]: 2,
+  [ROLES.ADMIN]: 3,
 };
 
 /**
