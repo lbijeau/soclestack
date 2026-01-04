@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getSession, getClientIP, getCurrentUser } from '@/lib/auth';
+import { getClientIP, getCurrentUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import { AuthError } from '@/types/auth';
 import { z } from 'zod';
@@ -21,20 +21,6 @@ const bulkActionSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
-
-    if (!session.isLoggedIn || !session.userId) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
-          } as AuthError,
-        },
-        { status: 401 }
-      );
-    }
-
     // Get current user with roles for authorization check
     const currentUser = await getCurrentUser();
     if (!currentUser) {
@@ -83,7 +69,7 @@ export async function POST(req: NextRequest) {
     const userAgent = req.headers.get('user-agent') || undefined;
 
     // Prevent admin from performing actions on themselves
-    if (userIds.includes(session.userId)) {
+    if (userIds.includes(currentUser.id)) {
       return NextResponse.json(
         {
           error: {
@@ -165,7 +151,7 @@ export async function POST(req: NextRequest) {
         await logAuditEvent({
           action: 'ADMIN_BULK_ACTIVATE',
           category: 'admin',
-          userId: session.userId,
+          userId: currentUser.id,
           ipAddress: clientIP,
           userAgent,
           metadata: { targetUserIds: validUserIds, count: affectedCount },
@@ -182,7 +168,7 @@ export async function POST(req: NextRequest) {
         await logAuditEvent({
           action: 'ADMIN_BULK_DEACTIVATE',
           category: 'admin',
-          userId: session.userId,
+          userId: currentUser.id,
           ipAddress: clientIP,
           userAgent,
           metadata: { targetUserIds: validUserIds, count: affectedCount },
@@ -199,7 +185,7 @@ export async function POST(req: NextRequest) {
         await logAuditEvent({
           action: 'ADMIN_BULK_DELETE',
           category: 'admin',
-          userId: session.userId,
+          userId: currentUser.id,
           ipAddress: clientIP,
           userAgent,
           metadata: {

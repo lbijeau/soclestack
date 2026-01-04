@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, getClientIP, getCurrentUser } from '@/lib/auth';
+import { getClientIP, getCurrentUser } from '@/lib/auth';
 import { deleteAllBackupCodes } from '@/lib/auth/backup-codes';
 import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
@@ -17,16 +17,6 @@ export async function POST(
 
   try {
     const { id: targetUserId } = await params;
-    const session = await getSession();
-
-    if (!session.isLoggedIn || !session.userId) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
 
     // Get current user with roles for authorization check
     const currentUser = await getCurrentUser();
@@ -114,7 +104,7 @@ export async function POST(
       userId: targetUserId,
       ipAddress: clientIP,
       userAgent,
-      metadata: { resetBy: session.userId, targetEmail: targetUser.email },
+      metadata: { resetBy: currentUser.id, targetEmail: targetUser.email },
     });
 
     return NextResponse.json({ message: '2FA reset successfully' });
