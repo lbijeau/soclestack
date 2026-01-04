@@ -8,6 +8,7 @@ import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
 import { QuickActionsMenu } from './quick-actions-menu';
 import { User, Settings, LogOut, Users, Building2 } from 'lucide-react';
 import { apiPost } from '@/lib/api-client';
+import { hasMinimumRole, displayRole, ROLES } from '@/lib/security/client';
 
 function Logo() {
   return (
@@ -28,7 +29,7 @@ interface User {
   username?: string;
   firstName?: string;
   lastName: string;
-  role: 'USER' | 'MODERATOR' | 'ADMIN';
+  role: 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN';
   organizationId?: string;
   organizationRole?: 'OWNER' | 'ADMIN' | 'MEMBER';
 }
@@ -201,7 +202,7 @@ export function Navbar() {
                     <span>Organization</span>
                   </Link>
                 )}
-                {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
+                {hasMinimumRole(user.role, ROLES.MODERATOR) && (
                   <Link
                     href="/admin"
                     className="flex items-center space-x-1 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
@@ -224,9 +225,9 @@ export function Navbar() {
                 <span className="text-sm text-gray-700">
                   {getDisplayName()}
                 </span>
-                {user.role !== 'USER' && (
+                {user.role !== ROLES.USER && (
                   <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
-                    {user.role}
+                    {displayRole(user.role)}
                   </span>
                 )}
               </div>

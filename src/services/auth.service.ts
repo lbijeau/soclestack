@@ -65,26 +65,22 @@ import {
   NotFoundError,
 } from './auth.errors';
 import log from '@/lib/logger';
-import type { LegacyRole } from '@/types/auth';
+import type { PlatformRole } from '@/types/auth';
 
-// Helper to get role from user (handles both old and new role system)
+// Helper to get role from user (resolves from userRoles relation)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getUserRole(user: any): LegacyRole {
-  // Check for new RBAC system (userRoles relation)
+function getUserRole(user: any): PlatformRole {
+  // Get role from RBAC system (userRoles relation)
   if (user.userRoles?.length) {
     const roleNames = user.userRoles.map(
       (ur: { role: { name: string } }) => ur.role.name
     );
-    if (roleNames.includes('ROLE_ADMIN')) return 'ADMIN';
-    if (roleNames.includes('ROLE_MODERATOR')) return 'MODERATOR';
-    return 'USER';
-  }
-  // Check for legacy role field (during migration)
-  if (user.role && typeof user.role === 'string') {
-    return user.role as LegacyRole;
+    if (roleNames.includes('ROLE_ADMIN')) return 'ROLE_ADMIN';
+    if (roleNames.includes('ROLE_MODERATOR')) return 'ROLE_MODERATOR';
+    return 'ROLE_USER';
   }
   // Default to USER
-  return 'USER';
+  return 'ROLE_USER';
 }
 
 // ============================================================================
@@ -871,7 +867,7 @@ export async function disable2FA(
   }
 
   // Admins cannot disable their own 2FA
-  if (getUserRole(user) === 'ADMIN') {
+  if (getUserRole(user) === 'ROLE_ADMIN') {
     throw new AuthorizationError('Admins cannot disable 2FA');
   }
 

@@ -1,4 +1,5 @@
 import { getCurrentUser } from '@/lib/auth';
+import { isGranted, ROLES } from '@/lib/security/index';
 import { checkPasswordAge } from '@/lib/auth/password-age';
 import {
   Card,
@@ -29,6 +30,9 @@ export default async function DashboardPage({
   if (!user) {
     redirect('/login?returnUrl=/dashboard');
   }
+
+  // Check permissions for UI visibility
+  const canAccessAdmin = await isGranted(user, ROLES.MODERATOR);
 
   // Check password age (only for users with passwords, not OAuth-only)
   const passwordStatus = user.password
@@ -227,7 +231,7 @@ export default async function DashboardPage({
                   >
                     Manage Profile
                   </Link>
-                  {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
+                  {canAccessAdmin && (
                     <Link
                       href="/admin"
                       className="inline-flex w-full items-center justify-center rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"

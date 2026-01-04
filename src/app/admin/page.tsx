@@ -1,4 +1,5 @@
-import { getCurrentUser, hasRequiredRole } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
+import { isGranted, ROLES } from '@/lib/security/index';
 import { UserManagement } from '@/components/admin/user-management';
 import {
   Card,
@@ -32,9 +33,12 @@ export default async function AdminPage() {
     redirect('/login?returnUrl=/admin');
   }
 
-  if (!hasRequiredRole(user.role, 'MODERATOR')) {
+  if (!(await isGranted(user, ROLES.MODERATOR))) {
     redirect('/dashboard');
   }
+
+  // Check if user is admin for admin-only features
+  const isAdmin = await isGranted(user, ROLES.ADMIN);
 
   // Get time boundaries
   const now = new Date();
@@ -191,7 +195,7 @@ export default async function AdminPage() {
         </div>
 
         {/* Quick Links - Only for ADMIN */}
-        {user.role === 'ADMIN' && (
+        {isAdmin && (
           <div className="mb-8">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Admin Tools

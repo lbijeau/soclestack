@@ -19,6 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { apiPatch, apiDelete, apiPost } from '@/lib/api-client';
+import { hasMinimumRole, displayRole, ROLES } from '@/lib/security/client';
 
 interface User {
   id: string;
@@ -26,7 +27,7 @@ interface User {
   username?: string;
   firstName?: string;
   lastName?: string;
-  role: 'USER' | 'MODERATOR' | 'ADMIN';
+  role: 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN';
   isActive: boolean;
   emailVerified: boolean;
   lastLoginAt?: string;
@@ -134,8 +135,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
     setError('');
 
     try {
+      // API expects short format (USER, MODERATOR, ADMIN) not ROLE_* format
       const response = await apiPatch(`/api/users/${userId}`, {
-        role: newRole,
+        role: displayRole(newRole),
       });
 
       if (!response.ok) {
@@ -214,7 +216,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
 
   // Bulk selection handlers
   const selectableUsers = users.filter(
-    (u) => u.id !== currentUser.id && u.role !== 'ADMIN'
+    (u) => u.id !== currentUser.id && u.role !== ROLES.ADMIN
   );
 
   const handleSelectAll = () => {
@@ -363,54 +365,55 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       </form>
 
       {/* Bulk Actions Bar */}
-      {currentUser.role === 'ADMIN' && selectedUsers.size > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <div className="flex items-center gap-2">
-            <CheckSquare size={16} className="text-blue-600" />
-            <span className="text-sm font-medium text-blue-900">
-              {selectedUsers.size} user{selectedUsers.size > 1 ? 's' : ''}{' '}
-              selected
-            </span>
+      {hasMinimumRole(currentUser.role, ROLES.ADMIN) &&
+        selectedUsers.size > 0 && (
+          <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="flex items-center gap-2">
+              <CheckSquare size={16} className="text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">
+                {selectedUsers.size} user{selectedUsers.size > 1 ? 's' : ''}{' '}
+                selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleBulkAction('activate')}
+                disabled={isBulkActionLoading}
+              >
+                <UserCheck size={14} className="mr-1" />
+                Activate
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleBulkAction('deactivate')}
+                disabled={isBulkActionLoading}
+              >
+                <UserX size={14} className="mr-1" />
+                Deactivate
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleBulkAction('delete')}
+                disabled={isBulkActionLoading}
+              >
+                <Trash2 size={14} className="mr-1" />
+                Delete
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedUsers(new Set())}
+                disabled={isBulkActionLoading}
+              >
+                Clear
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleBulkAction('activate')}
-              disabled={isBulkActionLoading}
-            >
-              <UserCheck size={14} className="mr-1" />
-              Activate
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleBulkAction('deactivate')}
-              disabled={isBulkActionLoading}
-            >
-              <UserX size={14} className="mr-1" />
-              Deactivate
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => handleBulkAction('delete')}
-              disabled={isBulkActionLoading}
-            >
-              <Trash2 size={14} className="mr-1" />
-              Delete
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setSelectedUsers(new Set())}
-              disabled={isBulkActionLoading}
-            >
-              Clear
-            </Button>
-          </div>
-        </div>
-      )}
+        )}
 
       {/* Users Table */}
       <div className="overflow-hidden rounded-lg border bg-white">
@@ -418,7 +421,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {currentUser.role === 'ADMIN' && (
+                {hasMinimumRole(currentUser.role, ROLES.ADMIN) && (
                   <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
@@ -456,7 +459,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {currentUser.role === 'ADMIN' && (
+                    {hasMinimumRole(currentUser.role, ROLES.ADMIN) && (
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="h-4 w-4 animate-pulse rounded bg-gray-200" />
                       </td>
@@ -484,7 +487,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
               ) : users.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={currentUser.role === 'ADMIN' ? 7 : 6}
+                    colSpan={
+                      hasMinimumRole(currentUser.role, ROLES.ADMIN) ? 7 : 6
+                    }
                     className="px-6 py-4 text-center text-gray-500"
                   >
                     No users found
@@ -493,13 +498,13 @@ export function UserManagement({ currentUser }: UserManagementProps) {
               ) : (
                 users.map((user) => {
                   const isSelectable =
-                    user.id !== currentUser.id && user.role !== 'ADMIN';
+                    user.id !== currentUser.id && user.role !== ROLES.ADMIN;
                   return (
                     <tr
                       key={user.id}
                       className={`${user.id === currentUser.id ? 'bg-blue-50' : ''} ${selectedUsers.has(user.id) ? 'bg-blue-50' : ''}`}
                     >
-                      {currentUser.role === 'ADMIN' && (
+                      {hasMinimumRole(currentUser.role, ROLES.ADMIN) && (
                         <td className="px-4 py-4 whitespace-nowrap">
                           {isSelectable ? (
                             <input
@@ -526,26 +531,20 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {currentUser.role === 'ADMIN' &&
+                        {hasMinimumRole(currentUser.role, ROLES.ADMIN) &&
                         user.id !== currentUser.id ? (
                           <div className="flex items-center gap-2">
                             <select
                               value={user.role}
                               onChange={(e) =>
-                                handleRoleChange(
-                                  user.id,
-                                  e.target.value as
-                                    | 'USER'
-                                    | 'MODERATOR'
-                                    | 'ADMIN'
-                                )
+                                handleRoleChange(user.id, e.target.value)
                               }
                               disabled={changingRoleId === user.id}
                               className="rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
                             >
-                              <option value="USER">User</option>
-                              <option value="MODERATOR">Moderator</option>
-                              <option value="ADMIN">Admin</option>
+                              <option value={ROLES.USER}>User</option>
+                              <option value={ROLES.MODERATOR}>Moderator</option>
+                              <option value={ROLES.ADMIN}>Admin</option>
                             </select>
                             {changingRoleId === user.id && (
                               <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
@@ -554,14 +553,14 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                         ) : (
                           <Badge
                             variant={
-                              user.role === 'ADMIN'
+                              user.role === ROLES.ADMIN
                                 ? 'default'
-                                : user.role === 'MODERATOR'
+                                : user.role === ROLES.MODERATOR
                                   ? 'secondary'
                                   : 'outline'
                             }
                           >
-                            {user.role}
+                            {displayRole(user.role)}
                           </Badge>
                         )}
                       </td>
@@ -590,7 +589,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                         {formatDate(user.createdAt)}
                       </td>
                       <td className="space-x-2 px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
-                        {currentUser.role === 'ADMIN' &&
+                        {hasMinimumRole(currentUser.role, ROLES.ADMIN) &&
                           user.id !== currentUser.id && (
                             <>
                               <Button

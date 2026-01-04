@@ -1,24 +1,28 @@
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify, JWTPayload as JoseJWTPayload } from 'jose';
-import { JWTPayload, RefreshTokenPayload, LegacyRole } from '@/types/auth';
+import { JWTPayload, RefreshTokenPayload, PlatformRole } from '@/types/auth';
 import { env } from './env';
 
 // Valid roles for runtime validation
-const VALID_ROLES: LegacyRole[] = ['USER', 'MODERATOR', 'ADMIN'];
+const VALID_ROLES: PlatformRole[] = [
+  'ROLE_USER',
+  'ROLE_MODERATOR',
+  'ROLE_ADMIN',
+];
 
 function isValidAccessTokenPayload(
   payload: JoseJWTPayload
 ): payload is JoseJWTPayload & {
   sub: string;
   email: string;
-  role: LegacyRole;
+  role: PlatformRole;
   jti: string;
 } {
   return (
     typeof payload.sub === 'string' &&
     typeof payload.email === 'string' &&
     typeof payload.role === 'string' &&
-    VALID_ROLES.includes(payload.role as LegacyRole) &&
+    VALID_ROLES.includes(payload.role as PlatformRole) &&
     typeof payload.jti === 'string'
   );
 }
@@ -110,7 +114,7 @@ export async function verifyPassword(
 export async function generateAccessToken(payload: {
   userId: string;
   email: string;
-  role: LegacyRole;
+  role: PlatformRole;
 }): Promise<string> {
   const crypto = await getCrypto();
 

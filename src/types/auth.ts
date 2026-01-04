@@ -6,11 +6,6 @@ import { User, OrganizationRole } from '@prisma/client';
  */
 export type PlatformRole = 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN';
 
-/**
- * Legacy role type for backward compatibility (without ROLE_ prefix)
- */
-export type LegacyRole = 'USER' | 'MODERATOR' | 'ADMIN';
-
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -27,7 +22,7 @@ export interface RegisterData {
 export interface JWTPayload {
   sub: string; // user id
   email: string;
-  role: LegacyRole;
+  role: PlatformRole;
   iat: number;
   exp: number;
   jti: string; // unique token identifier
@@ -64,7 +59,7 @@ export interface AuthError {
 export interface ImpersonationData {
   originalUserId: string;
   originalEmail: string;
-  originalRole: LegacyRole;
+  originalRole: PlatformRole;
   startedAt: number; // Unix timestamp
 }
 
@@ -78,7 +73,7 @@ export interface OrganizationData {
 export interface SessionData {
   userId: string;
   email: string;
-  role: LegacyRole;
+  role: PlatformRole;
   isLoggedIn: boolean;
   sessionCreatedAt?: number; // Unix timestamp for session expiry tracking
   impersonating?: ImpersonationData;

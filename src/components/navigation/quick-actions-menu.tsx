@@ -17,9 +17,10 @@ import {
   Users,
   Mail,
 } from 'lucide-react';
+import { ROLES } from '@/lib/security/client';
 
 interface QuickActionsMenuProps {
-  userRole: 'USER' | 'MODERATOR' | 'ADMIN';
+  userRole: 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN';
   organizationId?: string;
   organizationRole?: 'OWNER' | 'ADMIN' | 'MEMBER';
 }
@@ -54,14 +55,16 @@ const menuItems = [
   },
 ];
 
-function getAdminItems(userRole: 'USER' | 'MODERATOR' | 'ADMIN') {
+function getAdminItems(
+  userRole: 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN'
+) {
   const baseItems = [
     { label: 'User Management', href: '/admin', icon: UserCog },
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: Activity },
   ];
 
   // Organizations management is ADMIN only
-  if (userRole === 'ADMIN') {
+  if (userRole === ROLES.ADMIN) {
     baseItems.push({
       label: 'Organizations',
       href: '/admin/organizations',
@@ -127,7 +130,7 @@ export function QuickActionsMenu({
   const allMenuItems = [
     ...menuItems,
     ...(organizationId ? getOrganizationItems(organizationRole) : []),
-    ...(userRole === 'ADMIN' || userRole === 'MODERATOR'
+    ...(userRole === ROLES.ADMIN || userRole === ROLES.MODERATOR
       ? getAdminItems(userRole)
       : []),
   ];
