@@ -95,7 +95,9 @@ export type AuthResult<T> =
  * const user = auth.user;
  * ```
  */
-export async function requireAdmin(): Promise<AuthResult<UserWithComputedRole>> {
+export async function requireAdmin(): Promise<
+  AuthResult<UserWithComputedRole>
+> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -131,43 +133,3 @@ export async function requireAdmin(): Promise<AuthResult<UserWithComputedRole>> 
   return { ok: true, user };
 }
 
-/**
- * Require moderator or higher authentication for a route handler.
- *
- * Returns the authenticated user if authorized, or a NextResponse error.
- */
-export async function requireModerator(): Promise<AuthResult<UserWithComputedRole>> {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        {
-          error: {
-            type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
-          },
-        },
-        { status: 401 }
-      ),
-    };
-  }
-
-  if (!(await isGranted(user, ROLES.MODERATOR))) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Moderator access required',
-          },
-        },
-        { status: 403 }
-      ),
-    };
-  }
-
-  return { ok: true, user };
-}
