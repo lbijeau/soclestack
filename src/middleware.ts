@@ -14,23 +14,28 @@ import {
 } from '@/lib/csrf';
 import { isGranted, ROLES, type RoleName } from '@/lib/security/index';
 
-// Use Node.js runtime for Prisma access (required for isGranted role checks)
+// Use Node.js runtime instead of Edge Runtime.
+// Trade-off: Slightly higher latency and cold starts, but required for:
+// - Prisma database access (role hierarchy lookups)
+// - isGranted() authorization checks
 export const runtime = 'nodejs';
 
-// Define protected routes and their required roles (using ROLE_ prefix for isGranted)
-const protectedRoutes: Record<string, RoleName> = {
-  '/dashboard': ROLES.USER,
-  '/profile': ROLES.USER,
-  '/profile/security': ROLES.USER,
-  '/profile/sessions': ROLES.USER,
-  '/admin': ROLES.ADMIN,
-  '/admin/audit-logs': ROLES.ADMIN,
-  '/api/users': ROLES.MODERATOR,
-  '/api/users/profile': ROLES.USER,
-  '/organization': ROLES.USER, // Org role checks happen at API level
-  '/organization/members': ROLES.USER,
-  '/organization/invites': ROLES.USER,
-};
+// Protected routes and their required roles.
+// Sorted by path length (longest first) to ensure specific routes match before general ones.
+// E.g., /profile/security matches before /profile
+const protectedRoutes: [string, RoleName][] = [
+  ['/admin/audit-logs', ROLES.ADMIN],
+  ['/profile/security', ROLES.USER],
+  ['/profile/sessions', ROLES.USER],
+  ['/organization/members', ROLES.USER],
+  ['/organization/invites', ROLES.USER],
+  ['/api/users/profile', ROLES.USER],
+  ['/organization', ROLES.USER],
+  ['/dashboard', ROLES.USER],
+  ['/api/users', ROLES.MODERATOR],
+  ['/profile', ROLES.USER],
+  ['/admin', ROLES.ADMIN],
+];
 
 // Define auth routes that should redirect if already logged in
 const authRoutes = [
@@ -151,8 +156,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if route is protected (exact match or prefix match for nested routes)
+    // Routes are pre-sorted by length, so first match wins
     let requiredRole: RoleName | undefined;
-    for (const [route, role] of Object.entries(protectedRoutes)) {
+    for (const [route, role] of protectedRoutes) {
       if (pathname === route || pathname.startsWith(route + '/')) {
         requiredRole = role;
         break;
@@ -189,7 +195,7 @@ export async function middleware(request: NextRequest) {
     console.error('Middleware error:', error);
 
     // If there's an error with the session, redirect to login for protected routes
-    const isProtectedRoute = Object.keys(protectedRoutes).some((route) =>
+    const isProtectedRoute = protectedRoutes.some(([route]) =>
       pathname.startsWith(route)
     );
 
