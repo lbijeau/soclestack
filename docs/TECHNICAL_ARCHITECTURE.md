@@ -197,6 +197,15 @@ interface AuthActions {
 - Role-based access control (RBAC)
 - API route protection with token validation
 
+#### RBAC System (Symfony-style)
+- **Hierarchical roles**: Roles inherit permissions from parent roles
+- **Database-driven**: New roles can be created without code changes
+- **Role pattern**: `ROLE_[A-Z][A-Z0-9_]*` (e.g., `ROLE_BILLING_ADMIN`)
+- **Authorization**: `isGranted(user, 'ROLE_ADMIN')` checks role hierarchy from database
+- **Voters**: Support contextual authorization (e.g., organization-level permissions)
+
+See [Arbitrary Role Support Spike](./spikes/2026-01-04-jwt-arbitrary-roles.md) for detailed architecture.
+
 ### 9. Error Handling Strategy
 
 #### Error Types
