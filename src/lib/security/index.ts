@@ -233,12 +233,13 @@ export async function getUserRoleDisplay(
 }
 
 /**
- * Synchronously compute legacy role from userRoles (no DB call)
+ * Get user's highest role for display purposes (no DB call)
  *
- * Use this when you already have userRoles loaded and need the role string.
- * For checking permissions, use hasRole() or isGranted() instead.
+ * Returns the most privileged role: ADMIN > MODERATOR > USER
+ * Use this for UI display, not authorization. For permission checks,
+ * use hasRole() or isGranted() instead.
  */
-export function computeLegacyRole(user: UserWithRoles | null): LegacyRole {
+export function getHighestRole(user: UserWithRoles | null): LegacyRole {
   if (!user?.userRoles?.length) return 'USER';
 
   const roleNames = user.userRoles.map((ur) => ur.role.name);

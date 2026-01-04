@@ -15,7 +15,7 @@ import {
 import { User, ApiKeyPermission } from '@prisma/client';
 import {
   userWithRolesInclude,
-  computeLegacyRole,
+  getHighestRole,
   type UserWithRoles,
   type UserWithComputedRole,
 } from './security/index';
@@ -176,7 +176,7 @@ export async function getCurrentUser(): Promise<UserWithComputedRole | null> {
     // Add computed role for backward compatibility
     return {
       ...user,
-      role: computeLegacyRole(user),
+      role: getHighestRole(user),
     };
   } catch (error) {
     console.error('Error getting current user:', error);
@@ -208,7 +208,7 @@ export async function getUserByIdWithRoles(
 
     return {
       ...user,
-      role: computeLegacyRole(user),
+      role: getHighestRole(user),
     };
   } catch (error) {
     console.error('Error getting user by ID:', error);
@@ -314,7 +314,7 @@ export async function authenticateUser(
     // Return user with computed role for backward compatibility
     return {
       ...user,
-      role: computeLegacyRole(user),
+      role: getHighestRole(user),
     };
   } catch (error) {
     console.error('Authentication error:', error);
@@ -333,7 +333,7 @@ export async function createUserSession(
   sessionToken: string;
 }> {
   // Compute legacy role from userRoles
-  const role = computeLegacyRole(user);
+  const role = getHighestRole(user);
 
   // Generate tokens
   const accessToken = await generateAccessToken({
@@ -397,7 +397,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
     }
 
     // Compute legacy role from userRoles
-    const role = computeLegacyRole(user);
+    const role = getHighestRole(user);
 
     // Generate new tokens
     const newAccessToken = await generateAccessToken({
