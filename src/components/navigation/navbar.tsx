@@ -225,7 +225,7 @@ export function Navbar() {
                 <span className="text-sm text-gray-700">
                   {getDisplayName()}
                 </span>
-                {user.role !== ROLES.USER && (
+                {hasMinimumRole(user.role, ROLES.MODERATOR) && (
                   <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
                     {displayRole(user.role)}
                   </span>

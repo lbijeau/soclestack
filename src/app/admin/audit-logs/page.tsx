@@ -3,7 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { AuditLogViewer } from '@/components/admin/audit-log-viewer';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { ROLES } from '@/lib/security/index';
+import { isGranted, ROLES } from '@/lib/security/index';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +15,7 @@ export default async function AuditLogsPage() {
   }
 
   // Only ADMIN can access audit logs (more restrictive than /admin which allows MODERATOR)
-  if (user.role !== ROLES.ADMIN) {
+  if (!(await isGranted(user, ROLES.ADMIN))) {
     redirect('/dashboard');
   }
 
