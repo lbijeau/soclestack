@@ -227,7 +227,9 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
     setError('');
 
     try {
-      const url = isEditMode ? `/api/admin/roles/${roleId}` : '/api/admin/roles';
+      const url = isEditMode
+        ? `/api/admin/roles/${roleId}`
+        : '/api/admin/roles';
       const method = isEditMode ? 'PATCH' : 'POST';
 
       const body: Record<string, unknown> = {
@@ -319,12 +321,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
     return (
       <Alert variant="error">
         {error}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={fetchData}
-          className="ml-2"
-        >
+        <Button variant="ghost" size="sm" onClick={fetchData} className="ml-2">
           Retry
         </Button>
       </Alert>
@@ -443,7 +440,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                     setFieldErrors((prev) => ({ ...prev, description: '' }));
                   }}
                   rows={3}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   placeholder="Optional description of this role's purpose"
                   aria-describedby={
                     fieldErrors.description ? 'description-error' : undefined
@@ -484,7 +481,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                   id="parent"
                   value={parentId}
                   onChange={(e) => setParentId(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 >
                   <option value="">None (root role)</option>
                   {availableParents.map((r) => (

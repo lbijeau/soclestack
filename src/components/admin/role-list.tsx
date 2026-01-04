@@ -138,7 +138,7 @@ export function RoleList() {
               key={role.id}
               role="button"
               tabIndex={0}
-              className="group flex cursor-pointer items-center px-6 py-4 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              className="group flex cursor-pointer items-center px-6 py-4 hover:bg-gray-50 focus:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:ring-inset"
               onClick={() => router.push(`/admin/roles/${role.id}`)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {

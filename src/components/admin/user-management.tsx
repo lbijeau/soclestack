@@ -17,7 +17,9 @@ import {
   X,
   CheckSquare,
   Loader2,
+  Shield,
 } from 'lucide-react';
+import { UserRoleSelect } from './user-role-select';
 import { apiPatch, apiDelete, apiPost } from '@/lib/api-client';
 import { hasMinimumRole, displayRole, ROLES } from '@/lib/security/client';
 
@@ -71,9 +73,12 @@ export function UserManagement({ currentUser }: UserManagementProps) {
   const [success, setSuccess] = useState<string>('');
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
-  const [changingRoleId, setChangingRoleId] = useState<string | null>(null);
   const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [roleSelectUser, setRoleSelectUser] = useState<{
+    id: string;
+    email: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -124,35 +129,6 @@ export function UserManagement({ currentUser }: UserManagementProps) {
   };
 
   const hasActiveFilters = search || roleFilter || statusFilter;
-
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    if (userId === currentUser.id) {
-      setError('You cannot change your own role');
-      return;
-    }
-
-    setChangingRoleId(userId);
-    setError('');
-
-    try {
-      // API expects short format (USER, MODERATOR, ADMIN) not ROLE_* format
-      const response = await apiPatch(`/api/users/${userId}`, {
-        role: displayRole(newRole),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || 'Failed to update role');
-      }
-
-      setSuccess('User role updated successfully');
-      fetchUsers();
-    } catch {
-      setError('Failed to update user role');
-    } finally {
-      setChangingRoleId(null);
-    }
-  };
 
   const handleStatusToggle = async (userId: string, isActive: boolean) => {
     if (userId === currentUser.id && !isActive) {
@@ -531,26 +507,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {hasMinimumRole(currentUser.role, ROLES.ADMIN) &&
-                        user.id !== currentUser.id ? (
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={user.role}
-                              onChange={(e) =>
-                                handleRoleChange(user.id, e.target.value)
-                              }
-                              disabled={changingRoleId === user.id}
-                              className="rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
-                            >
-                              <option value={ROLES.USER}>User</option>
-                              <option value={ROLES.MODERATOR}>Moderator</option>
-                              <option value={ROLES.ADMIN}>Admin</option>
-                            </select>
-                            {changingRoleId === user.id && (
-                              <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-                            )}
-                          </div>
-                        ) : (
+                        <div className="flex items-center gap-2">
                           <Badge
                             variant={
                               user.role === ROLES.ADMIN
@@ -562,7 +519,23 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                           >
                             {displayRole(user.role)}
                           </Badge>
-                        )}
+                          {hasMinimumRole(currentUser.role, ROLES.ADMIN) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                setRoleSelectUser({
+                                  id: user.id,
+                                  email: user.email,
+                                })
+                              }
+                              title="Manage roles"
+                              aria-label={`Manage roles for ${user.email}`}
+                            >
+                              <Shield size={14} />
+                            </Button>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col space-y-1">
@@ -696,6 +669,21 @@ export function UserManagement({ currentUser }: UserManagementProps) {
           </div>
         )}
       </div>
+
+      {/* Role Selection Modal */}
+      {roleSelectUser && (
+        <UserRoleSelect
+          userId={roleSelectUser.id}
+          userEmail={roleSelectUser.email}
+          currentUserId={currentUser.id}
+          isOpen={!!roleSelectUser}
+          onClose={() => setRoleSelectUser(null)}
+          onSaved={() => {
+            setSuccess('User roles updated successfully');
+            fetchUsers();
+          }}
+        />
+      )}
     </div>
   );
 }
