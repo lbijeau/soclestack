@@ -13,7 +13,8 @@ import {
   hashSessionToken,
 } from './security';
 import { User, ApiKeyPermission, Role } from '@prisma/client';
-import { validateApiKey, isMethodAllowed } from './api-keys';
+// Note: api-keys is dynamically imported in getAuthContext to avoid
+// pulling Node.js crypto into Edge Runtime (middleware)
 import { log } from './logger';
 import { SECURITY_CONFIG } from './config/security';
 
@@ -621,6 +622,9 @@ export async function getAuthContext(req: NextRequest): Promise<{
   const authHeader = req.headers.get('authorization');
 
   if (authHeader?.startsWith('Bearer lsk_')) {
+    // Dynamic import to avoid pulling Node.js crypto into Edge Runtime
+    const { validateApiKey, isMethodAllowed } = await import('./api-keys');
+
     const apiKey = authHeader.substring(7); // Remove 'Bearer ' prefix
     const result = await validateApiKey(apiKey);
 

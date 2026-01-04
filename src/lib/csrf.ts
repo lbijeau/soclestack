@@ -10,7 +10,23 @@
  * - Rate limiting protects against CSRF brute-force attacks
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { timeSafeEqual } from './security';
+
+/**
+ * Time-safe string comparison to prevent timing attacks.
+ * This is Edge Runtime compatible (no Node.js crypto dependency).
+ */
+function timeSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+
+  return result === 0;
+}
 
 // ============================================================================
 // CSRF Failure Rate Limiting (Edge Runtime compatible)

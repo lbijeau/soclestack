@@ -197,7 +197,12 @@ export function Navbar() {
                     <Settings size={16} />
                   </Button>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                >
                   <LogOut size={16} />
                 </Button>
               </div>
