@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
 import { QuickActionsMenu } from './quick-actions-menu';
-import { User, Settings, LogOut, Users } from 'lucide-react';
+import { User, Settings, LogOut, Users, Building2 } from 'lucide-react';
 import { apiPost } from '@/lib/api-client';
 
 function Logo() {
@@ -29,6 +29,7 @@ interface User {
   firstName?: string;
   lastName: string;
   role: 'USER' | 'MODERATOR' | 'ADMIN';
+  organizationId?: string;
 }
 
 interface Impersonation {
@@ -139,13 +140,13 @@ export function Navbar() {
             <div className="flex items-center space-x-4">
               <Link
                 href="/login"
-                className="inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium text-gray-900 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 Sign In
               </Link>
               <Link
                 href="/register"
-                className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 Sign Up
               </Link>
@@ -190,6 +191,15 @@ export function Navbar() {
                 >
                   Profile
                 </Link>
+                {user.organizationId && (
+                  <Link
+                    href="/organization"
+                    className="flex items-center space-x-1 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                  >
+                    <Building2 size={16} />
+                    <span>Organization</span>
+                  </Link>
+                )}
                 {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
                   <Link
                     href="/admin"
@@ -199,7 +209,7 @@ export function Navbar() {
                     <span>Admin</span>
                   </Link>
                 )}
-                <QuickActionsMenu userRole={user.role} />
+                <QuickActionsMenu userRole={user.role} organizationId={user.organizationId} />
               </div>
             </div>
 
@@ -219,14 +229,14 @@ export function Navbar() {
               <div className="flex items-center space-x-2">
                 <Link
                   href="/profile"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                   aria-label="Settings"
                 >
                   <Settings size={16} />
                 </Link>
                 <button
                   type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                   onClick={handleLogout}
                   aria-label="Logout"
                 >

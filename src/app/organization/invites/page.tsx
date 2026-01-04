@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/navigation/navbar';
 import {
   Card,
   CardContent,
@@ -159,31 +158,25 @@ export default function InvitesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="mx-auto max-w-4xl px-4 py-6">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          </div>
-        </main>
-      </div>
+      <main className="mx-auto max-w-4xl px-4 py-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <main className="mx-auto max-w-4xl px-4 py-6">
-        <div className="mb-6">
-          <Link
-            href="/organization"
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Organization
-          </Link>
-        </div>
+    <main className="mx-auto max-w-4xl px-4 py-6">
+      <div className="mb-6">
+        <Link
+          href="/organization"
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Organization
+        </Link>
+      </div>
 
         <div className="mb-8">
           <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900">
@@ -342,8 +335,7 @@ export default function InvitesPage() {
               </div>
             )}
           </CardContent>
-        </Card>
-      </main>
-    </div>
+      </Card>
+    </main>
   );
 }

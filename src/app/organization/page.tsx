@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/navigation/navbar';
 import {
   Card,
   CardContent,
@@ -135,14 +134,11 @@ export default function OrganizationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="mx-auto max-w-4xl px-4 py-6">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          </div>
-        </main>
-      </div>
+      <main className="mx-auto max-w-4xl px-4 py-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      </main>
     );
   }
 
@@ -151,18 +147,15 @@ export default function OrganizationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <main className="mx-auto max-w-4xl px-4 py-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Organization Settings
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Manage your organization settings and members.
-          </p>
-        </div>
+    <main className="mx-auto max-w-4xl px-4 py-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Organization Settings
+        </h1>
+        <p className="mt-2 text-gray-600">
+          Manage your organization settings and members.
+        </p>
+      </div>
 
         {/* Quick Links */}
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -350,8 +343,7 @@ export default function OrganizationPage() {
               </div>
             </CardContent>
           </Card>
-        )}
-      </main>
-    </div>
+      )}
+    </main>
   );
 }
