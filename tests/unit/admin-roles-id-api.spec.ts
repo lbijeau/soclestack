@@ -140,6 +140,96 @@ describe('Admin Roles [id] API', () => {
       expect(data.role.users).toHaveLength(1);
       expect(data.role.users[0].email).toBe('support@example.com');
       expect(data.role.childRoles).toHaveLength(0);
+      expect(data.role.totalUsers).toBe(1);
+      expect(data.role.hasMoreUsers).toBe(false);
+    });
+
+    it('should accept pagination params and return paginated users', async () => {
+      vi.mocked(getCurrentUser).mockResolvedValue(mockAdminUser as never);
+      vi.mocked(isGranted).mockResolvedValue(true);
+      vi.mocked(prisma.role.findUnique).mockResolvedValue({
+        ...mockRole,
+        userRoles: [mockRole.userRoles[0]],
+        _count: { userRoles: 5 },
+      } as never);
+
+      const request = new NextRequest(
+        'http://localhost/api/admin/roles/role-support?usersLimit=10&usersOffset=0'
+      );
+      const response = await GET(request, createParams('role-support'));
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.role.totalUsers).toBe(5);
+      expect(data.role.hasMoreUsers).toBe(true);
+    });
+
+    it('should return 400 for invalid usersLimit', async () => {
+      vi.mocked(getCurrentUser).mockResolvedValue(mockAdminUser as never);
+      vi.mocked(isGranted).mockResolvedValue(true);
+
+      const request = new NextRequest(
+        'http://localhost/api/admin/roles/role-support?usersLimit=-5'
+      );
+      const response = await GET(request, createParams('role-support'));
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error.type).toBe('VALIDATION_ERROR');
+      expect(data.error.message).toBe('usersLimit must be a non-negative integer');
+    });
+
+    it('should return 400 for invalid usersOffset', async () => {
+      vi.mocked(getCurrentUser).mockResolvedValue(mockAdminUser as never);
+      vi.mocked(isGranted).mockResolvedValue(true);
+
+      const request = new NextRequest(
+        'http://localhost/api/admin/roles/role-support?usersOffset=-1'
+      );
+      const response = await GET(request, createParams('role-support'));
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error.type).toBe('VALIDATION_ERROR');
+      expect(data.error.message).toBe('usersOffset must be a non-negative integer');
+    });
+
+    it('should cap usersLimit at 100', async () => {
+      vi.mocked(getCurrentUser).mockResolvedValue(mockAdminUser as never);
+      vi.mocked(isGranted).mockResolvedValue(true);
+      vi.mocked(prisma.role.findUnique).mockResolvedValue(mockRole as never);
+
+      const request = new NextRequest(
+        'http://localhost/api/admin/roles/role-support?usersLimit=500'
+      );
+      await GET(request, createParams('role-support'));
+
+      // Verify Prisma was called with capped limit
+      expect(prisma.role.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            userRoles: expect.objectContaining({
+              take: 100,
+            }),
+          }),
+        })
+      );
+    });
+
+    it('should return hasMoreUsers false when all users returned', async () => {
+      vi.mocked(getCurrentUser).mockResolvedValue(mockAdminUser as never);
+      vi.mocked(isGranted).mockResolvedValue(true);
+      vi.mocked(prisma.role.findUnique).mockResolvedValue({
+        ...mockRole,
+        userRoles: mockRole.userRoles,
+        _count: { userRoles: 1 },
+      } as never);
+
+      const response = await GET(createRequest(), createParams('role-support'));
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.role.hasMoreUsers).toBe(false);
     });
   });
 

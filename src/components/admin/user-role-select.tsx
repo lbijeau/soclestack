@@ -114,7 +114,10 @@ export function UserRoleSelect({
 
   // Close handler with unsaved changes confirmation
   const handleClose = useCallback(() => {
-    if (hasChanges && !window.confirm('You have unsaved changes. Discard them?')) {
+    if (
+      hasChanges &&
+      !window.confirm('You have unsaved changes. Discard them?')
+    ) {
       return;
     }
     onClose();
@@ -162,9 +165,10 @@ export function UserRoleSelect({
 
       // Focus trap: Tab key cycles through modal elements
       if (e.key === 'Tab' && modalRef.current) {
-        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
+        const focusableElements =
+          modalRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
 

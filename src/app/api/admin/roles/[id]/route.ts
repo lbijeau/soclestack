@@ -93,7 +93,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const usersLimitParam = searchParams.get('usersLimit');
     const usersOffsetParam = searchParams.get('usersOffset');
 
-    const usersLimit = usersLimitParam ? parseInt(usersLimitParam, 10) : undefined;
+    const MAX_USERS_LIMIT = 100;
+    const usersLimit = usersLimitParam
+      ? Math.min(parseInt(usersLimitParam, 10), MAX_USERS_LIMIT)
+      : undefined;
     const usersOffset = usersOffsetParam ? parseInt(usersOffsetParam, 10) : 0;
 
     // Validate pagination params
@@ -139,6 +142,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         userRoles: {
           skip: usersOffset,
           take: usersLimit,
+          orderBy: {
+            createdAt: 'asc',
+          },
           include: {
             user: {
               select: {
@@ -185,6 +191,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           lastName: ur.user.lastName,
         })),
         totalUsers: role._count.userRoles,
+        hasMoreUsers: usersOffset + role.userRoles.length < role._count.userRoles,
         childRoles: role.children.map((child) => ({
           id: child.id,
           name: child.name,
