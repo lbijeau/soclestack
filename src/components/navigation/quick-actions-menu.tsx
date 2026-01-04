@@ -63,12 +63,17 @@ function getAdminItems(
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: Activity },
   ];
 
-  // Organizations management is ADMIN only
+  // Organizations and Roles management are ADMIN only
   if (userRole === ROLES.ADMIN) {
     baseItems.push({
       label: 'Organizations',
       href: '/admin/organizations',
       icon: Building2,
+    });
+    baseItems.push({
+      label: 'Roles',
+      href: '/admin/roles',
+      icon: Shield,
     });
   }
 
