@@ -4,10 +4,14 @@
  *
  * Note: These are for UI visibility only. Actual authorization is enforced
  * server-side in API routes and middleware.
+ *
+ * Role naming: Client components receive legacy role format ('ADMIN', 'MODERATOR', 'USER')
+ * from the API, while server-side uses ROLE_* constants ('ROLE_ADMIN', etc.).
+ * This utility works with the legacy format that client components have access to.
  */
 
 // Role hierarchy for client-side permission checks (mirrors server-side isGranted)
-export const ROLE_HIERARCHY: Record<string, number> = {
+const ROLE_HIERARCHY: Record<string, number> = {
   USER: 1,
   MODERATOR: 2,
   ADMIN: 3,
