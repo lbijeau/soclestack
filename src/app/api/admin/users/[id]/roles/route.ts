@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { isGranted, ROLES, clearRoleHierarchyCache } from '@/lib/security/index';
+import { isGranted, ROLES } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -59,6 +59,43 @@ async function getInheritedRoles(
     .map((id) => roleById.get(id))
     .filter((r): r is NonNullable<typeof r> => r !== undefined)
     .map((r) => ({ id: r.id, name: r.name, description: r.description }));
+}
+
+/**
+ * Role data for response formatting
+ */
+interface RoleData {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+/**
+ * User data for response formatting
+ */
+interface UserData {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+}
+
+/**
+ * Format user roles response (shared between GET and PUT)
+ */
+function formatUserRolesResponse(
+  user: UserData,
+  directRoles: RoleData[],
+  inheritedRoles: RoleData[]
+) {
+  return {
+    userId: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    directRoles,
+    inheritedRoles,
+  };
 }
 
 /**
@@ -137,14 +174,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const directRoleIds = directRoles.map((r) => r.id);
     const inheritedRoles = await getInheritedRoles(directRoleIds);
 
-    return NextResponse.json({
-      userId: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      directRoles,
-      inheritedRoles,
-    });
+    return NextResponse.json(formatUserRolesResponse(user, directRoles, inheritedRoles));
   } catch (error) {
     console.error('Admin user roles get error:', error);
     return NextResponse.json(
@@ -166,6 +196,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
  * Requires ROLE_ADMIN access.
  *
  * Validation:
+ * - Cannot remove your own admin role (self-protection)
  * - Cannot remove last ROLE_ADMIN assignment from the system
  * - All roleIds must exist
  */
@@ -273,35 +304,40 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       (ur) => ur.role.name === ROLES.ADMIN
     );
     const newAdminRole = roles.find((r) => r.name === ROLES.ADMIN);
+    const isRemovingAdminRole = currentAdminRole && !newAdminRole;
 
-    if (currentAdminRole && !newAdminRole) {
-      // User currently has ROLE_ADMIN but won't after this change
-      // Check if this is the last admin
-      const adminCount = await prisma.userRole.count({
-        where: {
-          role: { name: ROLES.ADMIN },
-        },
-      });
-
-      if (adminCount <= 1) {
-        return NextResponse.json(
-          {
-            error: {
-              type: 'VALIDATION_ERROR',
-              message: 'Cannot remove the last admin user',
-            },
+    // Self-protection: prevent admins from removing their own admin role
+    if (isRemovingAdminRole && userId === currentUser.id) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'Cannot remove your own admin role',
           },
-          { status: 400 }
-        );
-      }
+        },
+        { status: 400 }
+      );
     }
 
     // Get current role IDs for audit log
     const previousRoleIds = user.userRoles.map((ur) => ur.role.id);
     const previousRoleNames = user.userRoles.map((ur) => ur.role.name);
 
-    // Replace all roles in a transaction
+    // Replace all roles in a transaction with last-admin check
     await prisma.$transaction(async (tx) => {
+      // Check last admin inside transaction to prevent race condition
+      if (isRemovingAdminRole) {
+        const adminCount = await tx.userRole.count({
+          where: {
+            role: { name: ROLES.ADMIN },
+          },
+        });
+
+        if (adminCount <= 1) {
+          throw new Error('LAST_ADMIN');
+        }
+      }
+
       // Delete existing roles
       await tx.userRole.deleteMany({
         where: { userId },
@@ -315,9 +351,6 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         })),
       });
     });
-
-    // Clear role hierarchy cache since user roles changed
-    clearRoleHierarchyCache();
 
     // Audit log
     await logAuditEvent({
@@ -342,15 +375,21 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     }));
     const inheritedRoles = await getInheritedRoles(roleIds);
 
-    return NextResponse.json({
-      userId: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      directRoles,
-      inheritedRoles,
-    });
+    return NextResponse.json(formatUserRolesResponse(user, directRoles, inheritedRoles));
   } catch (error) {
+    // Handle last admin error from transaction
+    if (error instanceof Error && error.message === 'LAST_ADMIN') {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'Cannot remove the last admin user',
+          },
+        },
+        { status: 400 }
+      );
+    }
+
     console.error('Admin user roles update error:', error);
     return NextResponse.json(
       {
