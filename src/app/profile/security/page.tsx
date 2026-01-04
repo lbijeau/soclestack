@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
+import { getHighestRole, userWithRolesInclude } from '@/lib/security/index';
 import { SecuritySettings } from '@/components/profile/security-settings';
 import { OAuthAccounts } from '@/components/profile/oauth-accounts';
 import { ApiKeys } from '@/components/profile/api-keys';
@@ -37,7 +37,7 @@ export default async function SecurityPage() {
     redirect('/login');
   }
 
-  const userRole = computeLegacyRole(user);
+  const userRole = getHighestRole(user);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
