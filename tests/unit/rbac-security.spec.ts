@@ -39,9 +39,9 @@ function createMockUser(roleNames: string[]): UserWithRoles {
 
 // Mock role hierarchy data (matches seed.ts structure)
 const mockRolesWithHierarchy = [
-  { id: 'role-user', name: 'ROLE_USER', parentId: null },
-  { id: 'role-mod', name: 'ROLE_MODERATOR', parentId: 'role-user' },
-  { id: 'role-admin', name: 'ROLE_ADMIN', parentId: 'role-mod' },
+  { id: 'role-user', name: ROLES.USER, parentId: null },
+  { id: 'role-mod', name: ROLES.MODERATOR, parentId: 'role-user' },
+  { id: 'role-admin', name: ROLES.ADMIN, parentId: 'role-mod' },
 ];
 
 describe('RBAC Security Service', () => {

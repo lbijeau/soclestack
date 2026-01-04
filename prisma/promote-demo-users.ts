@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { ROLES } from '../src/lib/security/index';
 
 const prisma = new PrismaClient();
 
@@ -20,10 +21,10 @@ async function promoteDemoUsers() {
     await prisma.userRole.create({
       data: {
         userId: adminUser.id,
-        roleId: roleMap.get('ROLE_ADMIN')!,
+        roleId: roleMap.get(ROLES.ADMIN)!,
       },
     });
-    console.log('✅ Promoted admin@demo.com to ROLE_ADMIN');
+    console.log(`✅ Promoted admin@demo.com to ${ROLES.ADMIN}`);
   }
 
   // Promote moderator@demo.com to MODERATOR
@@ -37,10 +38,10 @@ async function promoteDemoUsers() {
     await prisma.userRole.create({
       data: {
         userId: moderatorUser.id,
-        roleId: roleMap.get('ROLE_MODERATOR')!,
+        roleId: roleMap.get(ROLES.MODERATOR)!,
       },
     });
-    console.log('✅ Promoted moderator@demo.com to ROLE_MODERATOR');
+    console.log(`✅ Promoted moderator@demo.com to ${ROLES.MODERATOR}`);
   }
 
   console.log('\n🎉 Demo user promotion complete!');

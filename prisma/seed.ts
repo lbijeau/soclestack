@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { ROLES } from '../src/lib/security/index';
 
 const prisma = new PrismaClient();
 
@@ -8,10 +9,10 @@ async function seedRoles() {
   // Create role hierarchy: ROLE_USER <- ROLE_MODERATOR <- ROLE_ADMIN
   // (Child inherits parent's permissions)
   const roleUser = await prisma.role.upsert({
-    where: { name: 'ROLE_USER' },
+    where: { name: ROLES.USER },
     update: {},
     create: {
-      name: 'ROLE_USER',
+      name: ROLES.USER,
       description: 'Base role for all authenticated users',
       isSystem: true,
     },
@@ -19,10 +20,10 @@ async function seedRoles() {
   console.log(`✅ Created/verified: ${roleUser.name}`);
 
   const roleModerator = await prisma.role.upsert({
-    where: { name: 'ROLE_MODERATOR' },
+    where: { name: ROLES.MODERATOR },
     update: { parentId: roleUser.id },
     create: {
-      name: 'ROLE_MODERATOR',
+      name: ROLES.MODERATOR,
       description: 'Can manage users and view reports',
       isSystem: true,
       parentId: roleUser.id,
@@ -31,10 +32,10 @@ async function seedRoles() {
   console.log(`✅ Created/verified: ${roleModerator.name} (inherits from ${roleUser.name})`);
 
   const roleAdmin = await prisma.role.upsert({
-    where: { name: 'ROLE_ADMIN' },
+    where: { name: ROLES.ADMIN },
     update: { parentId: roleModerator.id },
     create: {
-      name: 'ROLE_ADMIN',
+      name: ROLES.ADMIN,
       description: 'Full platform administration',
       isSystem: true,
       parentId: roleModerator.id,

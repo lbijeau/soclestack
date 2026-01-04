@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { ROLES } from '../src/lib/security/index';
 
 const prisma = new PrismaClient();
 
@@ -34,9 +35,9 @@ async function migrateUsersToRoles() {
 
     // Default all users to ROLE_USER
     // In a real migration, you'd read from a backup of the old role column
-    const roleId = roleMap.get('ROLE_USER');
+    const roleId = roleMap.get(ROLES.USER);
     if (!roleId) {
-      console.error('❌ ROLE_USER not found!');
+      console.error(`❌ ${ROLES.USER} not found!`);
       continue;
     }
 
@@ -47,7 +48,7 @@ async function migrateUsersToRoles() {
       },
     });
 
-    console.log(`✅ Assigned ROLE_USER to ${user.email}`);
+    console.log(`✅ Assigned ${ROLES.USER} to ${user.email}`);
     migrated++;
   }
 
