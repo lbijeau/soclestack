@@ -29,7 +29,7 @@ interface User {
   username?: string;
   firstName?: string;
   lastName: string;
-  role: 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN';
+  role: string;
   organizationId?: string;
   organizationRole?: 'OWNER' | 'ADMIN' | 'MEMBER';
 }
