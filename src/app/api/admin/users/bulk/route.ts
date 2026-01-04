@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getClientIP, getCurrentUser } from '@/lib/auth';
+import { getClientIP } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import { AuthError } from '@/types/auth';
 import { z } from 'zod';
 import { canAccessUserInOrg } from '@/lib/organization';
 import { userWithRolesInclude, isGranted, ROLES } from '@/lib/security/index';
+import { requireAdmin } from '@/lib/api-utils';
 
 export const runtime = 'nodejs';
 
@@ -16,32 +17,9 @@ const bulkActionSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // Get current user with roles for authorization check
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
-          } as AuthError,
-        },
-        { status: 401 }
-      );
-    }
-
-    // Only admins can perform bulk actions
-    if (!(await isGranted(currentUser, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          } as AuthError,
-        },
-        { status: 403 }
-      );
-    }
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
+    const currentUser = auth.user;
 
     const body = await req.json();
     const validationResult = bulkActionSchema.safeParse(body);

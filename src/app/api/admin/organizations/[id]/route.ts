@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, isRateLimited } from '@/lib/auth';
+import { isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { headers } from 'next/headers';
-import { isGranted, ROLES } from '@/lib/security/index';
+import { requireAdmin } from '@/lib/api-utils';
 
 export const runtime = 'nodejs';
 
@@ -20,29 +20,10 @@ interface RouteParams {
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
+
     const { id } = await params;
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!(await isGranted(user, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      );
-    }
 
     const organization = await prisma.organization.findUnique({
       where: { id },
@@ -114,29 +95,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
+
     const { id } = await params;
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!(await isGranted(user, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      );
-    }
 
     // Rate limit: 10 ownership transfers per hour per admin
     const rateLimitKey = `admin-org-transfer:${user.id}`;
@@ -257,29 +220,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
+
     const { id } = await params;
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!(await isGranted(user, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      );
-    }
 
     // Rate limit: 5 organization deletions per hour per admin
     const rateLimitKey = `admin-org-delete:${user.id}`;

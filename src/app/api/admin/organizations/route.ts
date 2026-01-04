@@ -1,34 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { isGranted, ROLES } from '@/lib/security/index';
+import { requireAdmin } from '@/lib/api-utils';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!(await isGranted(user, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      );
-    }
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';

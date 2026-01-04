@@ -7,7 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ServiceError, RateLimitError } from '@/services/auth.errors';
-import { getClientIP } from './auth';
+import { getClientIP, getCurrentUser } from './auth';
+import { isGranted, ROLES, type UserWithComputedRole } from './security/index';
 import { setRateLimitHeaders } from './rate-limit-headers';
 
 /**
@@ -72,4 +73,101 @@ export function handleServiceError(error: unknown): NextResponse {
     },
     { status: 500 }
   );
+}
+
+/**
+ * Authentication result - either success with user or failure with response
+ */
+export type AuthResult<T> =
+  | { ok: true; user: T }
+  | { ok: false; response: NextResponse };
+
+/**
+ * Require admin authentication for a route handler.
+ *
+ * Returns the authenticated user if authorized, or a NextResponse error.
+ * Use with early return pattern:
+ *
+ * @example
+ * ```typescript
+ * const auth = await requireAdmin();
+ * if (!auth.ok) return auth.response;
+ * const user = auth.user;
+ * ```
+ */
+export async function requireAdmin(): Promise<AuthResult<UserWithComputedRole>> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'Not authenticated',
+          },
+        },
+        { status: 401 }
+      ),
+    };
+  }
+
+  if (!(await isGranted(user, ROLES.ADMIN))) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Admin access required',
+          },
+        },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { ok: true, user };
+}
+
+/**
+ * Require moderator or higher authentication for a route handler.
+ *
+ * Returns the authenticated user if authorized, or a NextResponse error.
+ */
+export async function requireModerator(): Promise<AuthResult<UserWithComputedRole>> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'Not authenticated',
+          },
+        },
+        { status: 401 }
+      ),
+    };
+  }
+
+  if (!(await isGranted(user, ROLES.MODERATOR))) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Moderator access required',
+          },
+        },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { ok: true, user };
 }
