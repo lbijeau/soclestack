@@ -1,8 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { isGranted } from '@/lib/security/index';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { isGranted, clearVoterCache } from '@/lib/security/index';
 import { voters } from '@/lib/security/voters';
 
 describe('Voter Registry Integration', () => {
+  beforeEach(() => {
+    // Clear voter cache between tests
+    clearVoterCache();
+  });
+
   describe('voters array', () => {
     it('should export voters array with OrganizationVoter and UserVoter', () => {
       expect(voters).toBeDefined();
@@ -134,6 +139,46 @@ describe('Voter Registry Integration', () => {
           slug: 'test',
         });
         expect(result).toBe(false);
+      });
+    });
+
+    describe('voter caching', () => {
+      it('should return consistent results with caching', async () => {
+        const org = { id: 'org-123', slug: 'test-org' };
+        const user = createUser('user-1', org.id, 'ADMIN');
+
+        // First call - populates cache
+        const result1 = await isGranted(user, 'organization.edit', org);
+        expect(result1).toBe(true);
+
+        // Second call - uses cache
+        const result2 = await isGranted(user, 'organization.edit', org);
+        expect(result2).toBe(true);
+      });
+
+      it('should cache unknown attributes as unsupported', async () => {
+        const user = createUser('user-1');
+
+        // First call - finds no voter, caches as -1
+        const result1 = await isGranted(user, 'unknown.attribute', {});
+        expect(result1).toBe(false);
+
+        // Second call - uses cached -1
+        const result2 = await isGranted(user, 'unknown.attribute', {});
+        expect(result2).toBe(false);
+      });
+
+      it('should handle different subjects for same attribute', async () => {
+        const org1 = { id: 'org-1', slug: 'org-1' };
+        const org2 = { id: 'org-2', slug: 'org-2' };
+        const user = createUser('user-1', org1.id, 'MEMBER');
+
+        // Same attribute, different subjects
+        const result1 = await isGranted(user, 'organization.view', org1);
+        expect(result1).toBe(true);
+
+        const result2 = await isGranted(user, 'organization.view', org2);
+        expect(result2).toBe(false); // Different org, not a member
       });
     });
   });

@@ -27,6 +27,9 @@ export type RoleName = (typeof ROLES)[keyof typeof ROLES];
 // Cache for role hierarchy (invalidate on role changes)
 let roleHierarchyCache: Map<string, Set<string>> | null = null;
 
+// Cache for voter lookup by attribute (maps attribute -> voter index or -1 if none)
+const voterCache = new Map<string, number>();
+
 /**
  * User type with roles included
  */
@@ -76,10 +79,30 @@ export async function isGranted(
     return hasRole(user, attribute);
   }
 
+  // Check voter cache first
+  const cachedIndex = voterCache.get(attribute);
+  if (cachedIndex !== undefined) {
+    if (cachedIndex === -1) {
+      // Cached as "no voter supports this attribute"
+      return false;
+    }
+    const voter = voters[cachedIndex];
+    // Still need to check supports() for subject validation
+    if (await voter.supports(attribute, subject)) {
+      const result = await voter.vote(user, attribute, subject);
+      if (result === VoteResult.GRANTED) return true;
+      if (result === VoteResult.DENIED) return false;
+    }
+    // Voter didn't support this subject, fall through to full search
+  }
+
   // Voter-based checks for contextual permissions
-  for (const voter of voters) {
+  for (let i = 0; i < voters.length; i++) {
+    const voter = voters[i];
     const supports = await voter.supports(attribute, subject);
     if (supports) {
+      // Cache this attribute -> voter mapping
+      voterCache.set(attribute, i);
       const result = await voter.vote(user, attribute, subject);
       if (result === VoteResult.GRANTED) {
         return true;
@@ -89,6 +112,11 @@ export async function isGranted(
       }
       // ABSTAIN continues to next voter
     }
+  }
+
+  // No voter supports this attribute - cache as -1
+  if (!voterCache.has(attribute)) {
+    voterCache.set(attribute, -1);
   }
 
   // No voter granted - deny by default
@@ -220,6 +248,13 @@ async function getRoleHierarchy(): Promise<Map<string, Set<string>>> {
  */
 export function clearRoleHierarchyCache(): void {
   roleHierarchyCache = null;
+}
+
+/**
+ * Clear voter lookup cache (call if voters are dynamically modified)
+ */
+export function clearVoterCache(): void {
+  voterCache.clear();
 }
 
 /**
