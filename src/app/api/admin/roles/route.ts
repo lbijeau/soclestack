@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser, isRateLimited } from '@/lib/auth';
+import { isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import {
-  isGranted,
-  ROLES,
-  clearRoleHierarchyCache,
-} from '@/lib/security/index';
+import { clearRoleHierarchyCache } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
+import { requireAdmin } from '@/lib/api-utils';
 
 export const runtime = 'nodejs';
 
@@ -39,28 +36,8 @@ const createRoleSchema = z.object({
  */
 export async function GET() {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!(await isGranted(user, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      );
-    }
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
 
     const roles = await prisma.role.findMany({
       include: {
@@ -118,28 +95,9 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!(await isGranted(user, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      );
-    }
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
 
     // Rate limit role creations per admin
     const rateLimitKey = `admin-role-create:${user.id}`;

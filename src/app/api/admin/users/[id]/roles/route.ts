@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser, isRateLimited } from '@/lib/auth';
+import { isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { isGranted, ROLES } from '@/lib/security/index';
+import { ROLES } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
+import { requireAdmin } from '@/lib/api-utils';
 
 export const runtime = 'nodejs';
 
@@ -111,28 +112,8 @@ function formatUserRolesResponse(
  */
 export async function GET(_req: NextRequest, { params }: RouteParams) {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!(await isGranted(currentUser, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      );
-    }
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
 
     const { id: userId } = await params;
 
@@ -209,28 +190,9 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
  */
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!(await isGranted(currentUser, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      );
-    }
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
+    const currentUser = auth.user;
 
     // Rate limit role assignment changes per admin
     const rateLimitKey = `admin-user-roles:${currentUser.id}`;
