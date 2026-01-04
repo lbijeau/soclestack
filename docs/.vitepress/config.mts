@@ -64,6 +64,12 @@ export default withMermaid(
                       ]
                     },
                     {
+                      text: 'Components',
+                      items: [
+                        { text: 'UI Catalog', link: '/components/catalog' },
+                      ]
+                    },
+                    {
                       text: 'Testing',
                         items: [
             { text: 'Overview', link: '/testing/README' },
