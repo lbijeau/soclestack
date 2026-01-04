@@ -104,7 +104,7 @@ function formatUserRolesResponse(
  * Get user's assigned roles (direct and inherited).
  * Requires ROLE_ADMIN access.
  */
-export async function GET(req: NextRequest, { params }: RouteParams) {
+export async function GET(_req: NextRequest, { params }: RouteParams) {
   try {
     const currentUser = await getCurrentUser();
 

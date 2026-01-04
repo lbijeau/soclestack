@@ -147,6 +147,35 @@ describe('Admin User Roles API', () => {
       expect(data.inheritedRoles).toHaveLength(1);
       expect(data.inheritedRoles[0].name).toBe('ROLE_USER');
     });
+
+    it('should return empty inheritedRoles when direct role has no parent', async () => {
+      // User with only ROLE_USER (top of hierarchy, no parent)
+      const userWithBaseRole = {
+        id: 'user-789',
+        email: 'basic@example.com',
+        firstName: 'Basic',
+        lastName: 'User',
+        userRoles: [
+          {
+            role: { id: 'role-3', name: 'ROLE_USER', description: 'Basic user access' },
+          },
+        ],
+      };
+
+      vi.mocked(getCurrentUser).mockResolvedValue(mockAdminUser as never);
+      vi.mocked(isGranted).mockResolvedValue(true);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(userWithBaseRole as never);
+      // ROLE_USER has no parent (parentId: null)
+      vi.mocked(prisma.role.findMany).mockResolvedValue([mockRoles[2]] as never);
+
+      const response = await GET(createRequest(), createRouteParams('user-789'));
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.directRoles).toHaveLength(1);
+      expect(data.directRoles[0].name).toBe('ROLE_USER');
+      expect(data.inheritedRoles).toHaveLength(0);
+    });
   });
 
   describe('PUT /api/admin/users/[id]/roles', () => {
