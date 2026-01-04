@@ -53,6 +53,7 @@ async function main() {
         isActive: true,
         emailVerified: true,
         emailVerifiedAt: new Date(),
+        passwordChangedAt: new Date(),
       },
       {
         email: 'user@demo.com',
@@ -64,6 +65,7 @@ async function main() {
         isActive: true,
         emailVerified: true,
         emailVerifiedAt: new Date(),
+        passwordChangedAt: new Date(),
       },
       {
         email: 'moderator@demo.com',
@@ -75,6 +77,7 @@ async function main() {
         isActive: true,
         emailVerified: true,
         emailVerifiedAt: new Date(),
+        passwordChangedAt: new Date(),
       }
     ];
 
