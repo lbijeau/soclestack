@@ -49,12 +49,15 @@ export const securityHeaders = {
  * Get security headers with environment-aware HSTS
  * HSTS should only be enabled in production to avoid breaking local dev
  */
-export function getSecurityHeaders(isDev: boolean = false): Record<string, string> {
+export function getSecurityHeaders(
+  isDev: boolean = false
+): Record<string, string> {
   const headers: Record<string, string> = { ...securityHeaders };
 
   // Only add HSTS in production - it breaks HTTP-only local dev
   if (!isDev) {
-    headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+    headers['Strict-Transport-Security'] =
+      'max-age=31536000; includeSubDomains';
   }
 
   return headers;

@@ -35,10 +35,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Users can view their own profile, admins/moderators can view profiles in their org
-    if (
-      auth.user.id !== id &&
-      !hasRequiredRole(auth.user.role, 'MODERATOR')
-    ) {
+    if (auth.user.id !== id && !hasRequiredRole(auth.user.role, 'MODERATOR')) {
       return NextResponse.json(
         {
           error: {
