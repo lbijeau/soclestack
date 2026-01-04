@@ -54,18 +54,32 @@ const menuItems = [
   },
 ];
 
-const adminItems = [
-  {
-    group: 'Admin',
-    items: [
-      { label: 'User Management', href: '/admin', icon: UserCog },
-      { label: 'Audit Logs', href: '/admin/audit-logs', icon: Activity },
-    ],
-  },
-];
+function getAdminItems(userRole: 'USER' | 'MODERATOR' | 'ADMIN') {
+  const baseItems = [
+    { label: 'User Management', href: '/admin', icon: UserCog },
+    { label: 'Audit Logs', href: '/admin/audit-logs', icon: Activity },
+  ];
+
+  // Organizations management is ADMIN only
+  if (userRole === 'ADMIN') {
+    baseItems.push({
+      label: 'Organizations',
+      href: '/admin/organizations',
+      icon: Building2,
+    });
+  }
+
+  return [
+    {
+      group: 'Admin',
+      items: baseItems,
+    },
+  ];
+}
 
 function getOrganizationItems(organizationRole?: 'OWNER' | 'ADMIN' | 'MEMBER') {
-  const canManageInvites = organizationRole === 'OWNER' || organizationRole === 'ADMIN';
+  const canManageInvites =
+    organizationRole === 'OWNER' || organizationRole === 'ADMIN';
 
   return [
     {
@@ -78,7 +92,13 @@ function getOrganizationItems(organizationRole?: 'OWNER' | 'ADMIN' | 'MEMBER') {
         },
         { label: 'Members', href: '/organization/members', icon: Users },
         ...(canManageInvites
-          ? [{ label: 'Invitations', href: '/organization/invites', icon: Mail }]
+          ? [
+              {
+                label: 'Invitations',
+                href: '/organization/invites',
+                icon: Mail,
+              },
+            ]
           : []),
       ],
     },
@@ -107,7 +127,9 @@ export function QuickActionsMenu({
   const allMenuItems = [
     ...menuItems,
     ...(organizationId ? getOrganizationItems(organizationRole) : []),
-    ...(userRole === 'ADMIN' || userRole === 'MODERATOR' ? adminItems : []),
+    ...(userRole === 'ADMIN' || userRole === 'MODERATOR'
+      ? getAdminItems(userRole)
+      : []),
   ];
 
   return (
