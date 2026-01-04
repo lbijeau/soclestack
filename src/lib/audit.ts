@@ -48,7 +48,12 @@ export type AuditAction =
   // Admin Organization Management
   | 'ADMIN_ORG_OWNERSHIP_TRANSFER'
   | 'ADMIN_ORG_MEMBER_REMOVED'
-  | 'ADMIN_ORG_DELETED';
+  | 'ADMIN_ORG_DELETED'
+  // Admin Role Management
+  | 'ADMIN_ROLE_CREATED'
+  | 'ADMIN_ROLE_UPDATED'
+  | 'ADMIN_ROLE_DELETED'
+  | 'ADMIN_USER_ROLES_UPDATED';
 
 export type AuditCategory = 'authentication' | 'security' | 'admin';
 
