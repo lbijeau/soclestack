@@ -8,11 +8,22 @@
 
 import { prisma } from '@/lib/db';
 
-// Cache for role hierarchy (invalidate on role changes)
-let roleHierarchyCache: Map<string, Set<string>> | null = null;
-
 import type { User, UserRole } from '@prisma/client';
 import type { LegacyRole } from '@/types/auth';
+
+/**
+ * Role name constants to avoid magic strings
+ */
+export const ROLES = {
+  ADMIN: 'ROLE_ADMIN',
+  MODERATOR: 'ROLE_MODERATOR',
+  USER: 'ROLE_USER',
+} as const;
+
+export type RoleName = (typeof ROLES)[keyof typeof ROLES];
+
+// Cache for role hierarchy (invalidate on role changes)
+let roleHierarchyCache: Map<string, Set<string>> | null = null;
 
 /**
  * User type with roles included
@@ -46,12 +57,13 @@ export type UserWithComputedRole = User & {
  *
  * @param user - User object (must include userRoles relation)
  * @param attribute - Role name (e.g., 'ROLE_ADMIN') or permission (e.g., 'organization.edit')
- * @param subject - Optional subject for contextual checks
+ * @param subject - Optional subject for voter-based contextual checks (future: organization, resource, etc.)
  */
 export async function isGranted(
   user: UserWithRoles | null,
   attribute: string,
-  _subject?: unknown
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  subject?: unknown
 ): Promise<boolean> {
   if (!user) return false;
 
@@ -60,7 +72,8 @@ export async function isGranted(
     return hasRole(user, attribute);
   }
 
-  // TODO: Voter-based checks for contextual permissions
+  // Voter-based checks for contextual permissions will be added in future PRs
+  // Example: isGranted(user, 'organization.edit', organization)
   // For now, only role checks are implemented
   return false;
 }
@@ -116,10 +129,17 @@ async function resolveHierarchy(roleNames: string[]): Promise<Set<string>> {
 }
 
 /**
+ * Maximum depth for role hierarchy traversal (prevents infinite loops from cycles)
+ */
+const MAX_HIERARCHY_DEPTH = 10;
+
+/**
  * Get role hierarchy map from database (cached)
  *
  * Returns Map where key is role name, value is Set of all roles it includes
  * Example: ROLE_ADMIN -> {ROLE_ADMIN, ROLE_MODERATOR, ROLE_USER}
+ *
+ * Includes cycle detection to prevent infinite loops if roles are misconfigured.
  */
 async function getRoleHierarchy(): Promise<Map<string, Set<string>>> {
   if (roleHierarchyCache) {
@@ -139,17 +159,36 @@ async function getRoleHierarchy(): Promise<Map<string, Set<string>>> {
 
   for (const role of roles) {
     const inherited = new Set<string>([role.name]);
+    const visited = new Set<string>([role.id]); // Track visited IDs for cycle detection
 
-    // Walk up the hierarchy
+    // Walk up the hierarchy with cycle detection
     let current = role;
-    while (current.parentId) {
+    let depth = 0;
+
+    while (current.parentId && depth < MAX_HIERARCHY_DEPTH) {
+      // Cycle detection: if we've seen this ID before, stop
+      if (visited.has(current.parentId)) {
+        console.warn(
+          `Role hierarchy cycle detected at role "${current.name}" (id: ${current.id})`
+        );
+        break;
+      }
+
       const parent = roleMap.get(current.parentId);
       if (parent) {
+        visited.add(parent.id);
         inherited.add(parent.name);
         current = parent;
+        depth++;
       } else {
         break;
       }
+    }
+
+    if (depth >= MAX_HIERARCHY_DEPTH) {
+      console.warn(
+        `Role hierarchy depth exceeded for role "${role.name}" - possible cycle or very deep hierarchy`
+      );
     }
 
     hierarchy.set(role.name, inherited);
@@ -188,8 +227,8 @@ export async function getUserRoleDisplay(
 ): Promise<LegacyRole> {
   if (!user) return 'USER';
 
-  if (await hasRole(user, 'ROLE_ADMIN')) return 'ADMIN';
-  if (await hasRole(user, 'ROLE_MODERATOR')) return 'MODERATOR';
+  if (await hasRole(user, ROLES.ADMIN)) return 'ADMIN';
+  if (await hasRole(user, ROLES.MODERATOR)) return 'MODERATOR';
   return 'USER';
 }
 
@@ -205,8 +244,8 @@ export function computeLegacyRole(user: UserWithRoles | null): LegacyRole {
   const roleNames = user.userRoles.map((ur) => ur.role.name);
 
   // Check highest first (ADMIN > MODERATOR > USER)
-  if (roleNames.includes('ROLE_ADMIN')) return 'ADMIN';
-  if (roleNames.includes('ROLE_MODERATOR')) return 'MODERATOR';
+  if (roleNames.includes(ROLES.ADMIN)) return 'ADMIN';
+  if (roleNames.includes(ROLES.MODERATOR)) return 'MODERATOR';
   return 'USER';
 }
 
