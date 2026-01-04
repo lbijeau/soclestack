@@ -516,7 +516,7 @@ All components use `rounded-md` (0.375rem / 6px) for consistency. Badges use `ro
 
 ## Related Documentation
 
-- [UI Components Source](../../src/components/ui/README.md)
-- [Auth Components](../../src/components/auth/README.md)
-- [Profile Components](../../src/components/profile/README.md)
+- [UI Components Source](https://github.com/lbijeau/soclestack/blob/master/src/components/ui/README.md)
+- [Auth Components](https://github.com/lbijeau/soclestack/blob/master/src/components/auth/README.md)
+- [Profile Components](https://github.com/lbijeau/soclestack/blob/master/src/components/profile/README.md)
 - [Technical Architecture](../TECHNICAL_ARCHITECTURE.md)
