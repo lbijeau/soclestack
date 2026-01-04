@@ -340,3 +340,6 @@ export const userWithRolesInclude = {
 // Re-export voter types
 export { VoteResult, VotingStrategy } from './voter';
 export type { Voter } from './voter';
+
+// Re-export runtime type guards
+export { isPlatformRole } from '../security';

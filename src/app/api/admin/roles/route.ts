@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { clearRoleHierarchyCache } from '@/lib/security/index';
+import { clearRoleHierarchyCache, isPlatformRole } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
 import { requireAdmin } from '@/lib/api-utils';
 
@@ -17,13 +17,10 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
  * Validation schema for creating a new role
  */
 const createRoleSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Name is required')
-    .regex(
-      /^ROLE_[A-Z][A-Z0-9_]*$/,
-      'Role name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
-    ),
+  name: z.string().min(1, 'Name is required').refine(isPlatformRole, {
+    message:
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)',
+  }),
   description: z.string().optional(),
   parentId: z.string().optional(),
 });
