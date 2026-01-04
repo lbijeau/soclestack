@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -102,6 +102,21 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [deleteError, setDeleteError] = useState('');
 
+  // Refs
+  const deleteInputRef = useRef<HTMLInputElement>(null);
+
+  // Track initial values for dirty state
+  const [initialValues, setInitialValues] = useState({
+    description: '',
+    parentId: '',
+  });
+
+  // Check if form has unsaved changes
+  const isDirty =
+    (!isEditMode && name.trim() !== '') ||
+    description !== initialValues.description ||
+    parentId !== initialValues.parentId;
+
   // Fetch data
   const fetchData = useCallback(async () => {
     try {
@@ -131,6 +146,10 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
         setName(roleData.role.name);
         setDescription(roleData.role.description || '');
         setParentId(roleData.role.parentId || '');
+        setInitialValues({
+          description: roleData.role.description || '',
+          parentId: roleData.role.parentId || '',
+        });
       }
     } catch {
       setError('Failed to load data');
@@ -142,6 +161,29 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Focus delete input when modal opens
+  useEffect(() => {
+    if (showDeleteModal) {
+      // Small delay to ensure modal is rendered
+      const timer = setTimeout(() => {
+        deleteInputRef.current?.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [showDeleteModal]);
+
+  // Warn user about unsaved changes when navigating away
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   // Filter available parents (exclude self and descendants)
   const availableParents = allRoles.filter((r) => {
@@ -313,7 +355,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
       </div>
 
       {error && (
-        <Alert variant="error" className="mb-4">
+        <Alert variant="error" className="mb-4" aria-live="polite">
           {error}
         </Alert>
       )}
@@ -353,7 +395,11 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                   aria-describedby={fieldErrors.name ? 'name-error' : undefined}
                 />
                 {fieldErrors.name && (
-                  <p id="name-error" className="mt-1 text-sm text-red-600">
+                  <p
+                    id="name-error"
+                    className="mt-1 text-sm text-red-600"
+                    aria-live="polite"
+                  >
                     {fieldErrors.name}
                   </p>
                 )}
@@ -373,28 +419,40 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
             >
               Description
             </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => {
-                setDescription(e.target.value);
-                setFieldErrors((prev) => ({ ...prev, description: '' }));
-              }}
-              rows={3}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Optional description of this role's purpose"
-              aria-describedby={
-                fieldErrors.description ? 'description-error' : undefined
-              }
-            />
-            {fieldErrors.description && (
-              <p id="description-error" className="mt-1 text-sm text-red-600">
-                {fieldErrors.description}
-              </p>
+            {isSystem ? (
+              <div className="min-h-[4.5rem] rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                {role?.description || 'No description'}
+              </div>
+            ) : (
+              <>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    setFieldErrors((prev) => ({ ...prev, description: '' }));
+                  }}
+                  rows={3}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Optional description of this role's purpose"
+                  aria-describedby={
+                    fieldErrors.description ? 'description-error' : undefined
+                  }
+                />
+                {fieldErrors.description && (
+                  <p
+                    id="description-error"
+                    className="mt-1 text-sm text-red-600"
+                    aria-live="polite"
+                  >
+                    {fieldErrors.description}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  {description.length}/500 characters
+                </p>
+              </>
             )}
-            <p className="mt-1 text-xs text-gray-500">
-              {description.length}/500 characters
-            </p>
           </div>
 
           {/* Parent field */}
@@ -462,11 +520,27 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
 
       {/* Delete confirmation modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setShowDeleteModal(false);
+              setDeleteConfirmName('');
+              setDeleteError('');
+            }
+          }}
+        >
+          <div
+            className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+          >
             <div className="mb-4 flex items-center text-red-600">
               <AlertTriangle className="mr-2 h-6 w-6" />
-              <h2 className="text-lg font-semibold">Delete Role</h2>
+              <h2 id="delete-modal-title" className="text-lg font-semibold">
+                Delete Role
+              </h2>
             </div>
 
             <p className="mb-4 text-gray-600">
@@ -479,6 +553,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
             </p>
 
             <Input
+              ref={deleteInputRef}
               value={deleteConfirmName}
               onChange={(e) => {
                 setDeleteConfirmName(e.target.value);
@@ -486,10 +561,11 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
               }}
               placeholder={role?.name}
               className="mb-4"
+              aria-label="Type role name to confirm deletion"
             />
 
             {deleteError && (
-              <Alert variant="error" className="mb-4">
+              <Alert variant="error" className="mb-4" aria-live="polite">
                 {deleteError}
               </Alert>
             )}

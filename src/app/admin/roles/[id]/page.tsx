@@ -2,6 +2,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { RoleEditor } from '@/components/admin/role-editor';
 import { redirect } from 'next/navigation';
 import { isGranted, ROLES } from '@/lib/security/index';
+import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +33,16 @@ export default async function EditRolePage({ params }: EditRolePageProps) {
 
 export async function generateMetadata({ params }: EditRolePageProps) {
   const { id } = await params;
+
+  const role = await prisma.role.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+
+  const roleName = role?.name ?? 'Role';
+
   return {
-    title: `Edit Role - Admin - SocleStack`,
-    description: `Edit role ${id}`,
+    title: `${roleName} - Edit Role - Admin - SocleStack`,
+    description: `Edit role ${roleName}`,
   };
 }
