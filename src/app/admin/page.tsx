@@ -17,6 +17,7 @@ import {
   Smartphone,
   UserPlus,
   LogIn,
+  Building2,
 } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -50,6 +51,7 @@ export default async function AdminPage() {
     recentLogins,
     failedLogins24h,
     newUsers7d,
+    totalOrganizations,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { isActive: true } }),
@@ -63,6 +65,7 @@ export default async function AdminPage() {
       where: { action: 'AUTH_LOGIN_FAILURE', createdAt: { gte: last24h } },
     }),
     prisma.user.count({ where: { createdAt: { gte: last7d } } }),
+    prisma.organization.count(),
   ]);
 
   const twoFactorPercent =
@@ -92,6 +95,12 @@ export default async function AdminPage() {
       value: adminUsers,
       icon: Shield,
       color: 'text-purple-600',
+    },
+    {
+      title: 'Organizations',
+      value: totalOrganizations,
+      icon: Building2,
+      color: 'text-orange-600',
     },
   ];
 
@@ -135,8 +144,8 @@ export default async function AdminPage() {
 
         {/* User Stats */}
         <div className="mb-6">
-          <h2 className="mb-3 text-sm font-medium text-gray-500">Users</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <h2 className="mb-3 text-sm font-medium text-gray-500">Overview</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
             {userStats.map((stat) => (
               <Card key={stat.title}>
                 <CardContent className="p-4">
@@ -186,6 +195,23 @@ export default async function AdminPage() {
               Admin Tools
             </h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Link href="/admin/organizations">
+                <Card className="cursor-pointer transition-shadow hover:shadow-md">
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <Building2 className="h-8 w-8 text-orange-600" />
+                      <div className="ml-4">
+                        <div className="font-medium text-gray-900">
+                          Organizations
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Manage all organizations
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
               <Link href="/admin/audit-logs">
                 <Card className="cursor-pointer transition-shadow hover:shadow-md">
                   <CardContent className="p-6">
