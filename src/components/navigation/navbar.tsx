@@ -62,12 +62,19 @@ export function Navbar() {
         // if we're on a protected route
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        const protectedPaths = ['/dashboard', '/profile', '/admin', '/organization'];
+        const protectedPaths = [
+          '/dashboard',
+          '/profile',
+          '/admin',
+          '/organization',
+        ];
         const isProtectedRoute = protectedPaths.some((path) =>
           window.location.pathname.startsWith(path)
         );
         if (isProtectedRoute) {
-          router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname)}`);
+          router.push(
+            `/login?returnUrl=${encodeURIComponent(window.location.pathname)}`
+          );
         }
       }
     } catch (error) {

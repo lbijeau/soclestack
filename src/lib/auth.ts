@@ -156,9 +156,13 @@ export async function getCurrentUser(): Promise<User | null> {
     });
 
     // If session claims logged in but user doesn't exist (e.g., DB was reset),
-    // destroy the stale session to prevent redirect loops
+    // log a warning. The navbar will detect the 401 and redirect to login.
+    // We can't destroy the session here because this may be called from a
+    // Server Component where cookie modification isn't allowed.
     if (!user) {
-      session.destroy();
+      console.warn(
+        `Stale session detected: userId ${session.userId} not found in database`
+      );
     }
 
     return user;
