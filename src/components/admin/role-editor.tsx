@@ -18,7 +18,10 @@ import {
   Loader2,
   Trash2,
   AlertTriangle,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
+import { isPlatformRole } from '@/lib/security';
 
 interface Role {
   id: string;
@@ -34,8 +37,6 @@ interface Role {
 interface RoleEditorProps {
   roleId?: string;
 }
-
-const ROLE_NAME_PATTERN = /^ROLE_[A-Z][A-Z0-9_]*$/;
 
 /**
  * Check if targetId is a descendant of roleId
@@ -65,14 +66,15 @@ export function isDescendantOf(
 }
 
 /**
- * Validate role name format
+ * Validate role name format using the runtime type guard
+ * Pattern: ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)
  */
 export function validateRoleName(name: string): string | null {
   if (!name.trim()) {
     return 'Name is required';
   }
-  if (!ROLE_NAME_PATTERN.test(name)) {
-    return 'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores';
+  if (!isPlatformRole(name)) {
+    return 'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)';
   }
   return null;
 }
@@ -390,17 +392,50 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
               </div>
             ) : (
               <>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value.toUpperCase());
-                    setFieldErrors((prev) => ({ ...prev, name: '' }));
-                  }}
-                  placeholder="ROLE_CUSTOM_NAME"
-                  aria-describedby={fieldErrors.name ? 'name-error' : undefined}
-                  aria-invalid={!!fieldErrors.name}
-                />
+                <div className="relative">
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => {
+                      const value = e.target.value.trim().toUpperCase();
+                      setName(value);
+                      // Real-time validation (always validate, even for empty)
+                      const error = validateRoleName(value);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        name: error || '',
+                      }));
+                    }}
+                    placeholder="ROLE_CUSTOM_NAME"
+                    className={
+                      name && !fieldErrors.name
+                        ? 'border-green-500 pr-10 focus:border-green-500 focus:ring-green-500'
+                        : fieldErrors.name
+                          ? 'border-red-500 pr-10 focus:border-red-500 focus:ring-red-500'
+                          : ''
+                    }
+                    aria-describedby={
+                      fieldErrors.name ? 'name-error' : 'name-help'
+                    }
+                    aria-invalid={!!fieldErrors.name}
+                  />
+                  {/* Validation indicator */}
+                  {name && (
+                    <div className="absolute top-1/2 right-3 -translate-y-1/2">
+                      {fieldErrors.name ? (
+                        <XCircle
+                          className="h-5 w-5 text-red-500"
+                          aria-label="Invalid role name"
+                        />
+                      ) : (
+                        <CheckCircle2
+                          className="h-5 w-5 text-green-500"
+                          aria-label="Valid role name"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
                 {fieldErrors.name && (
                   <p
                     id="name-error"
@@ -410,10 +445,22 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                     {fieldErrors.name}
                   </p>
                 )}
-                <p className="mt-1 text-xs text-gray-500">
-                  Must start with ROLE_ followed by uppercase letters, numbers,
-                  or underscores
-                </p>
+                <div
+                  id="name-help"
+                  className="mt-1 space-y-1 text-xs text-gray-500"
+                >
+                  <p>
+                    Must follow pattern: ROLE_[A-Z][A-Z0-9_]+ (starts with
+                    letter, minimum 2 characters after ROLE_ prefix)
+                  </p>
+                  <p className="text-gray-400">
+                    ✓ Valid: ROLE_USER, ROLE_BILLING_ADMIN, ROLE_SUPPORT_TIER_1
+                  </p>
+                  <p className="text-gray-400">
+                    ✗ Invalid: ROLE_A (too short), ROLE_admin (lowercase),
+                    ROLE-ADMIN (hyphen)
+                  </p>
+                </div>
               </>
             )}
           </div>
@@ -514,7 +561,14 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
               <Button variant="outline" onClick={handleNavigateBack}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
+              <Button
+                onClick={handleSave}
+                disabled={
+                  isSaving ||
+                  (!isEditMode && !!fieldErrors.name) ||
+                  !!fieldErrors.description
+                }
+              >
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditMode ? 'Save Changes' : 'Create Role'}
               </Button>
