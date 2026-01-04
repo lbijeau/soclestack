@@ -7,11 +7,15 @@
  */
 
 import { prisma } from '@/lib/db';
+import { log } from '@/lib/logger';
 
 import type { User, UserRole } from '@prisma/client';
 import type { PlatformRole } from '@/types/auth';
 import { VoteResult } from './voter';
 import { voters } from './voters';
+
+// Voter class names for debug logging
+const VOTER_NAMES = ['OrganizationVoter', 'UserVoter'] as const;
 
 /**
  * Role name constants to avoid magic strings
@@ -87,9 +91,11 @@ export async function isGranted(
       return false;
     }
     const voter = voters[cachedIndex];
+    const voterName = VOTER_NAMES[cachedIndex];
     // Still need to check supports() for subject validation
     if (await voter.supports(attribute, subject)) {
       const result = await voter.vote(user, attribute, subject);
+      log.debug('voter decision', { voterName, attribute, result, userId: user.id });
       if (result === VoteResult.GRANTED) return true;
       if (result === VoteResult.DENIED) return false;
     }
@@ -99,11 +105,13 @@ export async function isGranted(
   // Voter-based checks for contextual permissions
   for (let i = 0; i < voters.length; i++) {
     const voter = voters[i];
+    const voterName = VOTER_NAMES[i];
     const supports = await voter.supports(attribute, subject);
     if (supports) {
       // Cache this attribute -> voter mapping
       voterCache.set(attribute, i);
       const result = await voter.vote(user, attribute, subject);
+      log.debug('voter decision', { voterName, attribute, result, userId: user.id });
       if (result === VoteResult.GRANTED) {
         return true;
       }
