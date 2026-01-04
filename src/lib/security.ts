@@ -3,12 +3,18 @@ import { SignJWT, jwtVerify, JWTPayload as JoseJWTPayload } from 'jose';
 import { JWTPayload, RefreshTokenPayload, PlatformRole } from '@/types/auth';
 import { env } from './env';
 
-// Valid roles for runtime validation
-const VALID_ROLES: PlatformRole[] = [
-  'ROLE_USER',
-  'ROLE_MODERATOR',
-  'ROLE_ADMIN',
-];
+/**
+ * Pattern for valid role names in JWT tokens.
+ * Roles must follow the format: ROLE_[A-Z][A-Z0-9_]*
+ *
+ * Examples of valid roles:
+ * - ROLE_USER, ROLE_ADMIN, ROLE_MODERATOR (base roles)
+ * - ROLE_BILLING_ADMIN, ROLE_SUPPORT (custom roles)
+ *
+ * This enables database-driven arbitrary roles without code changes.
+ * Actual role validity is verified by isGranted() against the database.
+ */
+const ROLE_PATTERN = /^ROLE_[A-Z][A-Z0-9_]*$/;
 
 function isValidAccessTokenPayload(
   payload: JoseJWTPayload
@@ -22,7 +28,7 @@ function isValidAccessTokenPayload(
     typeof payload.sub === 'string' &&
     typeof payload.email === 'string' &&
     typeof payload.role === 'string' &&
-    VALID_ROLES.includes(payload.role as PlatformRole) &&
+    ROLE_PATTERN.test(payload.role) &&
     typeof payload.jti === 'string'
   );
 }
