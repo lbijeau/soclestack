@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { redirect } from 'next/navigation';
-import { ROLES } from '@/lib/security/index';
+import { isGranted, ROLES } from '@/lib/security/index';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +19,7 @@ export default async function AdminOrganizationsPage() {
     redirect('/login?returnUrl=/admin/organizations');
   }
 
-  if (user.role !== ROLES.ADMIN) {
+  if (!(await isGranted(user, ROLES.ADMIN))) {
     redirect('/admin');
   }
 
