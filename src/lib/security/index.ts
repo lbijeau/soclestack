@@ -10,6 +10,8 @@ import { prisma } from '@/lib/db';
 
 import type { User, UserRole } from '@prisma/client';
 import type { PlatformRole } from '@/types/auth';
+import { VoteResult } from './voter';
+import { voters } from './voters';
 
 /**
  * Role name constants to avoid magic strings
@@ -55,14 +57,16 @@ export type UserWithComputedRole = User & {
 /**
  * Main authorization check - like Symfony's isGranted()
  *
+ * Uses affirmative voting strategy: first voter to GRANT wins.
+ * If no voter grants, returns false (denied by default).
+ *
  * @param user - User object (must include userRoles relation)
  * @param attribute - Role name (e.g., 'ROLE_ADMIN') or permission (e.g., 'organization.edit')
- * @param subject - Optional subject for voter-based contextual checks (future: organization, resource, etc.)
+ * @param subject - Optional subject for voter-based contextual checks
  */
 export async function isGranted(
   user: UserWithRoles | null,
   attribute: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   subject?: unknown
 ): Promise<boolean> {
   if (!user) return false;
@@ -72,9 +76,22 @@ export async function isGranted(
     return hasRole(user, attribute);
   }
 
-  // Voter-based checks for contextual permissions will be added in future PRs
-  // Example: isGranted(user, 'organization.edit', organization)
-  // For now, only role checks are implemented
+  // Voter-based checks for contextual permissions
+  for (const voter of voters) {
+    const supports = await voter.supports(attribute, subject);
+    if (supports) {
+      const result = await voter.vote(user, attribute, subject);
+      if (result === VoteResult.GRANTED) {
+        return true;
+      }
+      if (result === VoteResult.DENIED) {
+        return false;
+      }
+      // ABSTAIN continues to next voter
+    }
+  }
+
+  // No voter granted - deny by default
   return false;
 }
 
