@@ -210,16 +210,20 @@ interface AuthActions {
 import { isPlatformRole } from '@/lib/security';
 import { prisma } from '@/lib/db';
 
-// 1. Validate role name format at runtime
-const roleName = "ROLE_BILLING_ADMIN";
+// 1. Validate and normalize role name format
+const userInput = "billing_admin";
+const roleName = `ROLE_${userInput.trim().toUpperCase()}`;
+
 if (!isPlatformRole(roleName)) {
-  throw new Error('Invalid role format');
+  throw new Error(
+    'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
+  );
 }
 
 // 2. Create role in database
 const newRole = await prisma.role.create({
   data: {
-    name: roleName,
+    name: roleName, // "ROLE_BILLING_ADMIN"
     description: "Manages billing and invoices",
     parentId: adminRoleId // Optional: inherit from ROLE_ADMIN
   }
