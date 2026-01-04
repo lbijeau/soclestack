@@ -17,13 +17,10 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
  * Validation schema for creating a new role
  */
 const createRoleSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Name is required')
-    .refine(isPlatformRole, {
-      message:
-        'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)',
-    }),
+  name: z.string().min(1, 'Name is required').refine(isPlatformRole, {
+    message:
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)',
+  }),
   description: z.string().optional(),
   parentId: z.string().optional(),
 });
