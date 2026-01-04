@@ -4,7 +4,7 @@ import { userListParamsSchema } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { Prisma } from '@prisma/client';
-import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
+import { getHighestRole, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
     // Add computed role for backward compatibility
     const usersWithRoles = users.map((u) => ({
       ...u,
-      role: computeLegacyRole(u),
+      role: getHighestRole(u),
     }));
 
     const totalPages = Math.ceil(totalUsers / limit);

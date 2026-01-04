@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getSessionFromRequest } from '@/lib/auth';
+import { getSessionFromRequest, getUserByIdWithRoles } from '@/lib/auth';
 import { getSecurityHeaders, buildCSP } from '@/lib/security-headers';
 import {
   requiresCsrfValidation,
@@ -12,25 +12,31 @@ import {
   recordCsrfFailure,
   createCsrfRateLimitResponse,
 } from '@/lib/csrf';
+import { isGranted, ROLES, type RoleName } from '@/lib/security/index';
 
-// Note: Middleware runs in Edge Runtime. We use process.env.NODE_ENV directly
-// here instead of the env module to avoid Edge Runtime compatibility issues.
-// NODE_ENV is always available and doesn't require Zod validation.
+// Use Node.js runtime instead of Edge Runtime.
+// Trade-off: Slightly higher latency and cold starts, but required for:
+// - Prisma database access (role hierarchy lookups)
+// - isGranted() authorization checks
+export const runtime = 'nodejs';
 
-// Define protected routes and their required roles
-const protectedRoutes = {
-  '/dashboard': 'USER',
-  '/profile': 'USER',
-  '/profile/security': 'USER',
-  '/profile/sessions': 'USER',
-  '/admin': 'ADMIN',
-  '/admin/audit-logs': 'ADMIN',
-  '/api/users': 'MODERATOR',
-  '/api/users/profile': 'USER',
-  '/organization': 'USER', // Org role checks happen at API level
-  '/organization/members': 'USER',
-  '/organization/invites': 'USER',
-} as const;
+// Protected routes and their required roles.
+// Sorted by path length (longest first) to ensure specific routes match before general ones.
+// E.g., /profile/security matches before /profile
+const protectedRoutes = [
+  ['/admin/organizations', ROLES.ADMIN],
+  ['/admin/audit-logs', ROLES.ADMIN],
+  ['/organization/members', ROLES.USER],
+  ['/organization/invites', ROLES.USER],
+  ['/profile/security', ROLES.USER],
+  ['/profile/sessions', ROLES.USER],
+  ['/api/users/profile', ROLES.USER],
+  ['/organization', ROLES.USER],
+  ['/dashboard', ROLES.USER],
+  ['/api/users', ROLES.MODERATOR],
+  ['/profile', ROLES.USER],
+  ['/admin', ROLES.ADMIN],
+] as const;
 
 // Define auth routes that should redirect if already logged in
 const authRoutes = [
@@ -150,9 +156,15 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Check if route is protected
-    const requiredRole =
-      protectedRoutes[pathname as keyof typeof protectedRoutes];
+    // Check if route is protected (exact match or prefix match for nested routes)
+    // Routes are pre-sorted by length, so first match wins
+    let requiredRole: RoleName | undefined;
+    for (const [route, role] of protectedRoutes) {
+      if (pathname === route || pathname.startsWith(route + '/')) {
+        requiredRole = role;
+        break;
+      }
+    }
 
     if (requiredRole) {
       // Route requires authentication
@@ -163,14 +175,20 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
       }
 
-      // For API routes, we'll let the route handler check permissions
+      // For API routes, let the route handler check permissions
+      // (API routes use isGranted directly with more context)
       if (pathname.startsWith('/api/')) {
         return response;
       }
 
-      // For page routes, check role here if needed
-      // This would require loading the user from the database
-      // For now, we'll let the page components handle role checking
+      // For page routes, check role using isGranted
+      const user = await getUserByIdWithRoles(session.userId!);
+      if (!user || !(await isGranted(user, requiredRole))) {
+        // User lacks required role - redirect to dashboard with error
+        const dashboardUrl = new URL('/dashboard', request.url);
+        dashboardUrl.searchParams.set('error', 'unauthorized');
+        return NextResponse.redirect(dashboardUrl);
+      }
     }
 
     return response;
@@ -178,7 +196,7 @@ export async function middleware(request: NextRequest) {
     console.error('Middleware error:', error);
 
     // If there's an error with the session, redirect to login for protected routes
-    const isProtectedRoute = Object.keys(protectedRoutes).some((route) =>
+    const isProtectedRoute = protectedRoutes.some(([route]) =>
       pathname.startsWith(route)
     );
 

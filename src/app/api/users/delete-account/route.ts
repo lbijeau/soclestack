@@ -8,7 +8,7 @@ import {
   assertNotImpersonating,
   ImpersonationBlockedError,
 } from '@/lib/auth/impersonation';
-import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
+import { userWithRolesInclude, isGranted, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -96,10 +96,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userRole = computeLegacyRole(user);
-
     // System admins cannot delete their own account
-    if (userRole === 'ADMIN') {
+    if (await isGranted(user, ROLES.ADMIN)) {
       return NextResponse.json(
         {
           error: {

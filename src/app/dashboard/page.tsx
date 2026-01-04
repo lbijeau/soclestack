@@ -16,7 +16,14 @@ import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage() {
+interface DashboardPageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: DashboardPageProps) {
+  const { error } = await searchParams;
   const user = await getCurrentUser();
 
   if (!user) {
@@ -46,6 +53,21 @@ export default async function DashboardPage() {
   return (
     <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
       <div className="px-4 py-6 sm:px-0">
+        {/* Authorization Error Alert */}
+        {error === 'unauthorized' && (
+          <Alert variant="error" className="mb-6">
+            <div className="flex items-start gap-3">
+              <Shield className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Access Denied</p>
+                <p className="mt-1 text-sm">
+                  You don&apos;t have permission to access that page.
+                </p>
+              </div>
+            </div>
+          </Alert>
+        )}
+
         {/* Email Verification Banner */}
         {!user.emailVerified && <EmailVerificationBanner email={user.email} />}
 
