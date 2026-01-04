@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/navigation/navbar';
 import {
   Card,
   CardContent,
@@ -135,14 +134,11 @@ export default function OrganizationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="mx-auto max-w-4xl px-4 py-6">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          </div>
-        </main>
-      </div>
+      <main className="mx-auto max-w-4xl px-4 py-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      </main>
     );
   }
 
@@ -151,207 +147,195 @@ export default function OrganizationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
+    <main className="mx-auto max-w-4xl px-4 py-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Organization Settings
+        </h1>
+        <p className="mt-2 text-gray-600">
+          Manage your organization settings and members.
+        </p>
+      </div>
 
-      <main className="mx-auto max-w-4xl px-4 py-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Organization Settings
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Manage your organization settings and members.
-          </p>
-        </div>
+      {/* Quick Links */}
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Link href="/organization/members">
+          <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-blue-600" />
+                <div className="ml-4">
+                  <div className="font-medium text-gray-900">Members</div>
+                  <div className="text-sm text-gray-500">
+                    {organization.memberCount} members
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
-        {/* Quick Links */}
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Link href="/organization/members">
+        {canEdit && (
+          <Link href="/organization/invites">
             <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
               <CardContent className="p-6">
                 <div className="flex items-center">
-                  <Users className="h-8 w-8 text-blue-600" />
+                  <Mail className="h-8 w-8 text-green-600" />
                   <div className="ml-4">
-                    <div className="font-medium text-gray-900">Members</div>
-                    <div className="text-sm text-gray-500">
-                      {organization.memberCount} members
-                    </div>
+                    <div className="font-medium text-gray-900">Invitations</div>
+                    <div className="text-sm text-gray-500">Manage invites</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </Link>
+        )}
 
-          {canEdit && (
-            <Link href="/organization/invites">
-              <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <Mail className="h-8 w-8 text-green-600" />
-                    <div className="ml-4">
-                      <div className="font-medium text-gray-900">
-                        Invitations
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Manage invites
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          )}
-
-          <Card className="h-full">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Building2 className="h-8 w-8 text-purple-600" />
-                <div className="ml-4">
-                  <div className="font-medium text-gray-900">Your Role</div>
-                  <div className="text-sm text-gray-500">
-                    {organization.role}
-                  </div>
-                </div>
+        <Card className="h-full">
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Building2 className="h-8 w-8 text-purple-600" />
+              <div className="ml-4">
+                <div className="font-medium text-gray-900">Your Role</div>
+                <div className="text-sm text-gray-500">{organization.role}</div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Organization Details */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Organization Details
-            </CardTitle>
-            <CardDescription>
-              Basic information about your organization.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-                {success}
-              </div>
-            )}
-
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Organization Name
-                </label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={!canEdit || saving}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="slug"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  URL Slug
-                </label>
-                <Input
-                  id="slug"
-                  value={organization.slug}
-                  disabled
-                  className="mt-1 bg-gray-50"
-                />
-                <p className="mt-1 text-sm text-gray-500">
-                  The URL slug cannot be changed.
-                </p>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="created"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Created
-                </label>
-                <Input
-                  id="created"
-                  value={new Date(organization.createdAt).toLocaleDateString()}
-                  disabled
-                  className="mt-1 bg-gray-50"
-                />
-              </div>
-
-              {canEdit && (
-                <div className="pt-4">
-                  <Button
-                    type="submit"
-                    disabled={saving || name === organization.name}
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Changes'
-                    )}
-                  </Button>
-                </div>
-              )}
-            </form>
+            </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Danger Zone */}
-        {canDelete && (
-          <Card className="border-red-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-600">
-                <Trash2 className="h-5 w-5" />
-                Danger Zone
-              </CardTitle>
-              <CardDescription>
-                Irreversible actions that affect the entire organization.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    Delete Organization
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Permanently delete this organization and remove all members.
-                  </p>
-                </div>
+      {/* Organization Details */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Organization Details
+          </CardTitle>
+          <CardDescription>
+            Basic information about your organization.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+              {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSave} className="space-y-4">
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Organization Name
+              </label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={!canEdit || saving}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="slug"
+                className="block text-sm font-medium text-gray-700"
+              >
+                URL Slug
+              </label>
+              <Input
+                id="slug"
+                value={organization.slug}
+                disabled
+                className="mt-1 bg-gray-50"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                The URL slug cannot be changed.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="created"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Created
+              </label>
+              <Input
+                id="created"
+                value={new Date(organization.createdAt).toLocaleDateString()}
+                disabled
+                className="mt-1 bg-gray-50"
+              />
+            </div>
+
+            {canEdit && (
+              <div className="pt-4">
                 <Button
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={deleting}
+                  type="submit"
+                  disabled={saving || name === organization.name}
                 >
-                  {deleting ? (
+                  {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Deleting...
+                      Saving...
                     </>
                   ) : (
-                    'Delete Organization'
+                    'Save Changes'
                   )}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </main>
-    </div>
+            )}
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      {canDelete && (
+        <Card className="border-red-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Danger Zone
+            </CardTitle>
+            <CardDescription>
+              Irreversible actions that affect the entire organization.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">Delete Organization</p>
+                <p className="text-sm text-gray-500">
+                  Permanently delete this organization and remove all members.
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Organization'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </main>
   );
 }

@@ -50,6 +50,8 @@ export async function GET() {
         emailVerified: user.emailVerified,
         lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
+        organizationId: user.organizationId,
+        organizationRole: user.organizationRole,
       },
       impersonation,
     });
