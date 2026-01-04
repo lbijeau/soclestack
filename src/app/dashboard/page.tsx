@@ -20,7 +20,9 @@ interface DashboardPageProps {
   searchParams: Promise<{ error?: string }>;
 }
 
-export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+export default async function DashboardPage({
+  searchParams,
+}: DashboardPageProps) {
   const { error } = await searchParams;
   const user = await getCurrentUser();
 

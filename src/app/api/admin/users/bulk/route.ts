@@ -5,11 +5,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { AuthError } from '@/types/auth';
 import { z } from 'zod';
 import { canAccessUserInOrg } from '@/lib/organization';
-import {
-  userWithRolesInclude,
-  isGranted,
-  ROLES,
-} from '@/lib/security/index';
+import { userWithRolesInclude, isGranted, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 

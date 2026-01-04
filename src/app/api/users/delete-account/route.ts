@@ -8,11 +8,7 @@ import {
   assertNotImpersonating,
   ImpersonationBlockedError,
 } from '@/lib/auth/impersonation';
-import {
-  userWithRolesInclude,
-  isGranted,
-  ROLES,
-} from '@/lib/security/index';
+import { userWithRolesInclude, isGranted, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 

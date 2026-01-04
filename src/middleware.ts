@@ -23,19 +23,20 @@ export const runtime = 'nodejs';
 // Protected routes and their required roles.
 // Sorted by path length (longest first) to ensure specific routes match before general ones.
 // E.g., /profile/security matches before /profile
-const protectedRoutes: [string, RoleName][] = [
+const protectedRoutes = [
+  ['/admin/organizations', ROLES.ADMIN],
   ['/admin/audit-logs', ROLES.ADMIN],
-  ['/profile/security', ROLES.USER],
-  ['/profile/sessions', ROLES.USER],
   ['/organization/members', ROLES.USER],
   ['/organization/invites', ROLES.USER],
+  ['/profile/security', ROLES.USER],
+  ['/profile/sessions', ROLES.USER],
   ['/api/users/profile', ROLES.USER],
   ['/organization', ROLES.USER],
   ['/dashboard', ROLES.USER],
   ['/api/users', ROLES.MODERATOR],
   ['/profile', ROLES.USER],
   ['/admin', ROLES.ADMIN],
-];
+] as const;
 
 // Define auth routes that should redirect if already logged in
 const authRoutes = [
