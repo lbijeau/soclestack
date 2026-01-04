@@ -15,7 +15,7 @@ import {
 import { User, ApiKeyPermission } from '@prisma/client';
 import {
   userWithRolesInclude,
-  getHighestRole,
+  computeLegacyRole,
   type UserWithRoles,
   type UserWithComputedRole,
 } from './security/index';
@@ -176,42 +176,10 @@ export async function getCurrentUser(): Promise<UserWithComputedRole | null> {
     // Add computed role for backward compatibility
     return {
       ...user,
-      role: getHighestRole(user),
+      role: computeLegacyRole(user),
     };
   } catch (error) {
     console.error('Error getting current user:', error);
-    return null;
-  }
-}
-
-/**
- * Get user by ID with roles included (for middleware and other contexts)
- *
- * Use this when you already have a userId from the session
- * and need the full user object with roles for authorization.
- */
-export async function getUserByIdWithRoles(
-  userId: string
-): Promise<UserWithComputedRole | null> {
-  try {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-        isActive: true,
-      },
-      include: userWithRolesInclude,
-    });
-
-    if (!user) {
-      return null;
-    }
-
-    return {
-      ...user,
-      role: getHighestRole(user),
-    };
-  } catch (error) {
-    console.error('Error getting user by ID:', error);
     return null;
   }
 }
@@ -314,7 +282,7 @@ export async function authenticateUser(
     // Return user with computed role for backward compatibility
     return {
       ...user,
-      role: getHighestRole(user),
+      role: computeLegacyRole(user),
     };
   } catch (error) {
     console.error('Authentication error:', error);
@@ -333,7 +301,7 @@ export async function createUserSession(
   sessionToken: string;
 }> {
   // Compute legacy role from userRoles
-  const role = getHighestRole(user);
+  const role = computeLegacyRole(user);
 
   // Generate tokens
   const accessToken = await generateAccessToken({
@@ -397,7 +365,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
     }
 
     // Compute legacy role from userRoles
-    const role = getHighestRole(user);
+    const role = computeLegacyRole(user);
 
     // Generate new tokens
     const newAccessToken = await generateAccessToken({

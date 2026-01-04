@@ -1,7 +1,7 @@
 /**
  * Unit tests for RBAC Security Service
  *
- * Tests role hierarchy resolution, isGranted(), hasRole(), and getHighestRole()
+ * Tests role hierarchy resolution, isGranted(), hasRole(), and computeLegacyRole()
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -17,7 +17,7 @@ vi.mock('@/lib/db', () => ({
 
 import { prisma } from '@/lib/db';
 import {
-  getHighestRole,
+  computeLegacyRole,
   clearRoleHierarchyCache,
   ROLES,
   type UserWithRoles,
@@ -63,50 +63,50 @@ describe('RBAC Security Service', () => {
     });
   });
 
-  describe('getHighestRole', () => {
+  describe('computeLegacyRole', () => {
     it('should return USER for null user', () => {
-      expect(getHighestRole(null)).toBe('USER');
+      expect(computeLegacyRole(null)).toBe('USER');
     });
 
     it('should return USER for user with no roles', () => {
       const user: UserWithRoles = { id: 'user-1', userRoles: [] };
-      expect(getHighestRole(user)).toBe('USER');
+      expect(computeLegacyRole(user)).toBe('USER');
     });
 
     it('should return USER for user with undefined userRoles', () => {
       const user: UserWithRoles = { id: 'user-1' };
-      expect(getHighestRole(user)).toBe('USER');
+      expect(computeLegacyRole(user)).toBe('USER');
     });
 
     it('should return ADMIN for user with ROLE_ADMIN', () => {
       const user = createMockUser([ROLES.ADMIN]);
-      expect(getHighestRole(user)).toBe('ADMIN');
+      expect(computeLegacyRole(user)).toBe('ADMIN');
     });
 
     it('should return MODERATOR for user with ROLE_MODERATOR', () => {
       const user = createMockUser([ROLES.MODERATOR]);
-      expect(getHighestRole(user)).toBe('MODERATOR');
+      expect(computeLegacyRole(user)).toBe('MODERATOR');
     });
 
     it('should return USER for user with only ROLE_USER', () => {
       const user = createMockUser([ROLES.USER]);
-      expect(getHighestRole(user)).toBe('USER');
+      expect(computeLegacyRole(user)).toBe('USER');
     });
 
     it('should return highest role when user has multiple roles', () => {
       // User with both MODERATOR and USER should return MODERATOR
       const user = createMockUser([ROLES.MODERATOR, ROLES.USER]);
-      expect(getHighestRole(user)).toBe('MODERATOR');
+      expect(computeLegacyRole(user)).toBe('MODERATOR');
     });
 
     it('should return ADMIN when user has all roles', () => {
       const user = createMockUser([ROLES.USER, ROLES.MODERATOR, ROLES.ADMIN]);
-      expect(getHighestRole(user)).toBe('ADMIN');
+      expect(computeLegacyRole(user)).toBe('ADMIN');
     });
 
     it('should handle unknown roles gracefully', () => {
       const user = createMockUser(['ROLE_UNKNOWN']);
-      expect(getHighestRole(user)).toBe('USER');
+      expect(computeLegacyRole(user)).toBe('USER');
     });
   });
 

@@ -6,6 +6,7 @@ import { AuthError } from '@/types/auth';
 import { z } from 'zod';
 import { canAccessUserInOrg } from '@/lib/organization';
 import {
+  computeLegacyRole,
   userWithRolesInclude,
   isGranted,
   ROLES,
@@ -120,14 +121,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Prevent actions on other admins (using isGranted for proper hierarchy check)
-    const adminChecks = await Promise.all(
-      accessibleUsers.map(async (u) => ({
-        user: u,
-        isAdmin: await isGranted(u, ROLES.ADMIN),
-      }))
+    // Prevent actions on other admins
+    const adminTargets = accessibleUsers.filter(
+      (u) => computeLegacyRole(u) === 'ADMIN'
     );
-    const adminTargets = adminChecks.filter((c) => c.isAdmin);
     if (adminTargets.length > 0) {
       return NextResponse.json(
         {

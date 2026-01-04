@@ -13,7 +13,7 @@ import {
   getImpersonationDuration,
 } from '@/lib/auth/impersonation';
 import { logAuditEvent } from '@/lib/audit';
-import { getHighestRole, userWithRolesInclude } from '@/lib/security/index';
+import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       });
 
       if (user) {
-        const userWithRole = { ...user, role: getHighestRole(user) };
+        const userWithRole = { ...user, role: computeLegacyRole(user) };
         const response: Record<string, unknown> = {
           user: userWithRole,
           authenticated: true,
@@ -138,8 +138,8 @@ export async function GET(req: NextRequest) {
               username: user.username,
               firstName: user.firstName,
               lastName: user.lastName,
-              role: getHighestRole(
-                user as Parameters<typeof getHighestRole>[0]
+              role: computeLegacyRole(
+                user as Parameters<typeof computeLegacyRole>[0]
               ),
               isActive: user.isActive,
               emailVerified: user.emailVerified,

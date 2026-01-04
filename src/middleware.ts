@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getSessionFromRequest, getUserByIdWithRoles } from '@/lib/auth';
+import { getSessionFromRequest } from '@/lib/auth';
 import { getSecurityHeaders, buildCSP } from '@/lib/security-headers';
 import {
   requiresCsrfValidation,
@@ -12,25 +12,25 @@ import {
   recordCsrfFailure,
   createCsrfRateLimitResponse,
 } from '@/lib/csrf';
-import { isGranted, ROLES, type RoleName } from '@/lib/security/index';
 
-// Use Node.js runtime for Prisma access (required for isGranted role checks)
-export const runtime = 'nodejs';
+// Note: Middleware runs in Edge Runtime. We use process.env.NODE_ENV directly
+// here instead of the env module to avoid Edge Runtime compatibility issues.
+// NODE_ENV is always available and doesn't require Zod validation.
 
-// Define protected routes and their required roles (using ROLE_ prefix for isGranted)
-const protectedRoutes: Record<string, RoleName> = {
-  '/dashboard': ROLES.USER,
-  '/profile': ROLES.USER,
-  '/profile/security': ROLES.USER,
-  '/profile/sessions': ROLES.USER,
-  '/admin': ROLES.ADMIN,
-  '/admin/audit-logs': ROLES.ADMIN,
-  '/api/users': ROLES.MODERATOR,
-  '/api/users/profile': ROLES.USER,
-  '/organization': ROLES.USER, // Org role checks happen at API level
-  '/organization/members': ROLES.USER,
-  '/organization/invites': ROLES.USER,
-};
+// Define protected routes and their required roles
+const protectedRoutes = {
+  '/dashboard': 'USER',
+  '/profile': 'USER',
+  '/profile/security': 'USER',
+  '/profile/sessions': 'USER',
+  '/admin': 'ADMIN',
+  '/admin/audit-logs': 'ADMIN',
+  '/api/users': 'MODERATOR',
+  '/api/users/profile': 'USER',
+  '/organization': 'USER', // Org role checks happen at API level
+  '/organization/members': 'USER',
+  '/organization/invites': 'USER',
+} as const;
 
 // Define auth routes that should redirect if already logged in
 const authRoutes = [
@@ -150,14 +150,9 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Check if route is protected (exact match or prefix match for nested routes)
-    let requiredRole: RoleName | undefined;
-    for (const [route, role] of Object.entries(protectedRoutes)) {
-      if (pathname === route || pathname.startsWith(route + '/')) {
-        requiredRole = role;
-        break;
-      }
-    }
+    // Check if route is protected
+    const requiredRole =
+      protectedRoutes[pathname as keyof typeof protectedRoutes];
 
     if (requiredRole) {
       // Route requires authentication
@@ -168,20 +163,14 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
       }
 
-      // For API routes, let the route handler check permissions
-      // (API routes use isGranted directly with more context)
+      // For API routes, we'll let the route handler check permissions
       if (pathname.startsWith('/api/')) {
         return response;
       }
 
-      // For page routes, check role using isGranted
-      const user = await getUserByIdWithRoles(session.userId!);
-      if (!user || !(await isGranted(user, requiredRole))) {
-        // User lacks required role - redirect to dashboard with error
-        const dashboardUrl = new URL('/dashboard', request.url);
-        dashboardUrl.searchParams.set('error', 'unauthorized');
-        return NextResponse.redirect(dashboardUrl);
-      }
+      // For page routes, check role here if needed
+      // This would require loading the user from the database
+      // For now, we'll let the page components handle role checking
     }
 
     return response;
