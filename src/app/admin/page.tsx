@@ -1,5 +1,4 @@
 import { getCurrentUser, hasRequiredRole } from '@/lib/auth';
-import { Navbar } from '@/components/navigation/navbar';
 import { UserManagement } from '@/components/admin/user-management';
 import {
   Card,
@@ -124,10 +123,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
           <div className="mb-8">
@@ -228,8 +224,7 @@ export default async function AdminPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }
 

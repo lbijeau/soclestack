@@ -1,5 +1,4 @@
 import { getCurrentUser } from '@/lib/auth';
-import { Navbar } from '@/components/navigation/navbar';
 import { ProfileForm } from '@/components/profile/profile-form';
 import { PasswordChangeForm } from '@/components/profile/password-change-form';
 import { ExportData } from '@/components/profile/export-data';
@@ -25,10 +24,7 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <main className="mx-auto max-w-4xl py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-4xl py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
           <div className="mb-8">
@@ -240,8 +236,7 @@ export default async function ProfilePage() {
             />
           </div>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }
 

@@ -1,6 +1,5 @@
 import { getCurrentUser } from '@/lib/auth';
 import { checkPasswordAge } from '@/lib/auth/password-age';
-import { Navbar } from '@/components/navigation/navbar';
 import {
   Card,
   CardContent,
@@ -46,10 +45,7 @@ export default async function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {/* Email Verification Banner */}
           {!user.emailVerified && (
@@ -292,8 +288,7 @@ export default async function DashboardPage() {
             </Card>
           </div>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }
 

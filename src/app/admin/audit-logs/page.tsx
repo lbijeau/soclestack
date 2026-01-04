@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { Navbar } from '@/components/navigation/navbar';
 import { AuditLogViewer } from '@/components/admin/audit-log-viewer';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -20,31 +19,27 @@ export default async function AuditLogsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Header */}
-          <div className="mb-8">
-            <Link
-              href="/admin"
-              className="mb-4 inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Back to Admin Panel
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
-            <p className="mt-2 text-gray-600">
-              View and export security audit events.
-            </p>
-          </div>
-
-          {/* Audit Log Viewer */}
-          <AuditLogViewer />
+    <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+      <div className="px-4 py-6 sm:px-0">
+        {/* Header */}
+        <div className="mb-8">
+          <Link
+            href="/admin"
+            className="mb-4 inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to Admin Panel
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
+          <p className="mt-2 text-gray-600">
+            View and export security audit events.
+          </p>
         </div>
-      </main>
-    </div>
+
+        {/* Audit Log Viewer */}
+        <AuditLogViewer />
+      </div>
+    </main>
   );
 }
 
