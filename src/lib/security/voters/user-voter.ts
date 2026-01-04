@@ -2,6 +2,14 @@
  * UserVoter - handles authorization for user management actions
  *
  * Supports self-access for view/edit, and role-based access for admin operations.
+ *
+ * @note This voter uses a loose type guard (any object with `id`) intentionally.
+ * The voter registry routes requests to the correct voter based on attribute prefix,
+ * so OrganizationVoter handles `organization.*` and UserVoter handles `user.*`.
+ *
+ * @todo ROLES.MODERATOR is hardcoded. When dynamic roles are implemented (see #183),
+ * this voter will need to be refactored to use a configurable permission mapping
+ * or query role capabilities from the database.
  */
 
 import type { Voter } from '../voter';
@@ -64,6 +72,7 @@ export class UserVoter implements Voter {
     }
 
     // MODERATOR can view/edit other users but not delete or manage roles
+    // TODO: Hardcoded role - see #183 for dynamic role architecture
     if (await hasRole(user, ROLES.MODERATOR)) {
       if (attribute === 'user.view' || attribute === 'user.edit') {
         return VoteResult.GRANTED;
@@ -77,9 +86,7 @@ export class UserVoter implements Voter {
    * Type guard to check if subject is a User
    */
   private isUser(subject: unknown): subject is UserSubject {
-    return (
-      typeof subject === 'object' && subject !== null && 'id' in subject
-    );
+    return typeof subject === 'object' && subject !== null && 'id' in subject;
   }
 }
 
