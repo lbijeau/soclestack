@@ -266,3 +266,7 @@ export const userWithRolesInclude = {
     },
   },
 } as const;
+
+// Re-export voter types
+export { VoteResult, VotingStrategy } from './voter';
+export type { Voter } from './voter';
