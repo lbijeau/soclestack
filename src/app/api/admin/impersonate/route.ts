@@ -49,6 +49,14 @@ export async function POST(req: NextRequest) {
 
     // Get current user with roles for authorization check
     const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
+        { status: 401 }
+      );
+    }
 
     // Must be ADMIN
     if (!(await isGranted(currentUser, ROLES.ADMIN))) {
