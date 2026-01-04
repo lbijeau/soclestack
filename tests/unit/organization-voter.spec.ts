@@ -150,6 +150,12 @@ describe('OrganizationVoter', () => {
         const result = await voter.vote(user, 'organization.members.view', org);
         expect(result).toBe(VoteResult.GRANTED);
       });
+
+      it('should grant access to OWNER', async () => {
+        const user = createUser(org.id, 'OWNER');
+        const result = await voter.vote(user, 'organization.members.view', org);
+        expect(result).toBe(VoteResult.GRANTED);
+      });
     });
 
     describe('organization.members.manage (requires ADMIN)', () => {
@@ -197,6 +203,16 @@ describe('OrganizationVoter', () => {
 
       it('should grant access to ADMIN', async () => {
         const user = createUser(org.id, 'ADMIN');
+        const result = await voter.vote(
+          user,
+          'organization.invites.manage',
+          org
+        );
+        expect(result).toBe(VoteResult.GRANTED);
+      });
+
+      it('should grant access to OWNER', async () => {
+        const user = createUser(org.id, 'OWNER');
         const result = await voter.vote(
           user,
           'organization.invites.manage',
