@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getSession, getClientIP } from '@/lib/auth';
+import { getClientIP, getCurrentUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import { AuthError } from '@/types/auth';
 import { z } from 'zod';
 import { canAccessUserInOrg } from '@/lib/organization';
-import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
+import {
+  computeLegacyRole,
+  userWithRolesInclude,
+  isGranted,
+  ROLES,
+} from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -16,9 +21,9 @@ const bulkActionSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
-
-    if (!session.isLoggedIn || !session.userId) {
+    // Get current user with roles for authorization check
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       return NextResponse.json(
         {
           error: {
@@ -31,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Only admins can perform bulk actions
-    if (session.role !== 'ADMIN') {
+    if (!(await isGranted(currentUser, ROLES.ADMIN))) {
       return NextResponse.json(
         {
           error: {
@@ -64,7 +69,7 @@ export async function POST(req: NextRequest) {
     const userAgent = req.headers.get('user-agent') || undefined;
 
     // Prevent admin from performing actions on themselves
-    if (userIds.includes(session.userId)) {
+    if (userIds.includes(currentUser.id)) {
       return NextResponse.json(
         {
           error: {
@@ -75,12 +80,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Get current user's organization
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { organizationId: true },
-    });
 
     // Get target users to verify they exist and check for other admins
     const targetUsers = await prisma.user.findMany({
@@ -107,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     // Filter to only users in the same organization (unless platform super-admin)
     const accessibleUsers = targetUsers.filter((u) =>
-      canAccessUserInOrg(currentUser?.organizationId ?? null, u.organizationId)
+      canAccessUserInOrg(currentUser.organizationId ?? null, u.organizationId)
     );
 
     if (accessibleUsers.length === 0) {
@@ -152,7 +151,7 @@ export async function POST(req: NextRequest) {
         await logAuditEvent({
           action: 'ADMIN_BULK_ACTIVATE',
           category: 'admin',
-          userId: session.userId,
+          userId: currentUser.id,
           ipAddress: clientIP,
           userAgent,
           metadata: { targetUserIds: validUserIds, count: affectedCount },
@@ -169,7 +168,7 @@ export async function POST(req: NextRequest) {
         await logAuditEvent({
           action: 'ADMIN_BULK_DEACTIVATE',
           category: 'admin',
-          userId: session.userId,
+          userId: currentUser.id,
           ipAddress: clientIP,
           userAgent,
           metadata: { targetUserIds: validUserIds, count: affectedCount },
@@ -186,7 +185,7 @@ export async function POST(req: NextRequest) {
         await logAuditEvent({
           action: 'ADMIN_BULK_DELETE',
           category: 'admin',
-          userId: session.userId,
+          userId: currentUser.id,
           ipAddress: clientIP,
           userAgent,
           metadata: {

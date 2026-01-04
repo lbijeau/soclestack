@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, getClientIP } from '@/lib/auth';
+import { getClientIP, getCurrentUser } from '@/lib/auth';
 import { deleteAllBackupCodes } from '@/lib/auth/backup-codes';
 import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
 import { canAccessUserInOrg } from '@/lib/organization';
+import { isGranted, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -16,9 +17,10 @@ export async function POST(
 
   try {
     const { id: targetUserId } = await params;
-    const session = await getSession();
 
-    if (!session.isLoggedIn || !session.userId) {
+    // Get current user with roles for authorization check
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       return NextResponse.json(
         {
           error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
@@ -28,7 +30,7 @@ export async function POST(
     }
 
     // Check admin role
-    if (session.role !== 'ADMIN') {
+    if (!(await isGranted(currentUser, ROLES.ADMIN))) {
       return NextResponse.json(
         {
           error: {
@@ -39,12 +41,6 @@ export async function POST(
         { status: 403 }
       );
     }
-
-    // Get current user's organization
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { organizationId: true },
-    });
 
     // Check target user exists
     const targetUser = await prisma.user.findUnique({
@@ -108,7 +104,7 @@ export async function POST(
       userId: targetUserId,
       ipAddress: clientIP,
       userAgent,
-      metadata: { resetBy: session.userId, targetEmail: targetUser.email },
+      metadata: { resetBy: currentUser.id, targetEmail: targetUser.email },
     });
 
     return NextResponse.json({ message: '2FA reset successfully' });

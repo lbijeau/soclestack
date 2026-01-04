@@ -3,6 +3,7 @@ import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { headers } from 'next/headers';
+import { isGranted, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -24,7 +25,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (user.role !== 'ADMIN') {
+    if (!(await isGranted(user, ROLES.ADMIN))) {
       return NextResponse.json(
         {
           error: {
