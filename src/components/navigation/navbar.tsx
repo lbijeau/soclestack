@@ -8,7 +8,7 @@ import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
 import { QuickActionsMenu } from './quick-actions-menu';
 import { User, Settings, LogOut, Users, Building2 } from 'lucide-react';
 import { apiPost } from '@/lib/api-client';
-import { hasMinimumRole, ROLES } from '@/lib/security/client';
+import { hasMinimumRole, displayRole, ROLES } from '@/lib/security/client';
 
 function Logo() {
   return (
@@ -227,7 +227,7 @@ export function Navbar() {
                 </span>
                 {user.role !== ROLES.USER && (
                   <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
-                    {user.role.replace('ROLE_', '')}
+                    {displayRole(user.role)}
                   </span>
                 )}
               </div>

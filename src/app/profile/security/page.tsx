@@ -2,7 +2,11 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { getHighestRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
+import {
+  getHighestRole,
+  userWithRolesInclude,
+  ROLES,
+} from '@/lib/security/index';
 import { SecuritySettings } from '@/components/profile/security-settings';
 import { OAuthAccounts } from '@/components/profile/oauth-accounts';
 import { ApiKeys } from '@/components/profile/api-keys';

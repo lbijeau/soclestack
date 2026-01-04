@@ -39,3 +39,13 @@ export function hasMinimumRole(
   if (!userRole) return false;
   return (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[requiredRole];
 }
+
+/**
+ * Format a role for display (removes ROLE_ prefix).
+ *
+ * @param role - The role to format (e.g., 'ROLE_ADMIN')
+ * @returns Display-friendly role name (e.g., 'ADMIN')
+ */
+export function displayRole(role: PlatformRole | string): string {
+  return role.replace('ROLE_', '');
+}

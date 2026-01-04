@@ -4,7 +4,11 @@ import { JWTPayload, RefreshTokenPayload, PlatformRole } from '@/types/auth';
 import { env } from './env';
 
 // Valid roles for runtime validation
-const VALID_ROLES: PlatformRole[] = ['ROLE_USER', 'ROLE_MODERATOR', 'ROLE_ADMIN'];
+const VALID_ROLES: PlatformRole[] = [
+  'ROLE_USER',
+  'ROLE_MODERATOR',
+  'ROLE_ADMIN',
+];
 
 function isValidAccessTokenPayload(
   payload: JoseJWTPayload

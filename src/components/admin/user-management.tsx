@@ -19,7 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { apiPatch, apiDelete, apiPost } from '@/lib/api-client';
-import { hasMinimumRole, ROLES } from '@/lib/security/client';
+import { hasMinimumRole, displayRole, ROLES } from '@/lib/security/client';
 
 interface User {
   id: string;
@@ -334,9 +334,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
             className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm"
           >
             <option value="">All roles</option>
-            <option value="ROLE_USER">User</option>
-            <option value="ROLE_MODERATOR">Moderator</option>
-            <option value="ROLE_ADMIN">Admin</option>
+            <option value="USER">User</option>
+            <option value="MODERATOR">Moderator</option>
+            <option value="ADMIN">Admin</option>
           </select>
           <select
             value={statusFilter}
@@ -364,54 +364,55 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       </form>
 
       {/* Bulk Actions Bar */}
-      {hasMinimumRole(currentUser.role, ROLES.ADMIN) && selectedUsers.size > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <div className="flex items-center gap-2">
-            <CheckSquare size={16} className="text-blue-600" />
-            <span className="text-sm font-medium text-blue-900">
-              {selectedUsers.size} user{selectedUsers.size > 1 ? 's' : ''}{' '}
-              selected
-            </span>
+      {hasMinimumRole(currentUser.role, ROLES.ADMIN) &&
+        selectedUsers.size > 0 && (
+          <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="flex items-center gap-2">
+              <CheckSquare size={16} className="text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">
+                {selectedUsers.size} user{selectedUsers.size > 1 ? 's' : ''}{' '}
+                selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleBulkAction('activate')}
+                disabled={isBulkActionLoading}
+              >
+                <UserCheck size={14} className="mr-1" />
+                Activate
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleBulkAction('deactivate')}
+                disabled={isBulkActionLoading}
+              >
+                <UserX size={14} className="mr-1" />
+                Deactivate
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleBulkAction('delete')}
+                disabled={isBulkActionLoading}
+              >
+                <Trash2 size={14} className="mr-1" />
+                Delete
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedUsers(new Set())}
+                disabled={isBulkActionLoading}
+              >
+                Clear
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleBulkAction('activate')}
-              disabled={isBulkActionLoading}
-            >
-              <UserCheck size={14} className="mr-1" />
-              Activate
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleBulkAction('deactivate')}
-              disabled={isBulkActionLoading}
-            >
-              <UserX size={14} className="mr-1" />
-              Deactivate
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => handleBulkAction('delete')}
-              disabled={isBulkActionLoading}
-            >
-              <Trash2 size={14} className="mr-1" />
-              Delete
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setSelectedUsers(new Set())}
-              disabled={isBulkActionLoading}
-            >
-              Clear
-            </Button>
-          </div>
-        </div>
-      )}
+        )}
 
       {/* Users Table */}
       <div className="overflow-hidden rounded-lg border bg-white">
@@ -485,7 +486,9 @@ export function UserManagement({ currentUser }: UserManagementProps) {
               ) : users.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={hasMinimumRole(currentUser.role, ROLES.ADMIN) ? 7 : 6}
+                    colSpan={
+                      hasMinimumRole(currentUser.role, ROLES.ADMIN) ? 7 : 6
+                    }
                     className="px-6 py-4 text-center text-gray-500"
                   >
                     No users found
@@ -556,7 +559,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                                   : 'outline'
                             }
                           >
-                            {user.role.replace('ROLE_', '')}
+                            {displayRole(user.role)}
                           </Badge>
                         )}
                       </td>

@@ -55,7 +55,9 @@ const menuItems = [
   },
 ];
 
-function getAdminItems(userRole: 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN') {
+function getAdminItems(
+  userRole: 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN'
+) {
   const baseItems = [
     { label: 'User Management', href: '/admin', icon: UserCog },
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: Activity },
