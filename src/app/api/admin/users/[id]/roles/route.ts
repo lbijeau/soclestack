@@ -174,7 +174,9 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     const directRoleIds = directRoles.map((r) => r.id);
     const inheritedRoles = await getInheritedRoles(directRoleIds);
 
-    return NextResponse.json(formatUserRolesResponse(user, directRoles, inheritedRoles));
+    return NextResponse.json(
+      formatUserRolesResponse(user, directRoles, inheritedRoles)
+    );
   } catch (error) {
     console.error('Admin user roles get error:', error);
     return NextResponse.json(
@@ -375,7 +377,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     }));
     const inheritedRoles = await getInheritedRoles(roleIds);
 
-    return NextResponse.json(formatUserRolesResponse(user, directRoles, inheritedRoles));
+    return NextResponse.json(
+      formatUserRolesResponse(user, directRoles, inheritedRoles)
+    );
   } catch (error) {
     // Handle last admin error from transaction
     if (error instanceof Error && error.message === 'LAST_ADMIN') {

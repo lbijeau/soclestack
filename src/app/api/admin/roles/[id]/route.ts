@@ -26,7 +26,10 @@ const updateRoleSchema = z.object({
 /**
  * Check if targetId is a descendant of roleId (would create circular hierarchy)
  */
-async function isDescendant(roleId: string, targetId: string): Promise<boolean> {
+async function isDescendant(
+  roleId: string,
+  targetId: string
+): Promise<boolean> {
   const visited = new Set<string>();
   let currentId: string | null = targetId;
 
@@ -264,7 +267,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           {
             error: {
               type: 'VALIDATION_ERROR',
-              message: 'Cannot set parent to a descendant role (circular hierarchy)',
+              message:
+                'Cannot set parent to a descendant role (circular hierarchy)',
             },
           },
           { status: 400 }
@@ -273,7 +277,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
 
     // Build update data
-    const updateData: { description?: string | null; parentId?: string | null } = {};
+    const updateData: {
+      description?: string | null;
+      parentId?: string | null;
+    } = {};
 
     if (description !== undefined) {
       updateData.description = description;

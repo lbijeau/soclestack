@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { isGranted, ROLES, clearRoleHierarchyCache } from '@/lib/security/index';
+import {
+  isGranted,
+  ROLES,
+  clearRoleHierarchyCache,
+} from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
 
 export const runtime = 'nodejs';

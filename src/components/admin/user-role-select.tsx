@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -41,8 +41,8 @@ interface UserRoleSelectProps {
 }
 
 /**
- * Helper to check if a role is a descendant (child) of another role.
- * Used to prevent circular role inheritance issues.
+ * Check if a role is inherited (comes from role hierarchy).
+ * Inherited roles are granted through parent-child relationships.
  */
 export function isRoleInherited(
   roleId: string,
@@ -70,6 +70,8 @@ export function UserRoleSelect({
   );
 
   const isEditingSelf = userId === currentUserId;
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -105,17 +107,74 @@ export function UserRoleSelect({
     }
   }, [userId]);
 
+  // Calculate hasChanges early so it can be used in handleClose
+  const hasChanges =
+    directRoleIds.size !== originalRoleIds.size ||
+    Array.from(directRoleIds).some((id) => !originalRoleIds.has(id));
+
+  // Close handler with unsaved changes confirmation
+  const handleClose = useCallback(() => {
+    if (hasChanges && !window.confirm('You have unsaved changes. Discard them?')) {
+      return;
+    }
+    onClose();
+  }, [hasChanges, onClose]);
+
   useEffect(() => {
     if (isOpen) {
       fetchData();
     }
   }, [isOpen, fetchData]);
 
-  // Handle keyboard events for modal
+  // Focus management and body scroll lock
+  useEffect(() => {
+    if (isOpen) {
+      // Store current active element to restore later
+      previousActiveElement.current = document.activeElement as HTMLElement;
+
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+
+      // Focus the modal container
+      setTimeout(() => {
+        modalRef.current?.focus();
+      }, 0);
+    }
+
+    return () => {
+      // Restore body scroll
+      document.body.style.overflow = '';
+
+      // Restore focus to previous element
+      previousActiveElement.current?.focus();
+    };
+  }, [isOpen]);
+
+  // Handle keyboard events for modal (Escape and focus trap)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+      if (!isOpen) return;
+
+      if (e.key === 'Escape') {
+        handleClose();
+        return;
+      }
+
+      // Focus trap: Tab key cycles through modal elements
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement?.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement?.focus();
+        }
       }
     };
 
@@ -126,7 +185,7 @@ export function UserRoleSelect({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   const handleRoleToggle = (roleId: string) => {
     const newSet = new Set(directRoleIds);
@@ -154,9 +213,7 @@ export function UserRoleSelect({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(
-          data.error?.message || 'Failed to update user roles'
-        );
+        throw new Error(data.error?.message || 'Failed to update user roles');
       }
 
       onSaved();
@@ -167,10 +224,6 @@ export function UserRoleSelect({
       setIsSaving(false);
     }
   };
-
-  const hasChanges =
-    directRoleIds.size !== originalRoleIds.size ||
-    Array.from(directRoleIds).some((id) => !originalRoleIds.has(id));
 
   if (!isOpen) return null;
 
@@ -185,13 +238,16 @@ export function UserRoleSelect({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
+      onClick={handleClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="role-select-title"
+      aria-describedby={isEditingSelf ? 'self-edit-warning' : undefined}
     >
       <div
-        className="mx-4 w-full max-w-lg rounded-lg bg-white shadow-xl"
+        ref={modalRef}
+        tabIndex={-1}
+        className="mx-4 w-full max-w-lg rounded-lg bg-white shadow-xl outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -206,7 +262,7 @@ export function UserRoleSelect({
             <p className="mt-1 text-sm text-gray-500">{userEmail}</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
             aria-label="Close"
           >
@@ -227,11 +283,13 @@ export function UserRoleSelect({
           ) : (
             <div className="space-y-4">
               {isEditingSelf && (
-                <Alert variant="warning">
-                  <Info size={16} className="mr-2 inline" />
-                  You are editing your own roles. Be careful not to lock
-                  yourself out.
-                </Alert>
+                <div id="self-edit-warning">
+                  <Alert variant="warning">
+                    <Info size={16} className="mr-2 inline" />
+                    You are editing your own roles. Be careful not to lock
+                    yourself out.
+                  </Alert>
+                </div>
               )}
 
               {/* Roles list */}
@@ -241,13 +299,18 @@ export function UserRoleSelect({
                 </legend>
                 <div className="space-y-2">
                   {allRoles.map((role) => {
-                    const isInherited = isRoleInherited(role.id, inheritedRoles);
+                    const isInherited = isRoleInherited(
+                      role.id,
+                      inheritedRoles
+                    );
                     const isSelected = directRoleIds.has(role.id);
                     const isAdminRole = role.name === 'ROLE_ADMIN';
 
                     // Disable admin checkbox if editing self and would remove admin role
                     const isDisabledByProtection =
-                      isEditingSelf && isAdminRole && originalRoleIds.has(role.id);
+                      isEditingSelf &&
+                      isAdminRole &&
+                      originalRoleIds.has(role.id);
 
                     return (
                       <label
@@ -322,7 +385,7 @@ export function UserRoleSelect({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
-          <Button variant="ghost" onClick={onClose} disabled={isSaving}>
+          <Button variant="ghost" onClick={handleClose} disabled={isSaving}>
             Cancel
           </Button>
           <Button

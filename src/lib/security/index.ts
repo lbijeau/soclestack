@@ -95,7 +95,12 @@ export async function isGranted(
     // Still need to check supports() for subject validation
     if (await voter.supports(attribute, subject)) {
       const result = await voter.vote(user, attribute, subject);
-      log.debug('voter decision', { voterName, attribute, result, userId: user.id });
+      log.debug('voter decision', {
+        voterName,
+        attribute,
+        result,
+        userId: user.id,
+      });
       if (result === VoteResult.GRANTED) return true;
       if (result === VoteResult.DENIED) return false;
     }
@@ -111,7 +116,12 @@ export async function isGranted(
       // Cache this attribute -> voter mapping
       voterCache.set(attribute, i);
       const result = await voter.vote(user, attribute, subject);
-      log.debug('voter decision', { voterName, attribute, result, userId: user.id });
+      log.debug('voter decision', {
+        voterName,
+        attribute,
+        result,
+        userId: user.id,
+      });
       if (result === VoteResult.GRANTED) {
         return true;
       }
