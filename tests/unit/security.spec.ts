@@ -497,11 +497,7 @@ describe('PlatformRole Runtime Type Guard', () => {
 describe('JWT Role Pattern Validation', () => {
   /**
    * Tests for arbitrary role support in JWT tokens.
-<<<<<<< HEAD
-   * Role pattern: ROLE_[A-Z][A-Z0-9_]+ (minimum 2 chars after ROLE_)
-=======
    * Role pattern: ROLE_[A-Z][A-Z0-9_]+ (minimum 2 chars after ROLE_ prefix)
->>>>>>> a95ddf9 (fix: address code review feedback on PR #222)
    */
 
   describe('valid role patterns', () => {
@@ -514,13 +510,8 @@ describe('JWT Role Pattern Validation', () => {
       'ROLE_SUPPORT_TIER_1',
       'ROLE_API_READ_ONLY',
       'ROLE_ORG_OWNER',
-<<<<<<< HEAD
-      'ROLE_A1', // Minimum 2 chars after ROLE_
-      'ROLE_AB',
-=======
       'ROLE_AB', // Minimum valid: 2 chars after ROLE_
       'ROLE_A1',
->>>>>>> a95ddf9 (fix: address code review feedback on PR #222)
       'ROLE_TEST123',
       'ROLE_VERY_LONG_ROLE_NAME_WITH_MANY_UNDERSCORES_AND_NUMBERS_12345',
     ];
