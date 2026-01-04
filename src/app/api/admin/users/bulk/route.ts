@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getSession, getClientIP } from '@/lib/auth';
+import { getSession, getClientIP, getCurrentUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import { AuthError } from '@/types/auth';
 import { z } from 'zod';
 import { canAccessUserInOrg } from '@/lib/organization';
-import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
+import {
+  computeLegacyRole,
+  userWithRolesInclude,
+  isGranted,
+  ROLES,
+} from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -30,8 +35,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get current user with roles for authorization check
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'Not authenticated',
+          } as AuthError,
+        },
+        { status: 401 }
+      );
+    }
+
     // Only admins can perform bulk actions
-    if (session.role !== 'ADMIN') {
+    if (!(await isGranted(currentUser, ROLES.ADMIN))) {
       return NextResponse.json(
         {
           error: {
@@ -76,12 +95,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get current user's organization
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { organizationId: true },
-    });
-
     // Get target users to verify they exist and check for other admins
     const targetUsers = await prisma.user.findMany({
       where: { id: { in: userIds } },
@@ -107,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     // Filter to only users in the same organization (unless platform super-admin)
     const accessibleUsers = targetUsers.filter((u) =>
-      canAccessUserInOrg(currentUser?.organizationId ?? null, u.organizationId)
+      canAccessUserInOrg(currentUser.organizationId ?? null, u.organizationId)
     );
 
     if (accessibleUsers.length === 0) {

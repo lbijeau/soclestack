@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { isGranted, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (user.role !== 'ADMIN') {
+    if (!(await isGranted(user, ROLES.ADMIN))) {
       return NextResponse.json(
         {
           error: {

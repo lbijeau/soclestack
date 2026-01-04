@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, getClientIP } from '@/lib/auth';
+import { getSession, getClientIP, getCurrentUser } from '@/lib/auth';
 import { deleteAllBackupCodes } from '@/lib/auth/backup-codes';
 import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
 import { canAccessUserInOrg } from '@/lib/organization';
+import { isGranted, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -27,8 +28,19 @@ export async function POST(
       );
     }
 
+    // Get current user with roles for authorization check
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
+        { status: 401 }
+      );
+    }
+
     // Check admin role
-    if (session.role !== 'ADMIN') {
+    if (!(await isGranted(currentUser, ROLES.ADMIN))) {
       return NextResponse.json(
         {
           error: {
@@ -39,12 +51,6 @@ export async function POST(
         { status: 403 }
       );
     }
-
-    // Get current user's organization
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { organizationId: true },
-    });
 
     // Check target user exists
     const targetUser = await prisma.user.findUnique({

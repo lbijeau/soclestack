@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { AuditAction, AuditCategory } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
 import { hasOrgRole } from '@/lib/organization';
-import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
+import { isGranted, ROLES, userWithRolesInclude } from '@/lib/security/index';
 import log from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -122,8 +122,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const userRole = computeLegacyRole(user);
-
     // Parse query parameters
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format') || 'csv';
@@ -162,7 +160,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Authorization and org scoping
-    if (userRole === 'ADMIN') {
+    if (await isGranted(user, ROLES.ADMIN)) {
       if (orgScope && orgScope !== 'all') {
         where.user = { ...where.user, organizationId: orgScope };
       }

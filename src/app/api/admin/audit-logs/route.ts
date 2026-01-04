@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { getAuditLogs, AuditAction, AuditCategory } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
 import { hasOrgRole } from '@/lib/organization';
-import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
+import { isGranted, ROLES, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -53,8 +53,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const userRole = computeLegacyRole(user);
-
     // Parse query parameters
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category') as AuditCategory | null;
@@ -84,7 +82,7 @@ export async function GET(req: NextRequest) {
     // Determine organization scoping
     // System ADMIN can see all logs or filter by any org
     // Organization ADMIN can only see logs from their organization
-    if (userRole === 'ADMIN') {
+    if (await isGranted(user, ROLES.ADMIN)) {
       // System admin - can see all or filter by specific org
       if (orgScope && orgScope !== 'all') {
         filters.organizationId = orgScope;
