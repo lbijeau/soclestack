@@ -21,6 +21,7 @@ import {
 interface QuickActionsMenuProps {
   userRole: 'USER' | 'MODERATOR' | 'ADMIN';
   organizationId?: string;
+  organizationRole?: 'OWNER' | 'ADMIN' | 'MEMBER';
 }
 
 const menuItems = [
@@ -63,24 +64,31 @@ const adminItems = [
   },
 ];
 
-const organizationItems = [
-  {
-    group: 'Organization',
-    items: [
-      {
-        label: 'Organization Settings',
-        href: '/organization',
-        icon: Building2,
-      },
-      { label: 'Members', href: '/organization/members', icon: Users },
-      { label: 'Invitations', href: '/organization/invites', icon: Mail },
-    ],
-  },
-];
+function getOrganizationItems(organizationRole?: 'OWNER' | 'ADMIN' | 'MEMBER') {
+  const canManageInvites = organizationRole === 'OWNER' || organizationRole === 'ADMIN';
+
+  return [
+    {
+      group: 'Organization',
+      items: [
+        {
+          label: 'Organization Settings',
+          href: '/organization',
+          icon: Building2,
+        },
+        { label: 'Members', href: '/organization/members', icon: Users },
+        ...(canManageInvites
+          ? [{ label: 'Invitations', href: '/organization/invites', icon: Mail }]
+          : []),
+      ],
+    },
+  ];
+}
 
 export function QuickActionsMenu({
   userRole,
   organizationId,
+  organizationRole,
 }: QuickActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -98,7 +106,7 @@ export function QuickActionsMenu({
 
   const allMenuItems = [
     ...menuItems,
-    ...(organizationId ? organizationItems : []),
+    ...(organizationId ? getOrganizationItems(organizationRole) : []),
     ...(userRole === 'ADMIN' || userRole === 'MODERATOR' ? adminItems : []),
   ];
 

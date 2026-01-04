@@ -30,6 +30,7 @@ interface User {
   lastName: string;
   role: 'USER' | 'MODERATOR' | 'ADMIN';
   organizationId?: string;
+  organizationRole?: 'OWNER' | 'ADMIN' | 'MEMBER';
 }
 
 interface Impersonation {
@@ -212,6 +213,7 @@ export function Navbar() {
                 <QuickActionsMenu
                   userRole={user.role}
                   organizationId={user.organizationId}
+                  organizationRole={user.organizationRole}
                 />
               </div>
             </div>
