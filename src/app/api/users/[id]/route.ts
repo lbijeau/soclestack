@@ -7,6 +7,7 @@ import {
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { canAccessUserInOrg } from '@/lib/organization';
+import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -55,13 +56,13 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         username: true,
         firstName: true,
         lastName: true,
-        role: true,
         isActive: true,
         emailVerified: true,
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
         organizationId: true,
+        ...userWithRolesInclude,
         sessions: {
           where: { isActive: true },
           select: {
@@ -104,7 +105,13 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    return NextResponse.json({ user });
+    // Add computed role for backward compatibility
+    const userWithRole = {
+      ...user,
+      role: computeLegacyRole(user),
+    };
+
+    return NextResponse.json({ user: userWithRole });
   } catch (error) {
     console.error('Get user error:', error);
     return NextResponse.json(
@@ -141,7 +148,12 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     // Find target user
     const targetUser = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true, email: true, organizationId: true },
+      select: {
+        id: true,
+        email: true,
+        organizationId: true,
+        ...userWithRolesInclude,
+      },
     });
 
     if (!targetUser) {
@@ -213,27 +225,62 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         );
       }
 
-      const updatedUser = await prisma.user.update({
-        where: { id },
-        data: { role: validationResult.data.role },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          isActive: true,
-          emailVerified: true,
-          lastLoginAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
+      // Find the target role
+      const targetRole = await prisma.role.findUnique({
+        where: { name: `ROLE_${validationResult.data.role}` },
+      });
+
+      if (!targetRole) {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'NOT_FOUND',
+              message: 'Role not found',
+            } as AuthError,
+          },
+          { status: 404 }
+        );
+      }
+
+      // Update user role in a transaction
+      const updatedUser = await prisma.$transaction(async (tx) => {
+        // Remove existing roles
+        await tx.userRole.deleteMany({
+          where: { userId: id },
+        });
+
+        // Add new role
+        await tx.userRole.create({
+          data: {
+            userId: id,
+            roleId: targetRole.id,
+          },
+        });
+
+        // Return updated user
+        return tx.user.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            isActive: true,
+            emailVerified: true,
+            lastLoginAt: true,
+            createdAt: true,
+            updatedAt: true,
+            ...userWithRolesInclude,
+          },
+        });
       });
 
       return NextResponse.json({
         message: 'User role updated successfully',
-        user: updatedUser,
+        user: updatedUser
+          ? { ...updatedUser, role: computeLegacyRole(updatedUser) }
+          : null,
       });
     }
 
@@ -288,12 +335,12 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           username: true,
           firstName: true,
           lastName: true,
-          role: true,
           isActive: true,
           emailVerified: true,
           lastLoginAt: true,
           createdAt: true,
           updatedAt: true,
+          ...userWithRolesInclude,
         },
       });
 
@@ -306,7 +353,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
       return NextResponse.json({
         message: 'User status updated successfully',
-        user: updatedUser,
+        user: { ...updatedUser, role: computeLegacyRole(updatedUser) },
       });
     }
 

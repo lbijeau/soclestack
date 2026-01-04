@@ -101,7 +101,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     console.error('Admin organization detail error:', error);
     return NextResponse.json(
       {
-        error: { type: 'SERVER_ERROR', message: 'Failed to fetch organization' },
+        error: {
+          type: 'SERVER_ERROR',
+          message: 'Failed to fetch organization',
+        },
       },
       { status: 500 }
     );
@@ -241,7 +244,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     console.error('Admin organization transfer error:', error);
     return NextResponse.json(
       {
-        error: { type: 'SERVER_ERROR', message: 'Failed to transfer ownership' },
+        error: {
+          type: 'SERVER_ERROR',
+          message: 'Failed to transfer ownership',
+        },
       },
       { status: 500 }
     );

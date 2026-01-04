@@ -1,25 +1,24 @@
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify, JWTPayload as JoseJWTPayload } from 'jose';
-import { JWTPayload, RefreshTokenPayload } from '@/types/auth';
-import { Role } from '@prisma/client';
+import { JWTPayload, RefreshTokenPayload, LegacyRole } from '@/types/auth';
 import { env } from './env';
 
 // Valid roles for runtime validation
-const VALID_ROLES: Role[] = ['USER', 'MODERATOR', 'ADMIN'];
+const VALID_ROLES: LegacyRole[] = ['USER', 'MODERATOR', 'ADMIN'];
 
 function isValidAccessTokenPayload(
   payload: JoseJWTPayload
 ): payload is JoseJWTPayload & {
   sub: string;
   email: string;
-  role: Role;
+  role: LegacyRole;
   jti: string;
 } {
   return (
     typeof payload.sub === 'string' &&
     typeof payload.email === 'string' &&
     typeof payload.role === 'string' &&
-    VALID_ROLES.includes(payload.role as Role) &&
+    VALID_ROLES.includes(payload.role as LegacyRole) &&
     typeof payload.jti === 'string'
   );
 }
@@ -111,7 +110,7 @@ export async function verifyPassword(
 export async function generateAccessToken(payload: {
   userId: string;
   email: string;
-  role: Role;
+  role: LegacyRole;
 }): Promise<string> {
   const crypto = await getCrypto();
 

@@ -52,7 +52,9 @@ interface OrganizationDetailProps {
   organizationId: string;
 }
 
-export function OrganizationDetail({ organizationId }: OrganizationDetailProps) {
+export function OrganizationDetail({
+  organizationId,
+}: OrganizationDetailProps) {
   const router = useRouter();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +70,9 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
   const fetchOrganization = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/admin/organizations/${organizationId}`);
+      const response = await fetch(
+        `/api/admin/organizations/${organizationId}`
+      );
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -99,11 +103,14 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
     setSuccess('');
 
     try {
-      const response = await fetch(`/api/admin/organizations/${organizationId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newOwnerId: transferTarget }),
-      });
+      const response = await fetch(
+        `/api/admin/organizations/${organizationId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newOwnerId: transferTarget }),
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -158,9 +165,12 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
     setError('');
 
     try {
-      const response = await fetch(`/api/admin/organizations/${organizationId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/admin/organizations/${organizationId}`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -226,7 +236,9 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
   }
 
   const currentOwner = organization.members.find((m) => m.role === 'OWNER');
-  const nonOwnerMembers = organization.members.filter((m) => m.role !== 'OWNER');
+  const nonOwnerMembers = organization.members.filter(
+    (m) => m.role !== 'OWNER'
+  );
 
   return (
     <div className="space-y-6">

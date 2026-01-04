@@ -12,7 +12,13 @@ import {
   generateSessionToken,
   hashSessionToken,
 } from './security';
-import { User, ApiKeyPermission, Role } from '@prisma/client';
+import { User, ApiKeyPermission } from '@prisma/client';
+import {
+  userWithRolesInclude,
+  computeLegacyRole,
+  type UserWithRoles,
+  type UserWithComputedRole,
+} from './security/index';
 // Note: api-keys is dynamically imported in getAuthContext to avoid
 // pulling Node.js crypto into Edge Runtime (middleware)
 import { log } from './logger';
@@ -89,7 +95,7 @@ interface EdgeMockResponse {
 export const EMPTY_SESSION: SessionData = {
   userId: '',
   email: '',
-  role: Role.USER,
+  role: 'USER',
   isLoggedIn: false,
 };
 
@@ -139,8 +145,8 @@ export async function getSessionFromRequest(
   }
 }
 
-// Get current user from session
-export async function getCurrentUser(): Promise<User | null> {
+// Get current user from session (with roles for RBAC)
+export async function getCurrentUser(): Promise<UserWithComputedRole | null> {
   try {
     const session = await getSession();
 
@@ -153,6 +159,7 @@ export async function getCurrentUser(): Promise<User | null> {
         id: session.userId,
         isActive: true,
       },
+      include: userWithRolesInclude,
     });
 
     // If session claims logged in but user doesn't exist (e.g., DB was reset),
@@ -163,9 +170,14 @@ export async function getCurrentUser(): Promise<User | null> {
       console.warn(
         `Stale session detected: userId ${session.userId} not found in database`
       );
+      return null;
     }
 
-    return user;
+    // Add computed role for backward compatibility
+    return {
+      ...user,
+      role: computeLegacyRole(user),
+    };
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
@@ -238,12 +250,13 @@ export async function extendSession(): Promise<boolean> {
 export async function authenticateUser(
   email: string,
   password: string
-): Promise<User | null> {
+): Promise<UserWithComputedRole | null> {
   try {
     const { verifyPassword } = await import('./security');
 
     const user = await prisma.user.findUnique({
       where: { email },
+      include: userWithRolesInclude,
     });
 
     if (!user || !user.isActive) {
@@ -266,7 +279,11 @@ export async function authenticateUser(
       data: { lastLoginAt: new Date() },
     });
 
-    return user;
+    // Return user with computed role for backward compatibility
+    return {
+      ...user,
+      role: computeLegacyRole(user),
+    };
   } catch (error) {
     console.error('Authentication error:', error);
     return null;
@@ -275,7 +292,7 @@ export async function authenticateUser(
 
 // Create user session
 export async function createUserSession(
-  user: User,
+  user: UserWithRoles & { id: string; email: string },
   ipAddress?: string,
   userAgent?: string
 ): Promise<{
@@ -283,11 +300,14 @@ export async function createUserSession(
   refreshToken: string;
   sessionToken: string;
 }> {
+  // Compute legacy role from userRoles
+  const role = computeLegacyRole(user);
+
   // Generate tokens
   const accessToken = await generateAccessToken({
     userId: user.id,
     email: user.email,
-    role: user.role,
+    role,
   });
 
   const refreshToken = await generateRefreshToken({
@@ -312,7 +332,7 @@ export async function createUserSession(
   const session = await getSession();
   session.userId = user.id;
   session.email = user.email;
-  session.role = user.role;
+  session.role = role;
   session.isLoggedIn = true;
   session.sessionCreatedAt = Date.now();
   await session.save();
@@ -337,17 +357,21 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
         id: payload.sub,
         isActive: true,
       },
+      include: userWithRolesInclude,
     });
 
     if (!user) {
       return null;
     }
 
+    // Compute legacy role from userRoles
+    const role = computeLegacyRole(user);
+
     // Generate new tokens
     const newAccessToken = await generateAccessToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role,
     });
 
     const newRefreshToken = await generateRefreshToken({
@@ -606,7 +630,7 @@ export interface ApiKeyAuthContext {
 
 export interface SessionAuthContext {
   type: 'session';
-  user: User;
+  user: UserWithComputedRole;
 }
 
 export type AuthContext = ApiKeyAuthContext | SessionAuthContext;

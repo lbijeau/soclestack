@@ -13,6 +13,7 @@ import {
   type OAuthProvider,
 } from '@/lib/auth/oauth';
 import { generateCsrfToken, CSRF_CONFIG } from '@/lib/csrf';
+import { userWithRolesInclude } from '@/lib/security/index';
 
 export async function GET(
   request: NextRequest,
@@ -107,7 +108,11 @@ export async function GET(
         providerAccountId: profile.id,
       },
     },
-    include: { user: true },
+    include: {
+      user: {
+        include: userWithRolesInclude,
+      },
+    },
   });
 
   // Case 1: Linking OAuth to existing account from profile
@@ -253,8 +258,14 @@ async function handleExistingOAuthLogin(
     isActive: boolean;
     twoFactorEnabled: boolean;
     email: string;
-    role: string;
     organizationId: string | null;
+    userRoles: Array<{
+      role: {
+        id: string;
+        name: string;
+        parentId: string | null;
+      };
+    }>;
   },
   provider: OAuthProvider,
   ipAddress: string,

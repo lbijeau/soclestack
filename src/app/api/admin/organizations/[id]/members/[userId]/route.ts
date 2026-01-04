@@ -79,7 +79,8 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         {
           error: {
             type: 'VALIDATION_ERROR',
-            message: 'Cannot remove organization owner. Transfer ownership first.',
+            message:
+              'Cannot remove organization owner. Transfer ownership first.',
           },
         },
         { status: 400 }

@@ -1,4 +1,15 @@
-import { User, Role, OrganizationRole } from '@prisma/client';
+import { User, OrganizationRole } from '@prisma/client';
+
+/**
+ * Platform role names (stored in roles table)
+ * ROLE_ADMIN inherits from ROLE_MODERATOR inherits from ROLE_USER
+ */
+export type PlatformRole = 'ROLE_USER' | 'ROLE_MODERATOR' | 'ROLE_ADMIN';
+
+/**
+ * Legacy role type for backward compatibility (without ROLE_ prefix)
+ */
+export type LegacyRole = 'USER' | 'MODERATOR' | 'ADMIN';
 
 export interface LoginCredentials {
   email: string;
@@ -16,7 +27,7 @@ export interface RegisterData {
 export interface JWTPayload {
   sub: string; // user id
   email: string;
-  role: Role;
+  role: LegacyRole;
   iat: number;
   exp: number;
   jti: string; // unique token identifier
@@ -53,7 +64,7 @@ export interface AuthError {
 export interface ImpersonationData {
   originalUserId: string;
   originalEmail: string;
-  originalRole: Role;
+  originalRole: LegacyRole;
   startedAt: number; // Unix timestamp
 }
 
@@ -67,7 +78,7 @@ export interface OrganizationData {
 export interface SessionData {
   userId: string;
   email: string;
-  role: Role;
+  role: LegacyRole;
   isLoggedIn: boolean;
   sessionCreatedAt?: number; // Unix timestamp for session expiry tracking
   impersonating?: ImpersonationData;

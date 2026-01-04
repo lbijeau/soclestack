@@ -4,6 +4,7 @@ import { userListParamsSchema } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { Prisma } from '@prisma/client';
+import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -75,7 +76,13 @@ export async function GET(req: NextRequest) {
           { lastName: { contains: search } },
         ],
       }),
-      ...(role && { role }),
+      ...(role && {
+        userRoles: {
+          some: {
+            role: { name: `ROLE_${role}` },
+          },
+        },
+      }),
       ...(isActive !== undefined && { isActive }),
       ...(locked && { lockedUntil: { gt: new Date() } }),
     };
@@ -92,22 +99,28 @@ export async function GET(req: NextRequest) {
         username: true,
         firstName: true,
         lastName: true,
-        role: true,
         isActive: true,
         emailVerified: true,
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
+        ...userWithRolesInclude,
       },
       orderBy: { [sortBy]: sortOrder },
       skip: (page - 1) * limit,
       take: limit,
     });
 
+    // Add computed role for backward compatibility
+    const usersWithRoles = users.map((u) => ({
+      ...u,
+      role: computeLegacyRole(u),
+    }));
+
     const totalPages = Math.ceil(totalUsers / limit);
 
     return NextResponse.json({
-      users,
+      users: usersWithRoles,
       pagination: {
         page,
         limit,

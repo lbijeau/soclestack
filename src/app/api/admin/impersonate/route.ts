@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
 import { canAccessUserInOrg } from '@/lib/organization';
+import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -95,9 +96,9 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         email: true,
-        role: true,
         isActive: true,
         organizationId: true,
+        ...userWithRolesInclude,
       },
     });
 
@@ -107,6 +108,8 @@ export async function POST(req: NextRequest) {
         { status: 404 }
       );
     }
+
+    const targetUserRole = computeLegacyRole(targetUser);
 
     // Check organization-level access
     if (
@@ -134,7 +137,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Cannot impersonate another ADMIN
-    if (targetUser.role === 'ADMIN') {
+    if (targetUserRole === 'ADMIN') {
       return NextResponse.json(
         {
           error: {
@@ -160,7 +163,7 @@ export async function POST(req: NextRequest) {
 
     session.userId = targetUser.id;
     session.email = targetUser.email;
-    session.role = targetUser.role;
+    session.role = targetUserRole;
 
     await session.save();
 
@@ -184,7 +187,7 @@ export async function POST(req: NextRequest) {
       user: {
         id: targetUser.id,
         email: targetUser.email,
-        role: targetUser.role,
+        role: targetUserRole,
       },
     });
   } catch (error) {

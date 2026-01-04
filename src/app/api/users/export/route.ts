@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { AuthError } from '@/types/auth';
+import { userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -44,7 +45,6 @@ export async function GET() {
         username: true,
         firstName: true,
         lastName: true,
-        role: true,
         isActive: true,
         emailVerified: true,
         emailVerifiedAt: true,
@@ -58,6 +58,7 @@ export async function GET() {
         notify2FAChange: true,
         organizationId: true,
         organizationRole: true,
+        ...userWithRolesInclude,
         organization: {
           select: {
             id: true,

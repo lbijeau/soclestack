@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' } },
+        {
+          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
+        },
         { status: 401 }
       );
     }
@@ -18,7 +20,10 @@ export async function GET(req: NextRequest) {
     if (user.role !== 'ADMIN') {
       return NextResponse.json(
         {
-          error: { type: 'AUTHORIZATION_ERROR', message: 'Admin access required' },
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Admin access required',
+          },
         },
         { status: 403 }
       );

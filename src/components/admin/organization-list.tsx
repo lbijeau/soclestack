@@ -50,34 +50,37 @@ export function OrganizationList() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchOrganizations = useCallback(async (searchTerm?: string) => {
-    try {
-      setIsLoading(true);
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-        sortBy,
-        sortOrder,
-      });
-      if (searchTerm !== undefined ? searchTerm : search) {
-        params.set('search', searchTerm !== undefined ? searchTerm : search);
+  const fetchOrganizations = useCallback(
+    async (searchTerm?: string) => {
+      try {
+        setIsLoading(true);
+        const params = new URLSearchParams({
+          page: pagination.page.toString(),
+          limit: pagination.limit.toString(),
+          sortBy,
+          sortOrder,
+        });
+        if (searchTerm !== undefined ? searchTerm : search) {
+          params.set('search', searchTerm !== undefined ? searchTerm : search);
+        }
+
+        const response = await fetch(`/api/admin/organizations?${params}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch organizations');
+        }
+
+        const data = await response.json();
+        setOrganizations(data.organizations);
+        setPagination(data.pagination);
+      } catch {
+        setError('Failed to load organizations');
+      } finally {
+        setIsLoading(false);
       }
-
-      const response = await fetch(`/api/admin/organizations?${params}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch organizations');
-      }
-
-      const data = await response.json();
-      setOrganizations(data.organizations);
-      setPagination(data.pagination);
-    } catch {
-      setError('Failed to load organizations');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pagination.page, pagination.limit, sortBy, sortOrder, search]);
+    },
+    [pagination.page, pagination.limit, sortBy, sortOrder, search]
+  );
 
   useEffect(() => {
     fetchOrganizations();
@@ -212,7 +215,9 @@ export function OrganizationList() {
                   <tr
                     key={org.id}
                     className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => router.push(`/admin/organizations/${org.id}`)}
+                    onClick={() =>
+                      router.push(`/admin/organizations/${org.id}`)
+                    }
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -260,7 +265,10 @@ export function OrganizationList() {
                     variant="ghost"
                     disabled={pagination.page <= 1}
                     onClick={() =>
-                      setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: prev.page - 1,
+                      }))
                     }
                   >
                     <ChevronLeft size={16} />
@@ -272,7 +280,10 @@ export function OrganizationList() {
                     variant="ghost"
                     disabled={pagination.page >= pagination.totalPages}
                     onClick={() =>
-                      setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: prev.page + 1,
+                      }))
                     }
                   >
                     <ChevronRight size={16} />
