@@ -20,6 +20,21 @@ import {
 } from 'lucide-react';
 import { apiPatch, apiDelete, apiPost } from '@/lib/api-client';
 
+// Role hierarchy for client-side permission checks (mirrors server-side isGranted)
+const ROLE_HIERARCHY: Record<string, number> = {
+  USER: 1,
+  MODERATOR: 2,
+  ADMIN: 3,
+};
+
+function hasMinimumRole(
+  userRole: string | undefined,
+  requiredRole: 'USER' | 'MODERATOR' | 'ADMIN'
+): boolean {
+  if (!userRole) return false;
+  return (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[requiredRole];
+}
+
 interface User {
   id: string;
   email: string;
@@ -363,7 +378,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       </form>
 
       {/* Bulk Actions Bar */}
-      {currentUser.role === 'ADMIN' && selectedUsers.size > 0 && (
+      {hasMinimumRole(currentUser.role, 'ADMIN') && selectedUsers.size > 0 && (
         <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
           <div className="flex items-center gap-2">
             <CheckSquare size={16} className="text-blue-600" />
@@ -418,7 +433,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {currentUser.role === 'ADMIN' && (
+                {hasMinimumRole(currentUser.role, 'ADMIN') && (
                   <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
@@ -456,7 +471,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {currentUser.role === 'ADMIN' && (
+                    {hasMinimumRole(currentUser.role, 'ADMIN') && (
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="h-4 w-4 animate-pulse rounded bg-gray-200" />
                       </td>
@@ -484,7 +499,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
               ) : users.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={currentUser.role === 'ADMIN' ? 7 : 6}
+                    colSpan={hasMinimumRole(currentUser.role, 'ADMIN') ? 7 : 6}
                     className="px-6 py-4 text-center text-gray-500"
                   >
                     No users found
@@ -499,7 +514,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                       key={user.id}
                       className={`${user.id === currentUser.id ? 'bg-blue-50' : ''} ${selectedUsers.has(user.id) ? 'bg-blue-50' : ''}`}
                     >
-                      {currentUser.role === 'ADMIN' && (
+                      {hasMinimumRole(currentUser.role, 'ADMIN') && (
                         <td className="px-4 py-4 whitespace-nowrap">
                           {isSelectable ? (
                             <input
@@ -526,7 +541,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {currentUser.role === 'ADMIN' &&
+                        {hasMinimumRole(currentUser.role, 'ADMIN') &&
                         user.id !== currentUser.id ? (
                           <div className="flex items-center gap-2">
                             <select
@@ -590,7 +605,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                         {formatDate(user.createdAt)}
                       </td>
                       <td className="space-x-2 px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
-                        {currentUser.role === 'ADMIN' &&
+                        {hasMinimumRole(currentUser.role, 'ADMIN') &&
                           user.id !== currentUser.id && (
                             <>
                               <Button

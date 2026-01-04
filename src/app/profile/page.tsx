@@ -1,4 +1,5 @@
 import { getCurrentUser } from '@/lib/auth';
+import { isGranted, ROLES } from '@/lib/security/index';
 import { ProfileForm } from '@/components/profile/profile-form';
 import { PasswordChangeForm } from '@/components/profile/password-change-form';
 import { ExportData } from '@/components/profile/export-data';
@@ -22,6 +23,9 @@ export default async function ProfilePage() {
   if (!user) {
     redirect('/login?returnUrl=/profile');
   }
+
+  // Check if user is admin for admin-only features
+  const isAdmin = await isGranted(user, ROLES.ADMIN);
 
   return (
     <main className="mx-auto max-w-4xl py-6 sm:px-6 lg:px-8">
@@ -224,7 +228,7 @@ export default async function ProfilePage() {
 
           {/* Delete Account */}
           <DeleteAccount
-            isAdmin={user.role === 'ADMIN'}
+            isAdmin={isAdmin}
             isOrgOwner={user.organizationRole === 'OWNER'}
             hasPassword={!!user.password}
           />

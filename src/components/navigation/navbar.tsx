@@ -9,6 +9,21 @@ import { QuickActionsMenu } from './quick-actions-menu';
 import { User, Settings, LogOut, Users, Building2 } from 'lucide-react';
 import { apiPost } from '@/lib/api-client';
 
+// Role hierarchy for client-side permission checks (mirrors server-side isGranted)
+const ROLE_HIERARCHY: Record<string, number> = {
+  USER: 1,
+  MODERATOR: 2,
+  ADMIN: 3,
+};
+
+function hasMinimumRole(
+  userRole: string | undefined,
+  requiredRole: 'USER' | 'MODERATOR' | 'ADMIN'
+): boolean {
+  if (!userRole) return false;
+  return (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[requiredRole];
+}
+
 function Logo() {
   return (
     <Image
@@ -201,7 +216,7 @@ export function Navbar() {
                     <span>Organization</span>
                   </Link>
                 )}
-                {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
+                {hasMinimumRole(user.role, 'MODERATOR') && (
                   <Link
                     href="/admin"
                     className="flex items-center space-x-1 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
