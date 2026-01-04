@@ -31,14 +31,13 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         { status: auth.status }
       );
     }
-    const currentUser = auth.user;
 
     const { id } = await params;
 
     // Users can view their own profile, admins/moderators can view profiles in their org
     if (
-      currentUser.id !== id &&
-      !hasRequiredRole(currentUser.role, 'MODERATOR')
+      auth.user.id !== id &&
+      !hasRequiredRole(auth.user.role, 'MODERATOR')
     ) {
       return NextResponse.json(
         {
@@ -94,8 +93,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     // Check organization-level access for non-self requests
     if (
-      currentUser.id !== id &&
-      !canAccessUserInOrg(currentUser.organizationId, user.organizationId)
+      auth.user.id !== id &&
+      !canAccessUserInOrg(auth.user.organizationId, user.organizationId)
     ) {
       return NextResponse.json(
         {
@@ -138,7 +137,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         { status: auth.status }
       );
     }
-    const currentUser = auth.user;
 
     const { id } = await params;
     const body = await req.json();
@@ -163,7 +161,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     // Check organization-level access
     if (
-      !canAccessUserInOrg(currentUser.organizationId, targetUser.organizationId)
+      !canAccessUserInOrg(auth.user.organizationId, targetUser.organizationId)
     ) {
       return NextResponse.json(
         {
@@ -179,7 +177,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     // Check if trying to update role
     if ('role' in body) {
       // Only admins can change roles
-      if (!hasRequiredRole(currentUser.role, 'ADMIN')) {
+      if (!hasRequiredRole(auth.user.role, 'ADMIN')) {
         return NextResponse.json(
           {
             error: {
@@ -192,7 +190,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       }
 
       // Can't change own role
-      if (currentUser.id === id) {
+      if (auth.user.id === id) {
         return NextResponse.json(
           {
             error: {
@@ -245,7 +243,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     // Check if trying to update status
     if ('isActive' in body) {
       // Only admins can change user status
-      if (!hasRequiredRole(currentUser.role, 'ADMIN')) {
+      if (!hasRequiredRole(auth.user.role, 'ADMIN')) {
         return NextResponse.json(
           {
             error: {
@@ -258,7 +256,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       }
 
       // Can't deactivate own account
-      if (currentUser.id === id && !body.isActive) {
+      if (auth.user.id === id && !body.isActive) {
         return NextResponse.json(
           {
             error: {
@@ -353,10 +351,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         { status: auth.status }
       );
     }
-    const currentUser = auth.user;
 
     // Only admins can delete users
-    if (!hasRequiredRole(currentUser.role, 'ADMIN')) {
+    if (!hasRequiredRole(auth.user.role, 'ADMIN')) {
       return NextResponse.json(
         {
           error: {
@@ -371,7 +368,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Can't delete own account
-    if (currentUser.id === id) {
+    if (auth.user.id === id) {
       return NextResponse.json(
         {
           error: {
@@ -403,7 +400,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     // Check organization-level access
     if (
-      !canAccessUserInOrg(currentUser.organizationId, targetUser.organizationId)
+      !canAccessUserInOrg(auth.user.organizationId, targetUser.organizationId)
     ) {
       return NextResponse.json(
         {

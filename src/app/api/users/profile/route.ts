@@ -244,22 +244,41 @@ export async function PATCH(req: NextRequest) {
 
       const updateData = validationResult.data;
 
-      // Fetch current user data for comparison
-      const profileUser = await prisma.user.findUnique({
-        where: { id: auth.user.id },
-        select: { id: true, email: true, username: true, firstName: true },
-      });
+      // For session auth, we have all user data; for API key auth, fetch what we need
+      let profileUser: {
+        id: string;
+        email: string;
+        username: string | null;
+        firstName: string | null;
+      };
 
-      if (!profileUser) {
-        return NextResponse.json(
-          {
-            error: {
-              type: 'AUTHENTICATION_ERROR',
-              message: 'User not found',
-            } as AuthError,
-          },
-          { status: 401 }
-        );
+      if (auth.context.type === 'session') {
+        // Session auth provides full user object
+        const sessionUser = auth.context.user;
+        profileUser = {
+          id: sessionUser.id,
+          email: sessionUser.email,
+          username: sessionUser.username,
+          firstName: sessionUser.firstName,
+        };
+      } else {
+        // API key auth only has limited data, need to fetch from DB
+        const dbUser = await prisma.user.findUnique({
+          where: { id: auth.user.id },
+          select: { id: true, email: true, username: true, firstName: true },
+        });
+        if (!dbUser) {
+          return NextResponse.json(
+            {
+              error: {
+                type: 'AUTHENTICATION_ERROR',
+                message: 'User not found',
+              } as AuthError,
+            },
+            { status: 401 }
+          );
+        }
+        profileUser = dbUser;
       }
 
       // Check if email is being changed and if it's already taken

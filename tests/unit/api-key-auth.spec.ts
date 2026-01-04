@@ -290,6 +290,50 @@ describe('API Key Authentication', () => {
         expect(result.status).toBe(401);
       }
     });
+
+    it('should return failure for API key belonging to deactivated user', async () => {
+      const mockRequest = new NextRequest('http://localhost/api/test', {
+        method: 'GET',
+        headers: {
+          authorization: 'Bearer lsk_deactivateduser12345678901234567',
+        },
+      });
+
+      mockValidateApiKey.mockResolvedValue({
+        valid: false,
+        error: 'User account is not active',
+      });
+
+      const result = await requireAuth(mockRequest);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe('User account is not active');
+        expect(result.status).toBe(401);
+      }
+    });
+
+    it('should return failure for revoked API key', async () => {
+      const mockRequest = new NextRequest('http://localhost/api/test', {
+        method: 'GET',
+        headers: {
+          authorization: 'Bearer lsk_revokedkey123456789012345678901',
+        },
+      });
+
+      mockValidateApiKey.mockResolvedValue({
+        valid: false,
+        error: 'API key has been revoked',
+      });
+
+      const result = await requireAuth(mockRequest);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe('API key has been revoked');
+        expect(result.status).toBe(401);
+      }
+    });
   });
 });
 
