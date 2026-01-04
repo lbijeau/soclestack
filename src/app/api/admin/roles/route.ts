@@ -68,6 +68,7 @@ export async function GET() {
         _count: {
           select: {
             userRoles: true,
+            children: true,
           },
         },
       },
@@ -85,6 +86,7 @@ export async function GET() {
         parentName: role.parent?.name ?? null,
         isSystem: role.isSystem,
         userCount: role._count.userRoles,
+        childCount: role._count.children,
         createdAt: role.createdAt.toISOString(),
         updatedAt: role.updatedAt.toISOString(),
       })),
@@ -231,6 +233,7 @@ export async function POST(req: NextRequest) {
           parentName: role.parent?.name ?? null,
           isSystem: role.isSystem,
           userCount: 0,
+          childCount: 0,
           createdAt: role.createdAt.toISOString(),
           updatedAt: role.updatedAt.toISOString(),
         },
