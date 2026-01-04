@@ -184,6 +184,38 @@ export async function getCurrentUser(): Promise<UserWithComputedRole | null> {
   }
 }
 
+/**
+ * Get user by ID with roles included (for middleware and other contexts)
+ *
+ * Use this when you already have a userId from the session
+ * and need the full user object with roles for authorization.
+ */
+export async function getUserByIdWithRoles(
+  userId: string
+): Promise<UserWithComputedRole | null> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+        isActive: true,
+      },
+      include: userWithRolesInclude,
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      ...user,
+      role: computeLegacyRole(user),
+    };
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    return null;
+  }
+}
+
 // Get session expiry status
 export interface SessionStatus {
   isValid: boolean;
