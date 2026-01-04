@@ -274,6 +274,29 @@ describe('Admin Roles [id] API', () => {
       expect(clearRoleHierarchyCache).toHaveBeenCalled();
     });
 
+    it('should reject circular hierarchy (parent is descendant)', async () => {
+      vi.mocked(getCurrentUser).mockResolvedValue(mockAdminUser as never);
+      vi.mocked(isGranted).mockResolvedValue(true);
+      // Role exists
+      vi.mocked(prisma.role.findUnique)
+        .mockResolvedValueOnce(mockRole as never)
+        // Parent exists (role-child is a child of role-support)
+        .mockResolvedValueOnce({ id: 'role-child', parentId: 'role-support' } as never)
+        // isDescendant walks up: role-child -> role-support (match!)
+        .mockResolvedValueOnce({ parentId: 'role-support' } as never);
+
+      const response = await PATCH(
+        createRequest({ parentId: 'role-child' }),
+        createParams('role-support')
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error.message).toBe(
+        'Cannot set parent to a descendant role (circular hierarchy)'
+      );
+    });
+
     it('should allow setting parent to null', async () => {
       vi.mocked(getCurrentUser).mockResolvedValue(mockAdminUser as never);
       vi.mocked(isGranted).mockResolvedValue(true);
