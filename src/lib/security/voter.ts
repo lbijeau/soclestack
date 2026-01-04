@@ -48,11 +48,13 @@ export interface Voter {
   /**
    * Check if this voter can handle the given attribute and subject.
    *
+   * Async to allow DB lookups if needed (e.g., checking if subject type exists).
+   *
    * @param attribute - Permission being checked (e.g., 'organization.edit', 'user.delete')
    * @param subject - Optional context object (e.g., the organization or user being accessed)
    * @returns true if this voter should vote on this permission
    */
-  supports(attribute: string, subject?: unknown): boolean;
+  supports(attribute: string, subject?: unknown): boolean | Promise<boolean>;
 
   /**
    * Vote on whether the user has the requested permission.
