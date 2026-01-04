@@ -8,11 +8,11 @@ This directory contains pages for organization management, enabling multi-tenanc
 
 ## Contents
 
-| File               | Description                                         |
-| ------------------ | --------------------------------------------------- |
-| `page.tsx`         | Main organization settings page                     |
-| `members/page.tsx` | Member list with role management                    |
-| `invites/page.tsx` | Invitation management (send, view pending, cancel)  |
+| File               | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| `page.tsx`         | Main organization settings page                    |
+| `members/page.tsx` | Member list with role management                   |
+| `invites/page.tsx` | Invitation management (send, view pending, cancel) |
 
 ## Role Hierarchy
 
@@ -38,12 +38,14 @@ Organizations use a three-tier role system with hierarchical permissions:
 The main settings page with quick links and organization details.
 
 **Features:**
+
 - Quick links to Members and Invites (role-gated)
 - Display current user's role
 - Edit organization name (Owner/Admin only)
 - Delete organization (Owner only)
 
 **API Integration:**
+
 - `GET /api/organizations/current` - Fetch organization details
 - `PATCH /api/organizations/current` - Update organization name
 - `DELETE /api/organizations/current` - Delete organization
@@ -53,12 +55,14 @@ The main settings page with quick links and organization details.
 List and manage organization members.
 
 **Features:**
+
 - View all members with roles
 - Change member roles (Owner can promote to Admin)
 - Remove members from organization
 - Role badges with color coding
 
 **API Integration:**
+
 - `GET /api/organizations/current/members` - List members
 - `PATCH /api/organizations/current/members/:id` - Update member role
 - `DELETE /api/organizations/current/members/:id` - Remove member
@@ -68,12 +72,14 @@ List and manage organization members.
 Send and manage pending invitations.
 
 **Features:**
+
 - Send invites by email with role selection
 - View pending invitations with expiry dates
 - Cancel pending invites
 - Expired invite indication
 
 **API Integration:**
+
 - `GET /api/organizations/current/invites` - List pending invites
 - `POST /api/organizations/current/invites` - Create new invite
 - `DELETE /api/organizations/current/invites/:id` - Cancel invite
@@ -93,6 +99,7 @@ Send and manage pending invitations.
 ```
 
 **Invite Properties:**
+
 - **Token**: Secure 64-character hex string
 - **Expiry**: 7 days from creation (configurable via `INVITE_EXPIRY_DAYS`)
 - **Role**: Assigned role when invite is accepted (ADMIN or MEMBER)
@@ -117,34 +124,34 @@ Send and manage pending invitations.
 
 ### Organization Management
 
-| Method   | Endpoint                      | Description               |
-| -------- | ----------------------------- | ------------------------- |
-| `GET`    | `/api/organizations/current`  | Get current organization  |
-| `PATCH`  | `/api/organizations/current`  | Update organization       |
-| `DELETE` | `/api/organizations/current`  | Delete organization       |
+| Method   | Endpoint                     | Description              |
+| -------- | ---------------------------- | ------------------------ |
+| `GET`    | `/api/organizations/current` | Get current organization |
+| `PATCH`  | `/api/organizations/current` | Update organization      |
+| `DELETE` | `/api/organizations/current` | Delete organization      |
 
 ### Member Management
 
-| Method   | Endpoint                                  | Description        |
-| -------- | ----------------------------------------- | ------------------ |
-| `GET`    | `/api/organizations/current/members`      | List all members   |
-| `PATCH`  | `/api/organizations/current/members/:id`  | Update member role |
-| `DELETE` | `/api/organizations/current/members/:id`  | Remove member      |
+| Method   | Endpoint                                 | Description        |
+| -------- | ---------------------------------------- | ------------------ |
+| `GET`    | `/api/organizations/current/members`     | List all members   |
+| `PATCH`  | `/api/organizations/current/members/:id` | Update member role |
+| `DELETE` | `/api/organizations/current/members/:id` | Remove member      |
 
 ### Invite Management
 
-| Method   | Endpoint                                  | Description          |
-| -------- | ----------------------------------------- | -------------------- |
-| `GET`    | `/api/organizations/current/invites`      | List pending invites |
-| `POST`   | `/api/organizations/current/invites`      | Send new invite      |
-| `DELETE` | `/api/organizations/current/invites/:id`  | Cancel invite        |
+| Method   | Endpoint                                 | Description          |
+| -------- | ---------------------------------------- | -------------------- |
+| `GET`    | `/api/organizations/current/invites`     | List pending invites |
+| `POST`   | `/api/organizations/current/invites`     | Send new invite      |
+| `DELETE` | `/api/organizations/current/invites/:id` | Cancel invite        |
 
 ### Invite Acceptance
 
-| Method | Endpoint                       | Description              |
-| ------ | ------------------------------ | ------------------------ |
-| `GET`  | `/api/invites/:token`          | Get invite details       |
-| `POST` | `/api/invites/:token/accept`   | Accept invitation        |
+| Method | Endpoint                     | Description        |
+| ------ | ---------------------------- | ------------------ |
+| `GET`  | `/api/invites/:token`        | Get invite details |
+| `POST` | `/api/invites/:token/accept` | Accept invitation  |
 
 ## States
 
@@ -176,11 +183,11 @@ All pages handle these states consistently:
 
 ## Role Badge Styling
 
-| Role     | Background        | Text Color         |
-| -------- | ----------------- | ------------------ |
-| `OWNER`  | `bg-purple-100`   | `text-purple-800`  |
-| `ADMIN`  | `bg-blue-100`     | `text-blue-800`    |
-| `MEMBER` | `bg-gray-100`     | `text-gray-800`    |
+| Role     | Background      | Text Color        |
+| -------- | --------------- | ----------------- |
+| `OWNER`  | `bg-purple-100` | `text-purple-800` |
+| `ADMIN`  | `bg-blue-100`   | `text-blue-800`   |
+| `MEMBER` | `bg-gray-100`   | `text-gray-800`   |
 
 ## Security Considerations
 
@@ -202,9 +209,9 @@ All pages handle these states consistently:
 
 Organization settings in `src/lib/organization.ts`:
 
-| Constant            | Default | Description                  |
-| ------------------- | ------- | ---------------------------- |
-| `INVITE_EXPIRY_DAYS`| 7       | Days until invite expires    |
+| Constant             | Default | Description               |
+| -------------------- | ------- | ------------------------- |
+| `INVITE_EXPIRY_DAYS` | 7       | Days until invite expires |
 
 ## Related Documentation
 

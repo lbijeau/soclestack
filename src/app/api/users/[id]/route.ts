@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, hasRequiredRole } from '@/lib/auth';
+import { requireAuth, hasRequiredRole } from '@/lib/auth';
 import {
   updateUserRoleSchema,
   updateUserStatusSchema,
@@ -18,19 +18,20 @@ interface RouteParams {
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    // Check authentication
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
+    const currentUser = auth.user;
 
     const { id } = await params;
 
@@ -124,19 +125,20 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
-    // Check authentication
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
+    const currentUser = auth.user;
 
     const { id } = await params;
     const body = await req.json();
@@ -338,19 +340,20 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
-    // Check authentication
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
+    const currentUser = auth.user;
 
     // Only admins can delete users
     if (!hasRequiredRole(currentUser.role, 'ADMIN')) {

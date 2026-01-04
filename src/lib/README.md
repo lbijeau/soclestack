@@ -84,6 +84,7 @@ All schemas export TypeScript types via `z.infer<>` for type-safe usage.
 | `updateUserStatusSchema` | `isActive`                                                              | Activate/deactivate user                        |
 
 **User List Defaults:**
+
 - `page`: 1, `limit`: 10 (max 100)
 - `sortBy`: `'createdAt'`, `sortOrder`: `'desc'`
 

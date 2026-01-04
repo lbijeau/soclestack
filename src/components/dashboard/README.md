@@ -120,35 +120,35 @@ GET /api/users/security-events
 
 The widget maps event icons to Lucide components:
 
-| Icon Key       | Component    | Typical Use                |
-| -------------- | ------------ | -------------------------- |
-| `login`        | LogIn        | Successful login           |
-| `logout`       | LogOut       | User logout                |
-| `key`          | Key          | Password changes           |
-| `shield-check` | ShieldCheck  | 2FA enabled                |
-| `shield-off`   | ShieldOff    | 2FA disabled               |
-| `shield-alert` | ShieldAlert  | Security warning           |
-| `lock`         | Lock         | Account locked             |
-| `unlock`       | Unlock       | Account unlocked           |
-| `device`       | Smartphone   | New device login           |
-| `link`         | Link         | OAuth account linked       |
-| `unlink`       | Unlink       | OAuth account unlinked     |
-| `key-plus`     | KeyRound     | API key created            |
-| `key-minus`    | KeyRound     | API key revoked            |
-| `backup`       | Key          | Backup codes generated     |
-| `alert`        | AlertTriangle| General security alert     |
-| `info`         | Info         | Informational event        |
+| Icon Key       | Component     | Typical Use            |
+| -------------- | ------------- | ---------------------- |
+| `login`        | LogIn         | Successful login       |
+| `logout`       | LogOut        | User logout            |
+| `key`          | Key           | Password changes       |
+| `shield-check` | ShieldCheck   | 2FA enabled            |
+| `shield-off`   | ShieldOff     | 2FA disabled           |
+| `shield-alert` | ShieldAlert   | Security warning       |
+| `lock`         | Lock          | Account locked         |
+| `unlock`       | Unlock        | Account unlocked       |
+| `device`       | Smartphone    | New device login       |
+| `link`         | Link          | OAuth account linked   |
+| `unlink`       | Unlink        | OAuth account unlinked |
+| `key-plus`     | KeyRound      | API key created        |
+| `key-minus`    | KeyRound      | API key revoked        |
+| `backup`       | Key           | Backup codes generated |
+| `alert`        | AlertTriangle | General security alert |
+| `info`         | Info          | Informational event    |
 
 ## Severity Levels
 
 Events are color-coded by severity:
 
-| Severity  | Background        | Text Color     | Use Case                    |
-| --------- | ----------------- | -------------- | --------------------------- |
-| `info`    | `bg-blue-100`     | `text-blue-600`| Informational events        |
-| `success` | `bg-green-100`    | `text-green-600`| Successful actions         |
-| `warning` | `bg-amber-100`    | `text-amber-600`| Attention needed           |
-| `error`   | `bg-red-100`      | `text-red-600` | Failed or blocked actions   |
+| Severity  | Background     | Text Color       | Use Case                  |
+| --------- | -------------- | ---------------- | ------------------------- |
+| `info`    | `bg-blue-100`  | `text-blue-600`  | Informational events      |
+| `success` | `bg-green-100` | `text-green-600` | Successful actions        |
+| `warning` | `bg-amber-100` | `text-amber-600` | Attention needed          |
+| `error`   | `bg-red-100`   | `text-red-600`   | Failed or blocked actions |
 
 ## States
 

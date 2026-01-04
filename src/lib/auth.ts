@@ -689,3 +689,54 @@ export function getUserFromContext(context: AuthContext): {
   }
   return context.user;
 }
+
+/**
+ * Result type for requireAuth function
+ */
+export type RequireAuthResult =
+  | {
+      success: true;
+      context: AuthContext;
+      user: ReturnType<typeof getUserFromContext>;
+    }
+  | { success: false; error: string; status: number };
+
+/**
+ * Unified authentication helper for route handlers.
+ * Supports both session-based and API key authentication.
+ *
+ * API keys are validated first if present in Authorization header.
+ * Falls back to session-based auth if no API key is provided.
+ *
+ * @example
+ * ```ts
+ * export async function GET(req: NextRequest) {
+ *   const auth = await requireAuth(req);
+ *   if (!auth.success) {
+ *     return NextResponse.json({ error: { type: 'AUTHENTICATION_ERROR', message: auth.error } }, { status: auth.status });
+ *   }
+ *   const { user, context } = auth;
+ *   // Use user.id, user.email, user.role, etc.
+ *   // Check context.type === 'api_key' for API key specific logic
+ * }
+ * ```
+ */
+export async function requireAuth(
+  req: NextRequest
+): Promise<RequireAuthResult> {
+  const result = await getAuthContext(req);
+
+  if (!result.context) {
+    return {
+      success: false,
+      error: result.error || 'Not authenticated',
+      status: result.status || 401,
+    };
+  }
+
+  return {
+    success: true,
+    context: result.context,
+    user: getUserFromContext(result.context),
+  };
+}

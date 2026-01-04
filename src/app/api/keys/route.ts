@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth';
+import { requireAuth, getClientIP, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createApiKeySchema } from '@/lib/validations';
 import {
@@ -15,24 +15,25 @@ import { SECURITY_CONFIG } from '@/lib/config/security';
 export const runtime = 'nodejs';
 
 // GET /api/keys - List user's API keys
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
 
     const keys = await prisma.apiKey.findMany({
       where: {
-        userId: currentUser.id,
+        userId: auth.user.id,
         revokedAt: null,
       },
       select: {
@@ -86,21 +87,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
 
     // Check key limit
-    if (await hasReachedKeyLimit(currentUser.id)) {
+    if (await hasReachedKeyLimit(auth.user.id)) {
       return NextResponse.json(
         {
           error: {
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest) {
 
     const apiKey = await prisma.apiKey.create({
       data: {
-        userId: currentUser.id,
+        userId: auth.user.id,
         name,
         keyHash,
         keyPrefix,
@@ -153,7 +155,7 @@ export async function POST(req: NextRequest) {
     await logAuditEvent({
       action: 'API_KEY_CREATED',
       category: 'security',
-      userId: currentUser.id,
+      userId: auth.user.id,
       metadata: {
         keyId: apiKey.id,
         keyName: name,
@@ -163,7 +165,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Get updated count
-    const count = await getActiveKeyCount(currentUser.id);
+    const count = await getActiveKeyCount(auth.user.id);
 
     return NextResponse.json({
       key, // Only returned on creation!
