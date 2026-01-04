@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth';
+import {
+  requireAuth,
+  getClientIP,
+  isRateLimited,
+  getCurrentUser,
+} from '@/lib/auth';
 import { updateProfileSchema, changePasswordSchema } from '@/lib/validations';
 import {
   hashPassword,
@@ -22,17 +27,17 @@ export const runtime = 'nodejs';
 
 export async function PATCH(req: NextRequest) {
   try {
-    // Check authentication
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
 
@@ -40,6 +45,34 @@ export async function PATCH(req: NextRequest) {
 
     // Check if trying to change password
     if ('currentPassword' in body) {
+      // Password changes require session authentication (not API key)
+      // because they need to verify the current password
+      if (auth.context.type === 'api_key') {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'AUTHORIZATION_ERROR',
+              message:
+                'Password changes are not allowed via API key. Please use the web interface.',
+            } as AuthError,
+          },
+          { status: 403 }
+        );
+      }
+
+      // For password changes, we need the full user object from session
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'AUTHENTICATION_ERROR',
+              message: 'Not authenticated',
+            } as AuthError,
+          },
+          { status: 401 }
+        );
+      }
       // Rate limit password changes
       const clientIP = getClientIP(req);
       const { limit, windowMs } = SECURITY_CONFIG.rateLimits.passwordChange;
@@ -194,7 +227,7 @@ export async function PATCH(req: NextRequest) {
       rotateCsrfToken(response);
       return response;
     } else {
-      // Update profile information
+      // Update profile information (works with both session and API key auth)
       const validationResult = updateProfileSchema.safeParse(body);
       if (!validationResult.success) {
         return NextResponse.json(
@@ -211,8 +244,45 @@ export async function PATCH(req: NextRequest) {
 
       const updateData = validationResult.data;
 
+      // For session auth, we have all user data; for API key auth, fetch what we need
+      let profileUser: {
+        id: string;
+        email: string;
+        username: string | null;
+        firstName: string | null;
+      };
+
+      if (auth.context.type === 'session') {
+        // Session auth provides full user object
+        const sessionUser = auth.context.user;
+        profileUser = {
+          id: sessionUser.id,
+          email: sessionUser.email,
+          username: sessionUser.username,
+          firstName: sessionUser.firstName,
+        };
+      } else {
+        // API key auth only has limited data, need to fetch from DB
+        const dbUser = await prisma.user.findUnique({
+          where: { id: auth.user.id },
+          select: { id: true, email: true, username: true, firstName: true },
+        });
+        if (!dbUser) {
+          return NextResponse.json(
+            {
+              error: {
+                type: 'AUTHENTICATION_ERROR',
+                message: 'User not found',
+              } as AuthError,
+            },
+            { status: 401 }
+          );
+        }
+        profileUser = dbUser;
+      }
+
       // Check if email is being changed and if it's already taken
-      if (updateData.email && updateData.email !== currentUser.email) {
+      if (updateData.email && updateData.email !== profileUser.email) {
         const existingUser = await prisma.user.findUnique({
           where: { email: updateData.email },
         });
@@ -234,7 +304,7 @@ export async function PATCH(req: NextRequest) {
       }
 
       // Check if username is being changed and if it's already taken
-      if (updateData.username && updateData.username !== currentUser.username) {
+      if (updateData.username && updateData.username !== profileUser.username) {
         const existingUser = await prisma.user.findUnique({
           where: { username: updateData.username },
         });
@@ -263,7 +333,7 @@ export async function PATCH(req: NextRequest) {
         emailVerificationExpires?: Date;
       } = updateData;
 
-      if (updateData.email && updateData.email !== currentUser.email) {
+      if (updateData.email && updateData.email !== profileUser.email) {
         const verificationToken = await generateResetToken();
         const hashedToken = await hashResetToken(verificationToken);
         const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
@@ -280,9 +350,9 @@ export async function PATCH(req: NextRequest) {
         logAuditEvent({
           action: 'SECURITY_EMAIL_CHANGED',
           category: 'security',
-          userId: currentUser.id,
+          userId: profileUser.id,
           metadata: {
-            oldEmail: currentUser.email,
+            oldEmail: profileUser.email,
             newEmail: updateData.email,
           },
         }).catch((err) =>
@@ -291,25 +361,25 @@ export async function PATCH(req: NextRequest) {
 
         // Notify old email address about the change (fire-and-forget)
         sendEmailChangedNotification(
-          currentUser.email,
+          profileUser.email,
           updateData.email,
           new Date()
         ).catch((err) =>
-          log.email.failed('email_changed', currentUser.email, err)
+          log.email.failed('email_changed', profileUser.email, err)
         );
 
         // Send verification email to new address (fire-and-forget)
         sendVerificationEmail(
           updateData.email,
           verificationToken,
-          currentUser.firstName || currentUser.username || undefined
+          profileUser.firstName || profileUser.username || undefined
         ).catch((err) =>
           log.email.failed('verification', updateData.email!, err)
         );
       }
 
       const updatedUser = await prisma.user.update({
-        where: { id: currentUser.id },
+        where: { id: profileUser.id },
         data: finalUpdateData,
         select: {
           id: true,

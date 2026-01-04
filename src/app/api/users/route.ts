@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, hasRequiredRole } from '@/lib/auth';
+import { requireAuth, hasRequiredRole } from '@/lib/auth';
 import { userListParamsSchema } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
@@ -9,22 +9,23 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    // Check authentication
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
+    const { user } = auth;
 
     // Check authorization (only admins and moderators can list users)
-    if (!hasRequiredRole(currentUser.role, 'MODERATOR')) {
+    if (!hasRequiredRole(user.role, 'MODERATOR')) {
       return NextResponse.json(
         {
           error: {
@@ -63,8 +64,8 @@ export async function GET(req: NextRequest) {
     // Organization-bound admins can only see users in their org
     const where: Prisma.UserWhereInput = {
       // Organization-level access filter
-      ...(currentUser.organizationId !== null && {
-        organizationId: currentUser.organizationId,
+      ...(user.organizationId !== null && {
+        organizationId: user.organizationId,
       }),
       ...(search && {
         OR: [

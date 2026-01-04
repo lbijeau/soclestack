@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, getClientIP, isRateLimited } from '@/lib/auth';
+import { requireAuth, getClientIP, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { updateApiKeySchema } from '@/lib/validations';
 import { logAuditEvent } from '@/lib/audit';
@@ -16,23 +16,25 @@ interface RouteParams {
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
 
     const apiKey = await prisma.apiKey.findFirst({
       where: {
         id,
-        userId: currentUser.id,
+        userId: auth.user.id,
         revokedAt: null,
       },
       select: {
@@ -77,16 +79,18 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
 
@@ -94,7 +98,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const existingKey = await prisma.apiKey.findFirst({
       where: {
         id,
-        userId: currentUser.id,
+        userId: auth.user.id,
         revokedAt: null,
       },
     });
@@ -152,7 +156,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     await logAuditEvent({
       action: 'API_KEY_UPDATED',
       category: 'security',
-      userId: currentUser.id,
+      userId: auth.user.id,
       metadata: {
         keyId: id,
         keyPrefix: existingKey.keyPrefix,
@@ -194,16 +198,18 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params;
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+
+    // Check authentication (supports both session and API key)
+    const auth = await requireAuth(req);
+    if (!auth.success) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+            message: auth.error,
           } as AuthError,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
 
@@ -211,7 +217,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     const existingKey = await prisma.apiKey.findFirst({
       where: {
         id,
-        userId: currentUser.id,
+        userId: auth.user.id,
         revokedAt: null,
       },
     });
@@ -238,7 +244,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     await logAuditEvent({
       action: 'API_KEY_REVOKED',
       category: 'security',
-      userId: currentUser.id,
+      userId: auth.user.id,
       metadata: {
         keyId: id,
         keyName: existingKey.name,
