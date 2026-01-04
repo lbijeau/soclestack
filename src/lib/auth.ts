@@ -155,6 +155,12 @@ export async function getCurrentUser(): Promise<User | null> {
       },
     });
 
+    // If session claims logged in but user doesn't exist (e.g., DB was reset),
+    // destroy the stale session to prevent redirect loops
+    if (!user) {
+      session.destroy();
+    }
+
     return user;
   } catch (error) {
     console.error('Error getting current user:', error);

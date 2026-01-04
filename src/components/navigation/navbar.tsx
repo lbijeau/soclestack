@@ -47,6 +47,7 @@ export function Navbar() {
 
   useEffect(() => {
     fetchCurrentUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Run only on mount
   }, []);
 
   const fetchCurrentUser = async () => {
@@ -56,6 +57,18 @@ export function Navbar() {
         const data = await response.json();
         setUser(data.user);
         setImpersonation(data.impersonation || null);
+      } else if (response.status === 401) {
+        // Session is invalid - clear any stale tokens and redirect to login
+        // if we're on a protected route
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        const protectedPaths = ['/dashboard', '/profile', '/admin', '/organization'];
+        const isProtectedRoute = protectedPaths.some((path) =>
+          window.location.pathname.startsWith(path)
+        );
+        if (isProtectedRoute) {
+          router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname)}`);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch user:', error);
