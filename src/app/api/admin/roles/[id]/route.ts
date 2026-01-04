@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import {
   isGranted,
@@ -13,6 +13,13 @@ export const runtime = 'nodejs';
 
 /** Maximum number of users to return in a single request */
 const MAX_USERS_LIMIT = 100;
+
+/** Rate limit: 30 role updates per hour */
+const ROLE_UPDATE_LIMIT = 30;
+/** Rate limit: 10 role deletions per hour */
+const ROLE_DELETE_LIMIT = 10;
+/** Rate limit window in milliseconds (1 hour) */
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -248,6 +255,20 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Rate limit role updates per admin
+    const rateLimitKey = `admin-role-update:${user.id}`;
+    if (isRateLimited(rateLimitKey, ROLE_UPDATE_LIMIT, RATE_LIMIT_WINDOW_MS)) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'RATE_LIMIT_ERROR',
+            message: 'Too many role updates. Please try again later.',
+          },
+        },
+        { status: 429, headers: { 'Retry-After': '3600' } }
+      );
+    }
+
     const { id } = await params;
 
     const existingRole = await prisma.role.findUnique({
@@ -435,6 +456,20 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
           },
         },
         { status: 403 }
+      );
+    }
+
+    // Rate limit role deletions per admin
+    const rateLimitKey = `admin-role-delete:${user.id}`;
+    if (isRateLimited(rateLimitKey, ROLE_DELETE_LIMIT, RATE_LIMIT_WINDOW_MS)) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'RATE_LIMIT_ERROR',
+            message: 'Too many role deletions. Please try again later.',
+          },
+        },
+        { status: 429, headers: { 'Retry-After': '3600' } }
       );
     }
 
