@@ -19,21 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { apiPatch, apiDelete, apiPost } from '@/lib/api-client';
-
-// Role hierarchy for client-side permission checks (mirrors server-side isGranted)
-const ROLE_HIERARCHY: Record<string, number> = {
-  USER: 1,
-  MODERATOR: 2,
-  ADMIN: 3,
-};
-
-function hasMinimumRole(
-  userRole: string | undefined,
-  requiredRole: 'USER' | 'MODERATOR' | 'ADMIN'
-): boolean {
-  if (!userRole) return false;
-  return (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[requiredRole];
-}
+import { hasMinimumRole } from '@/lib/security/client';
 
 interface User {
   id: string;

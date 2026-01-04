@@ -8,21 +8,7 @@ import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
 import { QuickActionsMenu } from './quick-actions-menu';
 import { User, Settings, LogOut, Users, Building2 } from 'lucide-react';
 import { apiPost } from '@/lib/api-client';
-
-// Role hierarchy for client-side permission checks (mirrors server-side isGranted)
-const ROLE_HIERARCHY: Record<string, number> = {
-  USER: 1,
-  MODERATOR: 2,
-  ADMIN: 3,
-};
-
-function hasMinimumRole(
-  userRole: string | undefined,
-  requiredRole: 'USER' | 'MODERATOR' | 'ADMIN'
-): boolean {
-  if (!userRole) return false;
-  return (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[requiredRole];
-}
+import { hasMinimumRole } from '@/lib/security/client';
 
 function Logo() {
   return (
