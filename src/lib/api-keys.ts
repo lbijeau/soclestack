@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from 'crypto';
 import { prisma } from './db';
 import { ApiKeyPermission } from '@prisma/client';
-import { computeLegacyRole, userWithRolesInclude } from './security/index';
+import { getHighestRole, userWithRolesInclude } from './security/index';
 
 const API_KEY_PREFIX = 'lsk_';
 const API_KEY_BYTES = 32;
@@ -150,7 +150,7 @@ export async function validateApiKey(key: string): Promise<{
       user: {
         id: apiKey.user.id,
         email: apiKey.user.email,
-        role: computeLegacyRole(apiKey.user),
+        role: getHighestRole(apiKey.user),
         isActive: apiKey.user.isActive,
         organizationId: apiKey.user.organizationId,
       },

@@ -6,7 +6,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
 import { canAccessUserInOrg } from '@/lib/organization';
 import {
-  computeLegacyRole,
+  getHighestRole,
   userWithRolesInclude,
   isGranted,
   ROLES,
@@ -119,8 +119,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const targetUserRole = computeLegacyRole(targetUser);
-
     // Check organization-level access
     if (
       !canAccessUserInOrg(
@@ -147,7 +145,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Cannot impersonate another ADMIN
-    if (targetUserRole === 'ADMIN') {
+    if (await isGranted(targetUser, ROLES.ADMIN)) {
       return NextResponse.json(
         {
           error: {
@@ -170,6 +168,9 @@ export async function POST(req: NextRequest) {
       originalRole,
       startedAt: Date.now(),
     };
+
+    // Get display role for session storage
+    const targetUserRole = getHighestRole(targetUser);
 
     session.userId = targetUser.id;
     session.email = targetUser.email;

@@ -16,7 +16,7 @@ import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 import { rotateCsrfToken } from '@/lib/csrf';
-import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
+import { getHighestRole, userWithRolesInclude } from '@/lib/security/index';
 import {
   sendVerificationEmail,
   sendEmailChangedNotification,
@@ -223,7 +223,7 @@ export async function PATCH(req: NextRequest) {
       // Rotate CSRF token after password change
       const response = NextResponse.json({
         message: 'Password changed successfully',
-        user: { ...updatedUser, role: computeLegacyRole(updatedUser) },
+        user: { ...updatedUser, role: getHighestRole(updatedUser) },
       });
       rotateCsrfToken(response);
       return response;
@@ -399,7 +399,7 @@ export async function PATCH(req: NextRequest) {
 
       return NextResponse.json({
         message: 'Profile updated successfully',
-        user: { ...updatedUser, role: computeLegacyRole(updatedUser) },
+        user: { ...updatedUser, role: getHighestRole(updatedUser) },
       });
     }
   } catch (error) {

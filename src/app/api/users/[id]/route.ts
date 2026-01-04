@@ -7,7 +7,7 @@ import {
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { canAccessUserInOrg } from '@/lib/organization';
-import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
+import { getHighestRole, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -108,7 +108,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     // Add computed role for backward compatibility
     const userWithRole = {
       ...user,
-      role: computeLegacyRole(user),
+      role: getHighestRole(user),
     };
 
     return NextResponse.json({ user: userWithRole });
@@ -279,7 +279,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({
         message: 'User role updated successfully',
         user: updatedUser
-          ? { ...updatedUser, role: computeLegacyRole(updatedUser) }
+          ? { ...updatedUser, role: getHighestRole(updatedUser) }
           : null,
       });
     }
@@ -353,7 +353,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
       return NextResponse.json({
         message: 'User status updated successfully',
-        user: { ...updatedUser, role: computeLegacyRole(updatedUser) },
+        user: { ...updatedUser, role: getHighestRole(updatedUser) },
       });
     }
 
