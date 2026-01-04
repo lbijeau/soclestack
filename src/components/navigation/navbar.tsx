@@ -139,13 +139,13 @@ export function Navbar() {
             <div className="flex items-center space-x-4">
               <Link
                 href="/login"
-                className="inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium text-gray-900 hover:bg-gray-100"
+                className="inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 Sign In
               </Link>
               <Link
                 href="/register"
-                className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700"
+                className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 Sign Up
               </Link>
@@ -219,14 +219,14 @@ export function Navbar() {
               <div className="flex items-center space-x-2">
                 <Link
                   href="/profile"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   aria-label="Settings"
                 >
                   <Settings size={16} />
                 </Link>
                 <button
                   type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   onClick={handleLogout}
                   aria-label="Logout"
                 >

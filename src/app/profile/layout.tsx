@@ -1,14 +1,9 @@
-import { Navbar } from '@/components/navigation/navbar';
+import { AuthenticatedLayout } from '@/components/layouts/authenticated-layout';
 
 export default function ProfileLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      {children}
-    </div>
-  );
+  return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
 }
