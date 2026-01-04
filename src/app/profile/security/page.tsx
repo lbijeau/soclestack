@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
 import { SecuritySettings } from '@/components/profile/security-settings';
 import { OAuthAccounts } from '@/components/profile/oauth-accounts';
 import { ApiKeys } from '@/components/profile/api-keys';
@@ -20,8 +21,8 @@ export default async function SecurityPage() {
     select: {
       id: true,
       email: true,
-      role: true,
       twoFactorEnabled: true,
+      ...userWithRolesInclude,
       _count: {
         select: {
           backupCodes: {
@@ -36,13 +37,15 @@ export default async function SecurityPage() {
     redirect('/login');
   }
 
+  const userRole = computeLegacyRole(user);
+
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
       <h1 className="text-2xl font-bold">Security Settings</h1>
 
       <SecuritySettings
         twoFactorEnabled={user.twoFactorEnabled}
-        isAdmin={user.role === 'ADMIN'}
+        isAdmin={userRole === 'ADMIN'}
         remainingBackupCodes={user._count.backupCodes}
       />
 

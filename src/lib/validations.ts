@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { Role, ApiKeyPermission } from '@prisma/client';
+import { ApiKeyPermission } from '@prisma/client';
+
+// Legacy role values (stored in roles table as ROLE_USER, ROLE_MODERATOR, ROLE_ADMIN)
+const LEGACY_ROLES = ['USER', 'MODERATOR', 'ADMIN'] as const;
 
 // Auth validation schemas
 export const loginSchema = z.object({
@@ -110,7 +113,7 @@ export const userListParamsSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
   search: z.string().optional(),
-  role: z.nativeEnum(Role).optional(),
+  role: z.enum(LEGACY_ROLES).optional(),
   isActive: z.coerce.boolean().optional(),
   sortBy: z
     .enum(['createdAt', 'email', 'lastLoginAt', 'role'])
@@ -119,7 +122,7 @@ export const userListParamsSchema = z.object({
 });
 
 export const updateUserRoleSchema = z.object({
-  role: z.nativeEnum(Role),
+  role: z.enum(LEGACY_ROLES),
 });
 
 export const updateUserStatusSchema = z.object({

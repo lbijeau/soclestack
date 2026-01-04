@@ -14,54 +14,54 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(cuid())
-  email             String   @unique
-  username          String?  @unique
-  password          String?  // Nullable for OAuth-only users
-  firstName         String?  @map("first_name")
-  lastName          String?  @map("last_name")
-  role              Role     @default(USER)
-  isActive          Boolean  @default(true) @map("is_active")
-  emailVerified     Boolean  @default(false) @map("email_verified")
-  emailVerifiedAt   DateTime? @map("email_verified_at")
-  lastLoginAt       DateTime? @map("last_login_at")
-  passwordResetToken String? @map("password_reset_token")
-  passwordResetExpires DateTime? @map("password_reset_expires")
-  passwordChangedAt DateTime? @map("password_changed_at")
+  id                       String    @id @default(cuid())
+  email                    String    @unique
+  username                 String?   @unique
+  password                 String? // Nullable for OAuth-only users
+  firstName                String?   @map("first_name")
+  lastName                 String?   @map("last_name")
+  isActive                 Boolean   @default(true) @map("is_active")
+  emailVerified            Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt          DateTime? @map("email_verified_at")
+  lastLoginAt              DateTime? @map("last_login_at")
+  passwordResetToken       String?   @map("password_reset_token")
+  passwordResetExpires     DateTime? @map("password_reset_expires")
+  passwordChangedAt        DateTime? @map("password_changed_at")
   emailVerificationToken   String?   @map("email_verification_token")
   emailVerificationExpires DateTime? @map("email_verification_expires")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
 
   // Account lockout fields
-  failedLoginAttempts  Int       @default(0) @map("failed_login_attempts")
-  lockedUntil          DateTime? @map("locked_until")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
 
   // Two-factor authentication
-  twoFactorSecret    String?   @map("two_factor_secret")
-  twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
-  twoFactorVerified  Boolean   @default(false) @map("two_factor_verified")
+  twoFactorSecret   String? @map("two_factor_secret")
+  twoFactorEnabled  Boolean @default(false) @map("two_factor_enabled")
+  twoFactorVerified Boolean @default(false) @map("two_factor_verified")
 
   // Notification preferences (all default to true)
-  notifyNewDevice       Boolean @default(true) @map("notify_new_device")
-  notifyPasswordChange  Boolean @default(true) @map("notify_password_change")
-  notifyLoginAlert      Boolean @default(true) @map("notify_login_alert")
-  notify2FAChange       Boolean @default(true) @map("notify_2fa_change")
+  notifyNewDevice      Boolean @default(true) @map("notify_new_device")
+  notifyPasswordChange Boolean @default(true) @map("notify_password_change")
+  notifyLoginAlert     Boolean @default(true) @map("notify_login_alert")
+  notify2FAChange      Boolean @default(true) @map("notify_2fa_change")
 
   // Organization
-  organizationId     String?          @map("organization_id")
-  organizationRole   OrganizationRole @default(MEMBER) @map("organization_role")
+  organizationId   String?          @map("organization_id")
+  organizationRole OrganizationRole @default(MEMBER) @map("organization_role")
 
   // Relations
-  organization         Organization?       @relation(fields: [organizationId], references: [id])
-  sessions             UserSession[]
-  passwordHistory      PasswordHistory[]
-  auditLogs            AuditLog[]
-  rememberMeTokens     RememberMeToken[]
-  backupCodes          BackupCode[]
-  sentInvites          OrganizationInvite[]
-  oauthAccounts        OAuthAccount[]
-  apiKeys              ApiKey[]
+  organization     Organization?        @relation(fields: [organizationId], references: [id])
+  sessions         UserSession[]
+  passwordHistory  PasswordHistory[]
+  auditLogs        AuditLog[]
+  rememberMeTokens RememberMeToken[]
+  backupCodes      BackupCode[]
+  sentInvites      OrganizationInvite[]
+  oauthAccounts    OAuthAccount[]
+  apiKeys          ApiKey[]
+  userRoles        UserRole[]
 
   @@index([organizationId])
   @@map("users")
@@ -98,28 +98,54 @@ model PasswordHistory {
   @@map("password_history")
 }
 
-enum Role {
-  USER
-  ADMIN
-  MODERATOR
+// Platform-wide roles with hierarchy (Symfony-style RBAC)
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique // "ROLE_USER", "ROLE_ADMIN", "ROLE_MODERATOR"
+  description String?
+  parentId    String?  @map("parent_id")
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent    Role?      @relation("RoleHierarchy", fields: [parentId], references: [id])
+  children  Role[]     @relation("RoleHierarchy")
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
 }
 
 enum OrganizationRole {
-  OWNER   // Full control, can delete org
-  ADMIN   // Manage users, settings
-  MEMBER  // Basic access
+  OWNER // Full control, can delete org
+  ADMIN // Manage users, settings
+  MEMBER // Basic access
 }
 
 model AuditLog {
-  id          String   @id @default(cuid())
-  userId      String?  @map("user_id")
-  user        User?    @relation(fields: [userId], references: [id])
-  action      String
-  category    String
-  ipAddress   String?  @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  metadata    String?  // JSON string for SQLite compatibility
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  category  String
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  metadata  String? // JSON string for SQLite compatibility
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([action])
@@ -129,16 +155,16 @@ model AuditLog {
 }
 
 model RememberMeToken {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash   String   @map("token_hash")
-  series      String   @unique
-  expiresAt   DateTime @map("expires_at")
-  ipAddress   String?  @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  lastUsedAt  DateTime @default(now()) @map("last_used_at")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @map("token_hash")
+  series     String   @unique
+  expiresAt  DateTime @map("expires_at")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  lastUsedAt DateTime @default(now()) @map("last_used_at")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([expiresAt])
@@ -164,8 +190,8 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users     User[]
-  invites   OrganizationInvite[]
+  users   User[]
+  invites OrganizationInvite[]
 
   @@map("organizations")
 }
@@ -180,8 +206,8 @@ model OrganizationInvite {
   invitedById    String           @map("invited_by_id")
   createdAt      DateTime         @default(now()) @map("created_at")
 
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  invitedBy      User             @relation(fields: [invitedById], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation(fields: [invitedById], references: [id])
 
   @@index([email])
   @@index([organizationId])
@@ -192,9 +218,9 @@ model OAuthAccount {
   id                String    @id @default(cuid())
   userId            String    @map("user_id")
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider          String    // "google" | "github"
+  provider          String // "google" | "github"
   providerAccountId String    @map("provider_account_id")
-  email             String?   // Email from OAuth provider
+  email             String? // Email from OAuth provider
   accessToken       String?   @map("access_token")
   refreshToken      String?   @map("refresh_token")
   tokenExpiresAt    DateTime? @map("token_expires_at")
@@ -207,20 +233,20 @@ model OAuthAccount {
 }
 
 model ApiKey {
-  id          String    @id @default(cuid())
-  userId      String    @map("user_id")
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  name        String                    // User-friendly label
-  keyHash     String    @map("key_hash") // SHA-256 hash of the key
-  keyPrefix   String    @map("key_prefix") // First 8 chars for identification
+  name      String // User-friendly label
+  keyHash   String @map("key_hash") // SHA-256 hash of the key
+  keyPrefix String @map("key_prefix") // First 8 chars for identification
 
-  permission  ApiKeyPermission @default(READ_ONLY)
-  expiresAt   DateTime? @map("expires_at")
-  lastUsedAt  DateTime? @map("last_used_at")
+  permission ApiKeyPermission @default(READ_ONLY)
+  expiresAt  DateTime?        @map("expires_at")
+  lastUsedAt DateTime?        @map("last_used_at")
 
-  createdAt   DateTime  @default(now()) @map("created_at")
-  revokedAt   DateTime? @map("revoked_at") // Soft delete
+  createdAt DateTime  @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at") // Soft delete
 
   @@index([userId])
   @@index([keyHash])

@@ -1,0 +1,228 @@
+/**
+ * Security Service - Symfony-style RBAC
+ *
+ * Main authorization check using role hierarchy and voters.
+ * Roles are stored in database with parent-child relationships.
+ * ROLE_ADMIN inherits from ROLE_MODERATOR inherits from ROLE_USER.
+ */
+
+import { prisma } from '@/lib/db';
+
+// Cache for role hierarchy (invalidate on role changes)
+let roleHierarchyCache: Map<string, Set<string>> | null = null;
+
+import type { User, UserRole } from '@prisma/client';
+import type { LegacyRole } from '@/types/auth';
+
+/**
+ * User type with roles included
+ */
+export interface UserWithRoles {
+  id: string;
+  userRoles?: Array<{
+    role: {
+      id: string;
+      name: string;
+      parentId: string | null;
+    };
+  }>;
+}
+
+/**
+ * Extended User type that includes userRoles relation and computed role
+ */
+export type UserWithComputedRole = User & {
+  userRoles: Array<
+    UserRole & {
+      role: { id: string; name: string; parentId: string | null };
+    }
+  >;
+  /** Computed legacy role for backward compatibility */
+  role: LegacyRole;
+};
+
+/**
+ * Main authorization check - like Symfony's isGranted()
+ *
+ * @param user - User object (must include userRoles relation)
+ * @param attribute - Role name (e.g., 'ROLE_ADMIN') or permission (e.g., 'organization.edit')
+ * @param subject - Optional subject for contextual checks
+ */
+export async function isGranted(
+  user: UserWithRoles | null,
+  attribute: string,
+  _subject?: unknown
+): Promise<boolean> {
+  if (!user) return false;
+
+  // Role-based check (ROLE_* attributes)
+  if (attribute.startsWith('ROLE_')) {
+    return hasRole(user, attribute);
+  }
+
+  // TODO: Voter-based checks for contextual permissions
+  // For now, only role checks are implemented
+  return false;
+}
+
+/**
+ * Check if user has a specific role (resolves hierarchy)
+ *
+ * Example: User with ROLE_ADMIN also has ROLE_MODERATOR and ROLE_USER
+ * because ROLE_ADMIN -> ROLE_MODERATOR -> ROLE_USER in hierarchy
+ */
+export async function hasRole(
+  user: UserWithRoles | null,
+  roleName: string
+): Promise<boolean> {
+  if (!user) return false;
+
+  const userRoleNames = getUserRoleNames(user);
+  if (userRoleNames.length === 0) return false;
+
+  const allRoles = await resolveHierarchy(userRoleNames);
+  return allRoles.has(roleName);
+}
+
+/**
+ * Get user's directly assigned role names
+ */
+function getUserRoleNames(user: UserWithRoles): string[] {
+  if (!user.userRoles || user.userRoles.length === 0) {
+    return [];
+  }
+  return user.userRoles.map((ur) => ur.role.name);
+}
+
+/**
+ * Resolve role hierarchy - returns all roles including inherited
+ *
+ * Example: ['ROLE_ADMIN'] resolves to {'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_USER'}
+ */
+async function resolveHierarchy(roleNames: string[]): Promise<Set<string>> {
+  const hierarchy = await getRoleHierarchy();
+  const allRoles = new Set<string>();
+
+  for (const roleName of roleNames) {
+    const inherited = hierarchy.get(roleName);
+    if (inherited) {
+      for (const role of inherited) {
+        allRoles.add(role);
+      }
+    }
+  }
+
+  return allRoles;
+}
+
+/**
+ * Get role hierarchy map from database (cached)
+ *
+ * Returns Map where key is role name, value is Set of all roles it includes
+ * Example: ROLE_ADMIN -> {ROLE_ADMIN, ROLE_MODERATOR, ROLE_USER}
+ */
+async function getRoleHierarchy(): Promise<Map<string, Set<string>>> {
+  if (roleHierarchyCache) {
+    return roleHierarchyCache;
+  }
+
+  const roles = await prisma.role.findMany({
+    select: {
+      id: true,
+      name: true,
+      parentId: true,
+    },
+  });
+
+  const roleMap = new Map(roles.map((r) => [r.id, r]));
+  const hierarchy = new Map<string, Set<string>>();
+
+  for (const role of roles) {
+    const inherited = new Set<string>([role.name]);
+
+    // Walk up the hierarchy
+    let current = role;
+    while (current.parentId) {
+      const parent = roleMap.get(current.parentId);
+      if (parent) {
+        inherited.add(parent.name);
+        current = parent;
+      } else {
+        break;
+      }
+    }
+
+    hierarchy.set(role.name, inherited);
+  }
+
+  roleHierarchyCache = hierarchy;
+  return hierarchy;
+}
+
+/**
+ * Clear role hierarchy cache (call when roles are modified)
+ */
+export function clearRoleHierarchyCache(): void {
+  roleHierarchyCache = null;
+}
+
+/**
+ * Legacy compatibility - check if user has required role level
+ *
+ * @deprecated Use hasRole() or isGranted() instead
+ */
+export async function hasRequiredRoleAsync(
+  user: UserWithRoles | null,
+  requiredRole: 'USER' | 'MODERATOR' | 'ADMIN'
+): Promise<boolean> {
+  return hasRole(user, `ROLE_${requiredRole}`);
+}
+
+/**
+ * Get user's highest role name (for display purposes)
+ *
+ * Returns the most privileged role: ADMIN > MODERATOR > USER
+ */
+export async function getUserRoleDisplay(
+  user: UserWithRoles | null
+): Promise<LegacyRole> {
+  if (!user) return 'USER';
+
+  if (await hasRole(user, 'ROLE_ADMIN')) return 'ADMIN';
+  if (await hasRole(user, 'ROLE_MODERATOR')) return 'MODERATOR';
+  return 'USER';
+}
+
+/**
+ * Synchronously compute legacy role from userRoles (no DB call)
+ *
+ * Use this when you already have userRoles loaded and need the role string.
+ * For checking permissions, use hasRole() or isGranted() instead.
+ */
+export function computeLegacyRole(user: UserWithRoles | null): LegacyRole {
+  if (!user?.userRoles?.length) return 'USER';
+
+  const roleNames = user.userRoles.map((ur) => ur.role.name);
+
+  // Check highest first (ADMIN > MODERATOR > USER)
+  if (roleNames.includes('ROLE_ADMIN')) return 'ADMIN';
+  if (roleNames.includes('ROLE_MODERATOR')) return 'MODERATOR';
+  return 'USER';
+}
+
+/**
+ * Include clause for Prisma queries to get user with roles
+ */
+export const userWithRolesInclude = {
+  userRoles: {
+    include: {
+      role: {
+        select: {
+          id: true,
+          name: true,
+          parentId: true,
+        },
+      },
+    },
+  },
+} as const;

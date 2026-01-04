@@ -65,6 +65,25 @@ import {
   NotFoundError,
 } from './auth.errors';
 import log from '@/lib/logger';
+import type { LegacyRole } from '@/types/auth';
+
+// Helper to get role from user (handles both old and new role system)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getUserRole(user: any): LegacyRole {
+  // Check for new RBAC system (userRoles relation)
+  if (user.userRoles?.length) {
+    const roleNames = user.userRoles.map((ur: { role: { name: string } }) => ur.role.name);
+    if (roleNames.includes('ROLE_ADMIN')) return 'ADMIN';
+    if (roleNames.includes('ROLE_MODERATOR')) return 'MODERATOR';
+    return 'USER';
+  }
+  // Check for legacy role field (during migration)
+  if (user.role && typeof user.role === 'string') {
+    return user.role as LegacyRole;
+  }
+  // Default to USER
+  return 'USER';
+}
 
 // ============================================================================
 // Types
@@ -514,7 +533,7 @@ export async function register(
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      role: getUserRole(user),
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       lastLoginAt: user.lastLoginAt,
@@ -641,7 +660,7 @@ export async function validate2FA(
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      role: getUserRole(user),
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       lastLoginAt: user.lastLoginAt,
@@ -836,10 +855,12 @@ export async function disable2FA(
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      role: true,
       twoFactorSecret: true,
       twoFactorEnabled: true,
       email: true,
+      userRoles: {
+        include: { role: { select: { name: true } } },
+      },
     },
   });
 
@@ -848,7 +869,7 @@ export async function disable2FA(
   }
 
   // Admins cannot disable their own 2FA
-  if (user.role === 'ADMIN') {
+  if (getUserRole(user) === 'ADMIN') {
     throw new AuthorizationError('Admins cannot disable 2FA');
   }
 

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { AuditAction, AuditCategory } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
 import { hasOrgRole } from '@/lib/organization';
+import { computeLegacyRole, userWithRolesInclude } from '@/lib/security/index';
 import log from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { role: true, organizationId: true, organizationRole: true },
+      select: { id: true, organizationId: true, organizationRole: true, ...userWithRolesInclude },
     });
 
     if (!user) {
@@ -115,6 +116,8 @@ export async function GET(req: NextRequest) {
         { status: 404 }
       );
     }
+
+    const userRole = computeLegacyRole(user);
 
     // Parse query parameters
     const { searchParams } = new URL(req.url);
@@ -154,7 +157,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Authorization and org scoping
-    if (user.role === 'ADMIN') {
+    if (userRole === 'ADMIN') {
       if (orgScope && orgScope !== 'all') {
         where.user = { ...where.user, organizationId: orgScope };
       }
