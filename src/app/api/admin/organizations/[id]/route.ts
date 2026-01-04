@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { headers } from 'next/headers';
 
 export const runtime = 'nodejs';
+
+// Role priority for sorting: OWNER first, then ADMIN, then MEMBER
+const ROLE_PRIORITY: Record<string, number> = {
+  OWNER: 0,
+  ADMIN: 1,
+  MEMBER: 2,
+};
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -49,7 +56,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
             organizationRole: true,
             createdAt: true,
           },
-          orderBy: [{ organizationRole: 'asc' }, { createdAt: 'asc' }],
         },
       },
     });
@@ -61,13 +67,23 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Sort members: OWNER first, then ADMIN, then MEMBER, then by join date
+    const sortedMembers = [...organization.users].sort((a, b) => {
+      const rolePriorityA = ROLE_PRIORITY[a.organizationRole || 'MEMBER'] ?? 2;
+      const rolePriorityB = ROLE_PRIORITY[b.organizationRole || 'MEMBER'] ?? 2;
+      if (rolePriorityA !== rolePriorityB) {
+        return rolePriorityA - rolePriorityB;
+      }
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
     return NextResponse.json({
       organization: {
         id: organization.id,
         name: organization.name,
         slug: organization.slug,
         createdAt: organization.createdAt.toISOString(),
-        members: organization.users.map((u) => ({
+        members: sortedMembers.map((u) => ({
           userId: u.id,
           role: u.organizationRole,
           joinedAt: u.createdAt.toISOString(),
@@ -115,6 +131,20 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           },
         },
         { status: 403 }
+      );
+    }
+
+    // Rate limit: 10 ownership transfers per hour per admin
+    const rateLimitKey = `admin-org-transfer:${user.id}`;
+    if (isRateLimited(rateLimitKey, 10, 60 * 60 * 1000)) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'RATE_LIMIT_ERROR',
+            message: 'Too many ownership transfers. Please try again later.',
+          },
+        },
+        { status: 429 }
       );
     }
 
@@ -241,6 +271,20 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
           },
         },
         { status: 403 }
+      );
+    }
+
+    // Rate limit: 5 organization deletions per hour per admin
+    const rateLimitKey = `admin-org-delete:${user.id}`;
+    if (isRateLimited(rateLimitKey, 5, 60 * 60 * 1000)) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'RATE_LIMIT_ERROR',
+            message: 'Too many organization deletions. Please try again later.',
+          },
+        },
+        { status: 429 }
       );
     }
 

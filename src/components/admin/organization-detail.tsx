@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -24,6 +24,7 @@ import {
   RefreshCw,
   Loader2,
   AlertTriangle,
+  X,
 } from 'lucide-react';
 
 interface Member {
@@ -62,12 +63,9 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
 
-  useEffect(() => {
-    fetchOrganization();
-  }, [organizationId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchOrganization = async () => {
+  const fetchOrganization = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await fetch(`/api/admin/organizations/${organizationId}`);
@@ -87,7 +85,11 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [organizationId, router]);
+
+  useEffect(() => {
+    fetchOrganization();
+  }, [fetchOrganization]);
 
   const handleTransferOwnership = async () => {
     if (!transferTarget) return;
@@ -120,16 +122,12 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
     }
   };
 
-  const handleRemoveMember = async (userId: string) => {
-    if (
-      !confirm(
-        'Are you sure you want to remove this member from the organization?'
-      )
-    ) {
-      return;
-    }
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return;
 
+    const userId = memberToRemove.userId;
     setRemovingMemberId(userId);
+    setMemberToRemove(null);
     setError('');
     setSuccess('');
 
@@ -339,7 +337,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleRemoveMember(member.userId)}
+                          onClick={() => setMemberToRemove(member)}
                           disabled={removingMemberId === member.userId}
                         >
                           {removingMemberId === member.userId ? (
@@ -453,6 +451,38 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
           </div>
         </CardContent>
       </Card>
+
+      {/* Remove Member Confirmation Modal */}
+      {memberToRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Remove Member
+              </h3>
+              <button
+                onClick={() => setMemberToRemove(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mb-6 text-gray-600">
+              Are you sure you want to remove{' '}
+              <strong>{getMemberName(memberToRemove)}</strong> from the
+              organization? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setMemberToRemove(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleRemoveMember}>
+                Remove Member
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

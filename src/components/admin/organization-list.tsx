@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,11 +50,7 @@ export function OrganizationList() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchOrganizations();
-  }, [pagination.page, sortBy, sortOrder]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchOrganizations = async () => {
+  const fetchOrganizations = useCallback(async (searchTerm?: string) => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
@@ -63,7 +59,9 @@ export function OrganizationList() {
         sortBy,
         sortOrder,
       });
-      if (search) params.set('search', search);
+      if (searchTerm !== undefined ? searchTerm : search) {
+        params.set('search', searchTerm !== undefined ? searchTerm : search);
+      }
 
       const response = await fetch(`/api/admin/organizations?${params}`);
 
@@ -79,12 +77,16 @@ export function OrganizationList() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit, sortBy, sortOrder, search]);
+
+  useEffect(() => {
+    fetchOrganizations();
+  }, [fetchOrganizations]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    // Reset to page 1 - the useEffect will trigger a refetch
     setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchOrganizations();
   };
 
   const handleSort = (column: string) => {

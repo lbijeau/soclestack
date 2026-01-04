@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { headers } from 'next/headers';
@@ -33,6 +33,20 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
           },
         },
         { status: 403 }
+      );
+    }
+
+    // Rate limit: 20 member removals per hour per admin
+    const rateLimitKey = `admin-org-member-remove:${user.id}`;
+    if (isRateLimited(rateLimitKey, 20, 60 * 60 * 1000)) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'RATE_LIMIT_ERROR',
+            message: 'Too many member removals. Please try again later.',
+          },
+        },
+        { status: 429 }
       );
     }
 
