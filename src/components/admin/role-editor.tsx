@@ -31,6 +31,8 @@ const VALIDATION_CLASSES = {
   valid: 'border-green-500 focus:border-green-500 focus:ring-green-500',
   invalid: 'border-red-500 focus:border-red-500 focus:ring-red-500',
   indicator: 'h-5 w-5',
+  validText: 'text-green-500',
+  invalidText: 'text-red-500',
 } as const;
 
 interface Role {
@@ -434,12 +436,12 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                     <div className="absolute top-1/2 right-3 -translate-y-1/2">
                       {fieldErrors.name ? (
                         <XCircle
-                          className={`${VALIDATION_CLASSES.indicator} text-red-500`}
+                          className={`${VALIDATION_CLASSES.indicator} ${VALIDATION_CLASSES.invalidText}`}
                           aria-label="Invalid role name"
                         />
                       ) : (
                         <CheckCircle2
-                          className={`${VALIDATION_CLASSES.indicator} text-green-500`}
+                          className={`${VALIDATION_CLASSES.indicator} ${VALIDATION_CLASSES.validText}`}
                           aria-label="Valid role name"
                         />
                       )}
