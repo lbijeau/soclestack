@@ -67,7 +67,8 @@ describe('getCurrentUser', () => {
       where: { id: 'user-123', isActive: true },
       include: {
         userRoles: {
-          include: {
+          select: {
+            organizationId: true,
             role: {
               select: {
                 id: true,
