@@ -56,16 +56,7 @@ export async function GET() {
         notifyPasswordChange: true,
         notifyLoginAlert: true,
         notify2FAChange: true,
-        organizationId: true,
-        organizationRole: true,
         ...userWithRolesInclude,
-        organization: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
         oauthAccounts: {
           select: {
             provider: true,
