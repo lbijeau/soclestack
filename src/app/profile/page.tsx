@@ -229,7 +229,7 @@ export default async function ProfilePage() {
           {/* Delete Account */}
           <DeleteAccount
             isAdmin={isAdmin}
-            isOrgOwner={user.organizationRole === 'OWNER'}
+            isOrgOwner={await isGranted(user, ROLES.OWNER)}
             hasPassword={!!user.password}
           />
         </div>
