@@ -665,7 +665,6 @@ export interface ApiKeyAuthContext {
     email: string;
     role: string;
     isActive: boolean;
-    organizationId: string | null;
   };
 }
 
