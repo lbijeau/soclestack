@@ -367,6 +367,15 @@ export async function createUserSession(
   session.role = role;
   session.isLoggedIn = true;
   session.sessionCreatedAt = Date.now();
+  // Include userRoles for frontend authorization checks
+  session.userRoles = user.userRoles?.map((ur) => ({
+    role: {
+      id: ur.role.id,
+      name: ur.role.name,
+      parentId: ur.role.parentId,
+    },
+    organizationId: ur.organizationId,
+  }));
   await session.save();
 
   return {

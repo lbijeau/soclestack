@@ -89,4 +89,12 @@ export interface SessionData {
   sessionCreatedAt?: number; // Unix timestamp for session expiry tracking
   impersonating?: ImpersonationData;
   organization?: OrganizationData;
+  userRoles?: Array<{
+    role: {
+      id: string;
+      name: string;
+      parentId: string | null;
+    };
+    organizationId: string | null;
+  }>;
 }
