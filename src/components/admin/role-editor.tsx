@@ -23,6 +23,18 @@ import {
 } from 'lucide-react';
 import { isPlatformRole } from '@/lib/security';
 
+/**
+ * Validation styling constants for form inputs
+ * Used to maintain consistent validation states across form fields
+ */
+const VALIDATION_CLASSES = {
+  valid: 'border-green-500 focus:border-green-500 focus:ring-green-500',
+  invalid: 'border-red-500 focus:border-red-500 focus:ring-red-500',
+  indicator: 'h-5 w-5',
+  validText: 'text-green-500',
+  invalidText: 'text-red-500',
+} as const;
+
 interface Role {
   id: string;
   name: string;
@@ -409,9 +421,9 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                     placeholder="ROLE_CUSTOM_NAME"
                     className={
                       name && !fieldErrors.name
-                        ? 'border-green-500 pr-10 focus:border-green-500 focus:ring-green-500'
+                        ? `${VALIDATION_CLASSES.valid} pr-10`
                         : fieldErrors.name
-                          ? 'border-red-500 pr-10 focus:border-red-500 focus:ring-red-500'
+                          ? `${VALIDATION_CLASSES.invalid} pr-10`
                           : ''
                     }
                     aria-describedby={
@@ -424,12 +436,12 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                     <div className="absolute top-1/2 right-3 -translate-y-1/2">
                       {fieldErrors.name ? (
                         <XCircle
-                          className="h-5 w-5 text-red-500"
+                          className={`${VALIDATION_CLASSES.indicator} ${VALIDATION_CLASSES.invalidText}`}
                           aria-label="Invalid role name"
                         />
                       ) : (
                         <CheckCircle2
-                          className="h-5 w-5 text-green-500"
+                          className={`${VALIDATION_CLASSES.indicator} ${VALIDATION_CLASSES.validText}`}
                           aria-label="Valid role name"
                         />
                       )}
