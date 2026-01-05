@@ -13,18 +13,16 @@ import type { User, UserRole } from '@prisma/client';
 import type { PlatformRole } from '@/types/auth';
 import { VoteResult } from './voter';
 import { voters } from './voters';
+import { ROLE_NAMES } from '@/lib/constants/roles';
 
 // Voter class names for debug logging
 const VOTER_NAMES = ['OrganizationVoter', 'UserVoter'] as const;
 
 /**
  * Role name constants to avoid magic strings
+ * Re-exported from shared constants for backward compatibility
  */
-export const ROLES = {
-  ADMIN: 'ROLE_ADMIN',
-  MODERATOR: 'ROLE_MODERATOR',
-  USER: 'ROLE_USER',
-} as const;
+export const ROLES = ROLE_NAMES;
 
 export type RoleName = (typeof ROLES)[keyof typeof ROLES];
 
