@@ -107,12 +107,16 @@ async function seedOrganizationsAndUsers(roles: {
   console.log(`✅ Created/verified organization: ${org1.name}`);
 
   // Create platform admin (super admin - no org context)
+  const hashedPassword = await hashPassword('password123');
   const platformAdmin = await prisma.user.upsert({
     where: { email: 'admin@platform.com' },
-    update: {},
+    update: {
+      password: hashedPassword,
+      emailVerified: true,
+    },
     create: {
       email: 'admin@platform.com',
-      password: await hashPassword('password123'),
+      password: hashedPassword,
       firstName: 'Platform',
       lastName: 'Admin',
       emailVerified: true,
@@ -141,10 +145,13 @@ async function seedOrganizationsAndUsers(roles: {
   // Create organization owner
   const orgOwner = await prisma.user.upsert({
     where: { email: 'owner@acme.com' },
-    update: {},
+    update: {
+      password: hashedPassword,
+      emailVerified: true,
+    },
     create: {
       email: 'owner@acme.com',
-      password: await hashPassword('password123'),
+      password: hashedPassword,
       firstName: 'Acme',
       lastName: 'Owner',
       emailVerified: true,
@@ -172,10 +179,13 @@ async function seedOrganizationsAndUsers(roles: {
   // Create organization editor
   const orgEditor = await prisma.user.upsert({
     where: { email: 'editor@acme.com' },
-    update: {},
+    update: {
+      password: hashedPassword,
+      emailVerified: true,
+    },
     create: {
       email: 'editor@acme.com',
-      password: await hashPassword('password123'),
+      password: hashedPassword,
       firstName: 'Acme',
       lastName: 'Editor',
       emailVerified: true,
@@ -203,10 +213,13 @@ async function seedOrganizationsAndUsers(roles: {
   // Create regular user with platform-wide USER role
   const regularUser = await prisma.user.upsert({
     where: { email: 'user@example.com' },
-    update: {},
+    update: {
+      password: hashedPassword,
+      emailVerified: true,
+    },
     create: {
       email: 'user@example.com',
-      password: await hashPassword('password123'),
+      password: hashedPassword,
       firstName: 'Regular',
       lastName: 'User',
       emailVerified: true,
