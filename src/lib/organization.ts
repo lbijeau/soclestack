@@ -56,3 +56,34 @@ export function createInviteExpiry(): Date {
   date.setDate(date.getDate() + INVITE_EXPIRY_DAYS);
   return date;
 }
+
+/**
+ * Get user's current organization
+ * For now, returns the organization ID if user belongs to exactly one organization
+ * Returns null if user belongs to zero or multiple organizations
+ *
+ * @param userId - The user ID to check
+ * @returns Organization ID if user has exactly one org, null otherwise
+ */
+export async function getCurrentOrganizationId(
+  userId: string
+): Promise<string | null> {
+  const userRoles = await prisma.userRole.findMany({
+    where: {
+      userId,
+      organizationId: { not: null },
+    },
+    select: {
+      organizationId: true,
+    },
+    distinct: ['organizationId'],
+  });
+
+  // User has exactly one organization
+  if (userRoles.length === 1 && userRoles[0].organizationId) {
+    return userRoles[0].organizationId;
+  }
+
+  // User has zero or multiple organizations
+  return null;
+}
