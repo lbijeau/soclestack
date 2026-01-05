@@ -4,7 +4,6 @@ import { getClientIP } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import { AuthError } from '@/types/auth';
 import { z } from 'zod';
-import { canAccessUserInOrg } from '@/lib/organization';
 import { userWithRolesInclude, isGranted, ROLES } from '@/lib/security/index';
 import { requireAdmin } from '@/lib/api-utils';
 
@@ -60,7 +59,6 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         email: true,
-        organizationId: true,
         ...userWithRolesInclude,
       },
     });
@@ -77,26 +75,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Filter to only users in the same organization (unless platform super-admin)
-    const accessibleUsers = targetUsers.filter((u) =>
-      canAccessUserInOrg(currentUser.organizationId ?? null, u.organizationId)
-    );
-
-    if (accessibleUsers.length === 0) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'NOT_FOUND',
-            message: 'No valid users found',
-          } as AuthError,
-        },
-        { status: 404 }
-      );
-    }
-
     // Prevent actions on other admins (using isGranted for proper hierarchy check)
     const adminChecks = await Promise.all(
-      accessibleUsers.map(async (u) => ({
+      targetUsers.map(async (u) => ({
         user: u,
         isAdmin: await isGranted(u, ROLES.ADMIN),
       }))
@@ -114,7 +95,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const validUserIds = accessibleUsers.map((u) => u.id);
+    const validUserIds = targetUsers.map((u) => u.id);
     let affectedCount = 0;
 
     switch (action) {
@@ -166,7 +147,7 @@ export async function POST(req: NextRequest) {
           ipAddress: clientIP,
           userAgent,
           metadata: {
-            deletedUsers: accessibleUsers.map((u) => ({
+            deletedUsers: targetUsers.map((u) => ({
               id: u.id,
               email: u.email,
             })),

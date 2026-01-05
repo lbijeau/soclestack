@@ -359,6 +359,10 @@ export function getHighestRole(user: UserWithRoles | null): PlatformRole {
 export const userWithRolesInclude = {
   userRoles: {
     select: {
+      id: true,
+      createdAt: true,
+      userId: true,
+      roleId: true,
       organizationId: true,
       role: {
         select: {

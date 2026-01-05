@@ -4,12 +4,10 @@
  * Checks user's organization membership and role to determine access.
  */
 
-import type { OrganizationRole } from '@prisma/client';
 import type { Voter } from '../voter';
 import { VoteResult } from '../voter';
 import type { UserWithRoles } from '../index';
-import { hasOrgRole } from '@/lib/organization';
-import { hasRole } from '../index';
+import { hasRole, ROLES } from '../index';
 
 /**
  * Supported organization permission attributes
@@ -28,15 +26,16 @@ type OrgAttribute = (typeof ATTRIBUTES)[number];
 
 /**
  * Minimum role required for each permission
+ * Using ROLE_* constants instead of old OrganizationRole enum
  */
-const REQUIRED_ROLES: Record<OrgAttribute, OrganizationRole> = {
-  'organization.view': 'MEMBER',
-  'organization.edit': 'ADMIN',
-  'organization.manage': 'ADMIN',
-  'organization.delete': 'OWNER',
-  'organization.members.view': 'MEMBER',
-  'organization.members.manage': 'ADMIN',
-  'organization.invites.manage': 'ADMIN',
+const REQUIRED_ROLES: Record<OrgAttribute, string> = {
+  'organization.view': ROLES.USER, // Any member
+  'organization.edit': ROLES.ADMIN,
+  'organization.manage': ROLES.ADMIN,
+  'organization.delete': ROLES.OWNER,
+  'organization.members.view': ROLES.USER, // Any member
+  'organization.members.manage': ROLES.ADMIN,
+  'organization.invites.manage': ROLES.ADMIN,
 };
 
 /**
@@ -45,14 +44,6 @@ const REQUIRED_ROLES: Record<OrgAttribute, OrganizationRole> = {
 interface OrganizationSubject {
   id: string;
   slug: string;
-}
-
-/**
- * Extended user type with organization fields
- */
-interface UserWithOrganization extends UserWithRoles {
-  organizationId?: string | null;
-  organizationRole?: OrganizationRole;
 }
 
 export class OrganizationVoter implements Voter {
@@ -75,27 +66,11 @@ export class OrganizationVoter implements Voter {
     subject?: unknown
   ): Promise<VoteResult> {
     const org = subject as OrganizationSubject;
-    const userWithOrg = user as UserWithOrganization;
 
     // Platform admins (ROLE_ADMIN with null org context) can manage any organization
-    const isPlatformAdmin = await hasRole(user, 'ROLE_ADMIN', null);
+    const isPlatformAdmin = await hasRole(user, ROLES.ADMIN, null);
     if (isPlatformAdmin) {
-      // Platform admins can manage and delete, but not necessarily view member details
-      // unless they're explicitly checking those permissions
-      const requiredRole = REQUIRED_ROLES[attribute as OrgAttribute];
-      if (requiredRole && ['ADMIN', 'OWNER'].includes(requiredRole)) {
-        return VoteResult.GRANTED;
-      }
-    }
-
-    // Must be member of this specific organization
-    if (userWithOrg.organizationId !== org.id) {
-      return VoteResult.DENIED;
-    }
-
-    // Must have an organization role
-    if (!userWithOrg.organizationRole) {
-      return VoteResult.DENIED;
+      return VoteResult.GRANTED;
     }
 
     const requiredRole = REQUIRED_ROLES[attribute as OrgAttribute];
@@ -103,9 +78,9 @@ export class OrganizationVoter implements Voter {
       return VoteResult.ABSTAIN;
     }
 
-    return hasOrgRole(userWithOrg.organizationRole, requiredRole)
-      ? VoteResult.GRANTED
-      : VoteResult.DENIED;
+    // Check if user has the required role in this specific organization
+    const hasRequiredRole = await hasRole(user, requiredRole, org.id);
+    return hasRequiredRole ? VoteResult.GRANTED : VoteResult.DENIED;
   }
 
   /**

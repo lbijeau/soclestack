@@ -1,4 +1,4 @@
-import { User, OrganizationRole } from '@prisma/client';
+import { User } from '@prisma/client';
 
 /**
  * Platform role names (stored in roles table)
@@ -74,13 +74,6 @@ export interface ImpersonationData {
   startedAt: number; // Unix timestamp
 }
 
-export interface OrganizationData {
-  id: string;
-  name: string;
-  slug: string;
-  role: OrganizationRole;
-}
-
 export interface SessionData {
   userId: string;
   email: string;
@@ -88,7 +81,6 @@ export interface SessionData {
   isLoggedIn: boolean;
   sessionCreatedAt?: number; // Unix timestamp for session expiry tracking
   impersonating?: ImpersonationData;
-  organization?: OrganizationData;
   userRoles?: Array<{
     role: {
       id: string;

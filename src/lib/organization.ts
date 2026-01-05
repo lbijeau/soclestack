@@ -1,4 +1,3 @@
-import { OrganizationRole } from '@prisma/client';
 import { prisma } from './db';
 import crypto from 'crypto';
 
@@ -45,51 +44,6 @@ export function generateInviteToken(): string {
 }
 
 /**
- * Check if a user has the required organization role or higher
- */
-export function hasOrgRole(
-  userRole: OrganizationRole,
-  requiredRole: OrganizationRole
-): boolean {
-  const roleHierarchy: Record<OrganizationRole, number> = {
-    MEMBER: 0,
-    ADMIN: 1,
-    OWNER: 2,
-  };
-
-  return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
-}
-
-/**
- * Check if user can manage another user in the organization
- * - Cannot manage yourself
- * - Cannot manage someone with equal or higher role
- * - Must be at least ADMIN to manage anyone
- */
-export function canManageUser(
-  managerRole: OrganizationRole,
-  targetRole: OrganizationRole,
-  isSelf: boolean
-): boolean {
-  if (isSelf) return false;
-  if (!hasOrgRole(managerRole, 'ADMIN')) return false;
-  if (hasOrgRole(targetRole, managerRole)) return false;
-  return true;
-}
-
-/**
- * Get the display name for an organization role
- */
-export function getOrgRoleDisplayName(role: OrganizationRole): string {
-  const displayNames: Record<OrganizationRole, string> = {
-    OWNER: 'Owner',
-    ADMIN: 'Admin',
-    MEMBER: 'Member',
-  };
-  return displayNames[role];
-}
-
-/**
  * Invite expiry duration in days
  */
 export const INVITE_EXPIRY_DAYS = 7;
@@ -101,28 +55,4 @@ export function createInviteExpiry(): Date {
   const date = new Date();
   date.setDate(date.getDate() + INVITE_EXPIRY_DAYS);
   return date;
-}
-
-/**
- * Check if an admin user can access/manage a target user based on organization membership.
- *
- * Rules:
- * - Platform super-admins (no organizationId) can access any user
- * - Organization-bound admins can only access users in their organization
- *
- * @param adminOrgId - The admin's organizationId (null for platform super-admins)
- * @param targetOrgId - The target user's organizationId
- * @returns true if the admin can access the target user
- */
-export function canAccessUserInOrg(
-  adminOrgId: string | null,
-  targetOrgId: string | null
-): boolean {
-  // Platform super-admins (no org) can access anyone
-  if (adminOrgId === null) {
-    return true;
-  }
-
-  // Organization-bound admins can only access users in their org
-  return adminOrgId === targetOrgId;
 }

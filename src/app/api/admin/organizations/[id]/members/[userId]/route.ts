@@ -33,23 +33,28 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Verify the user is a member of this organization
-    const member = await prisma.user.findFirst({
+    // Verify the user has a role in this organization
+    const userRole = await prisma.userRole.findFirst({
       where: {
-        id: userId,
+        userId: userId,
         organizationId: id,
       },
-      select: {
-        id: true,
-        email: true,
-        organizationRole: true,
-        organization: {
-          select: { name: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+        role: {
+          select: {
+            name: true,
+          },
         },
       },
     });
 
-    if (!member) {
+    if (!userRole) {
       return NextResponse.json(
         { error: { type: 'NOT_FOUND', message: 'Member not found' } },
         { status: 404 }
@@ -57,7 +62,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     // Cannot remove owner
-    if (member.organizationRole === 'OWNER') {
+    if (userRole.role.name === 'ROLE_OWNER') {
       return NextResponse.json(
         {
           error: {
@@ -70,10 +75,15 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Remove member by clearing their organization association
-    await prisma.user.update({
-      where: { id: userId },
-      data: { organizationId: null, organizationRole: 'MEMBER' },
+    // Get organization name for audit log
+    const organization = await prisma.organization.findUnique({
+      where: { id },
+      select: { name: true },
+    });
+
+    // Remove member by deleting their UserRole
+    await prisma.userRole.delete({
+      where: { id: userRole.id },
     });
 
     // Audit log
@@ -86,10 +96,10 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       userAgent: headersList.get('user-agent') || undefined,
       metadata: {
         organizationId: id,
-        organizationName: member.organization?.name,
+        organizationName: organization?.name,
         removedUserId: userId,
-        removedUserEmail: member.email,
-        removedUserRole: member.organizationRole,
+        removedUserEmail: userRole.user.email,
+        removedUserRole: userRole.role.name,
       },
     });
 

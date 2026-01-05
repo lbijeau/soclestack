@@ -3,7 +3,6 @@ import { getClientIP } from '@/lib/auth';
 import { deleteAllBackupCodes } from '@/lib/auth/backup-codes';
 import { logAuditEvent } from '@/lib/audit';
 import { prisma } from '@/lib/db';
-import { canAccessUserInOrg } from '@/lib/organization';
 import { requireAdmin } from '@/lib/api-utils';
 
 export const runtime = 'nodejs';
@@ -29,24 +28,10 @@ export async function POST(
         id: true,
         email: true,
         twoFactorEnabled: true,
-        organizationId: true,
       },
     });
 
     if (!targetUser) {
-      return NextResponse.json(
-        { error: { type: 'NOT_FOUND', message: 'User not found' } },
-        { status: 404 }
-      );
-    }
-
-    // Check organization-level access
-    if (
-      !canAccessUserInOrg(
-        currentUser?.organizationId ?? null,
-        targetUser.organizationId
-      )
-    ) {
       return NextResponse.json(
         { error: { type: 'NOT_FOUND', message: 'User not found' } },
         { status: 404 }

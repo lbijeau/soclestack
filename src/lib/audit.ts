@@ -43,6 +43,9 @@ export type AuditAction =
   | 'ADMIN_BULK_ACTIVATE'
   | 'ADMIN_BULK_DEACTIVATE'
   | 'ADMIN_BULK_DELETE'
+  // Admin Role Management
+  | 'ADMIN_USER_ROLE_ASSIGNED'
+  | 'ADMIN_USER_ROLE_REMOVED'
   // Device Management
   | 'SECURITY_DEVICE_REVOKED'
   // Admin Organization Management

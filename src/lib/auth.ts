@@ -756,14 +756,12 @@ export function getUserFromContext(context: AuthContext): {
   id: string;
   email: string;
   role: string;
-  organizationId: string | null;
 } {
   if (context.type === 'session') {
     return {
       id: context.user.id,
       email: context.user.email,
       role: context.user.role,
-      organizationId: context.user.organizationId,
     };
   }
   return context.user;
