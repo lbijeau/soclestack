@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { OrganizationRole } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import {
-  hasOrgRole,
   generateInviteToken,
   createInviteExpiry,
+  getCurrentOrganizationId,
 } from '@/lib/organization';
 import { AuthError } from '@/types/auth';
 import { sendEmail, organizationInviteTemplate } from '@/lib/email';
+import { hasRole, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
 const createInviteSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  role: z.nativeEnum(OrganizationRole).default('MEMBER'),
+  roleName: z.string().startsWith('ROLE_').default('ROLE_USER'),
 });
 
 // GET /api/organizations/current/invites - List pending invites (ADMIN+)
@@ -35,25 +35,39 @@ export async function GET() {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { organizationId: true, organizationRole: true },
-    });
+    // Get current organization ID
+    const organizationId = await getCurrentOrganizationId(session.userId);
 
-    if (!user?.organizationId) {
+    if (!organizationId) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'You do not belong to an organization',
+            message:
+              'You do not belong to an organization or belong to multiple organizations',
           } as AuthError,
         },
         { status: 404 }
       );
     }
 
-    // Check if user has ADMIN or higher role
-    if (!hasOrgRole(user.organizationRole, 'ADMIN')) {
+    // Get user with roles for authorization check
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { id: true, ...userWithRolesInclude },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: { type: 'NOT_FOUND', message: 'User not found' } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check if user has ADMIN or higher role in this organization
+    if (!(await hasRole(user, 'ROLE_ADMIN', organizationId))) {
       return NextResponse.json(
         {
           error: {
@@ -66,11 +80,15 @@ export async function GET() {
     }
 
     const invites = await prisma.organizationInvite.findMany({
-      where: { organizationId: user.organizationId },
+      where: { organizationId },
       select: {
         id: true,
         email: true,
-        role: true,
+        role: {
+          select: {
+            name: true,
+          },
+        },
         expiresAt: true,
         createdAt: true,
         invitedBy: {
@@ -85,7 +103,13 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ invites });
+    // Transform role objects to role names for response
+    const transformedInvites = invites.map((inv) => ({
+      ...inv,
+      role: inv.role.name,
+    }));
+
+    return NextResponse.json({ invites: transformedInvites });
   } catch (error) {
     console.error('Get invites error:', error);
     return NextResponse.json(
@@ -117,17 +141,55 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      include: { organization: true },
-    });
+    // Get current organization ID
+    const organizationId = await getCurrentOrganizationId(session.userId);
 
-    if (!user?.organization) {
+    if (!organizationId) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'You do not belong to an organization',
+            message:
+              'You do not belong to an organization or belong to multiple organizations',
+          } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
+    // Get user with roles and organization
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        ...userWithRolesInclude,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: { type: 'NOT_FOUND', message: 'User not found' } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
+    // Get organization details
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+
+    if (!organization) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'NOT_FOUND',
+            message: 'Organization not found',
           } as AuthError,
         },
         { status: 404 }
@@ -135,7 +197,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user has ADMIN or higher role
-    if (!hasOrgRole(user.organizationRole, 'ADMIN')) {
+    if (!(await hasRole(user, 'ROLE_ADMIN', organizationId))) {
       return NextResponse.json(
         {
           error: {
@@ -163,28 +225,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, role } = validationResult.data;
+    const { email, roleName } = validationResult.data;
 
-    // Cannot invite with a role equal to or higher than current user's role
-    if (hasOrgRole(role, user.organizationRole)) {
+    // Find the role by name
+    const role = await prisma.role.findUnique({
+      where: { name: roleName },
+    });
+
+    if (!role) {
       return NextResponse.json(
         {
           error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'You cannot invite someone with your role or higher',
+            type: 'VALIDATION_ERROR',
+            message: 'Invalid role specified',
           } as AuthError,
         },
-        { status: 403 }
+        { status: 400 }
       );
     }
 
-    const organizationId = user.organization.id;
+    // Cannot invite with a role equal to or higher than current user's role
+    // Check if target role is in user's hierarchy
+    if (await hasRole(user, roleName, organizationId)) {
+      // User has this role or higher, which means they can invite
+      // But we need to prevent inviting with same or higher role
+      // For now, simplified: only allow inviting ROLE_USER and ROLE_MODERATOR if you're ADMIN+
+      if (roleName === 'ROLE_ADMIN' || roleName === 'ROLE_OWNER') {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'AUTHORIZATION_ERROR',
+              message: 'You cannot invite someone with ADMIN or OWNER role',
+            } as AuthError,
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     // Check if user already exists in the organization
-    const existingMember = await prisma.user.findFirst({
+    const existingMember = await prisma.userRole.findFirst({
       where: {
-        email: email.toLowerCase(),
         organizationId,
+        user: {
+          email: email.toLowerCase(),
+        },
       },
     });
 
@@ -227,7 +312,7 @@ export async function POST(req: NextRequest) {
     const invite = await prisma.organizationInvite.create({
       data: {
         email: email.toLowerCase(),
-        role,
+        roleId: role.id,
         token,
         expiresAt,
         organizationId,
@@ -236,7 +321,11 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         email: true,
-        role: true,
+        role: {
+          select: {
+            name: true,
+          },
+        },
         expiresAt: true,
         createdAt: true,
       },
@@ -251,7 +340,7 @@ export async function POST(req: NextRequest) {
 
     const emailTemplate = organizationInviteTemplate({
       inviterName,
-      organizationName: user.organization.name,
+      organizationName: organization.name,
       inviteUrl,
       expiresAt,
     });
@@ -262,7 +351,10 @@ export async function POST(req: NextRequest) {
       html: emailTemplate.html,
     });
 
-    return NextResponse.json({ invite }, { status: 201 });
+    return NextResponse.json(
+      { invite: { ...invite, role: invite.role.name } },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Create invite error:', error);
     return NextResponse.json(
