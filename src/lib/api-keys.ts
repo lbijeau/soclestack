@@ -89,7 +89,6 @@ export async function validateApiKey(key: string): Promise<{
       email: string;
       role: string;
       isActive: boolean;
-      organizationId: string | null;
     };
   };
   error?: string;
@@ -111,7 +110,6 @@ export async function validateApiKey(key: string): Promise<{
           id: true,
           email: true,
           isActive: true,
-          organizationId: true,
           ...userWithRolesInclude,
         },
       },
@@ -152,7 +150,6 @@ export async function validateApiKey(key: string): Promise<{
         email: apiKey.user.email,
         role: getHighestRole(apiKey.user),
         isActive: apiKey.user.isActive,
-        organizationId: apiKey.user.organizationId,
       },
     },
   };
