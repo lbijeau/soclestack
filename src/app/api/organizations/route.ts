@@ -32,12 +32,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user already has an organization
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { organizationId: true },
+    const existingUserRole = await prisma.userRole.findFirst({
+      where: {
+        userId: session.userId,
+        organizationId: { not: null },
+      },
     });
 
-    if (user?.organizationId) {
+    if (existingUserRole) {
       return NextResponse.json(
         {
           error: {
@@ -68,17 +70,27 @@ export async function POST(req: NextRequest) {
     const { name } = validationResult.data;
     const slug = await generateSlug(name);
 
-    // Create organization and update user in transaction
+    // Create organization and assign OWNER role in transaction
     const organization = await prisma.$transaction(async (tx) => {
       const org = await tx.organization.create({
         data: { name, slug },
       });
 
-      await tx.user.update({
-        where: { id: session.userId },
+      // Get OWNER role
+      const ownerRole = await tx.role.findUnique({
+        where: { name: 'ROLE_OWNER' },
+      });
+
+      if (!ownerRole) {
+        throw new Error('ROLE_OWNER not found in database');
+      }
+
+      // Create UserRole record
+      await tx.userRole.create({
         data: {
+          userId: session.userId,
+          roleId: ownerRole.id,
           organizationId: org.id,
-          organizationRole: 'OWNER',
         },
       });
 
