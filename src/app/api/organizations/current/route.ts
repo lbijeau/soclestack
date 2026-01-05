@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { hasOrgRole } from '@/lib/organization';
+import { getCurrentOrganizationId } from '@/lib/organization';
+import { hasRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
 import { AuthError } from '@/types/auth';
 
 export const runtime = 'nodejs';
@@ -32,23 +33,57 @@ export async function GET() {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      include: {
-        organization: {
-          include: {
-            _count: { select: { users: true } },
-          },
-        },
-      },
-    });
+    // Get current organization ID
+    const organizationId = await getCurrentOrganizationId(session.userId);
 
-    if (!user?.organization) {
+    if (!organizationId) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'You do not belong to an organization',
+            message:
+              'You do not belong to an organization or belong to multiple organizations',
+          } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
+    // Get organization details with member count
+    const [organization, memberCount, userRole] = await Promise.all([
+      prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          createdAt: true,
+        },
+      }),
+      prisma.userRole.count({
+        where: { organizationId },
+      }),
+      prisma.userRole.findFirst({
+        where: {
+          userId: session.userId,
+          organizationId,
+        },
+        select: {
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    if (!organization) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'NOT_FOUND',
+            message: 'Organization not found',
           } as AuthError,
         },
         { status: 404 }
@@ -57,12 +92,12 @@ export async function GET() {
 
     return NextResponse.json({
       organization: {
-        id: user.organization.id,
-        name: user.organization.name,
-        slug: user.organization.slug,
-        memberCount: user.organization._count.users,
-        role: user.organizationRole,
-        createdAt: user.organization.createdAt,
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        memberCount,
+        role: userRole?.role.name || 'ROLE_USER',
+        createdAt: organization.createdAt,
       },
     });
   } catch (error) {
@@ -96,25 +131,39 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      include: { organization: true },
-    });
+    // Get current organization ID
+    const organizationId = await getCurrentOrganizationId(session.userId);
 
-    if (!user?.organization) {
+    if (!organizationId) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'You do not belong to an organization',
+            message:
+              'You do not belong to an organization or belong to multiple organizations',
           } as AuthError,
         },
         { status: 404 }
       );
     }
 
+    // Get user with roles for authorization
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { id: true, ...userWithRolesInclude },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: { type: 'NOT_FOUND', message: 'User not found' } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
     // Check if user has ADMIN or higher role
-    if (!hasOrgRole(user.organizationRole, 'ADMIN')) {
+    if (!(await hasRole(user, ROLES.ADMIN, organizationId))) {
       return NextResponse.json(
         {
           error: {
@@ -145,9 +194,24 @@ export async function PATCH(req: NextRequest) {
     const { name } = validationResult.data;
 
     const updatedOrg = await prisma.organization.update({
-      where: { id: user.organization.id },
+      where: { id: organizationId },
       data: {
         ...(name && { name }),
+      },
+    });
+
+    // Get user's role for response
+    const userRole = await prisma.userRole.findFirst({
+      where: {
+        userId: session.userId,
+        organizationId,
+      },
+      select: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -156,7 +220,7 @@ export async function PATCH(req: NextRequest) {
         id: updatedOrg.id,
         name: updatedOrg.name,
         slug: updatedOrg.slug,
-        role: user.organizationRole,
+        role: userRole?.role.name || 'ROLE_USER',
       },
     });
   } catch (error) {
@@ -190,25 +254,39 @@ export async function DELETE() {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      include: { organization: true },
-    });
+    // Get current organization ID
+    const organizationId = await getCurrentOrganizationId(session.userId);
 
-    if (!user?.organization) {
+    if (!organizationId) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'You do not belong to an organization',
+            message:
+              'You do not belong to an organization or belong to multiple organizations',
           } as AuthError,
         },
         { status: 404 }
       );
     }
 
+    // Get user with roles for authorization
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { id: true, ...userWithRolesInclude },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: { type: 'NOT_FOUND', message: 'User not found' } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
     // Only OWNER can delete the organization
-    if (user.organizationRole !== 'OWNER') {
+    if (!(await hasRole(user, ROLES.OWNER, organizationId))) {
       return NextResponse.json(
         {
           error: {
@@ -220,25 +298,21 @@ export async function DELETE() {
       );
     }
 
-    // Delete organization and disassociate all users in transaction
+    // Delete organization and all related records in transaction
     await prisma.$transaction(async (tx) => {
-      // Remove organization from all users
-      await tx.user.updateMany({
-        where: { organizationId: user.organization!.id },
-        data: {
-          organizationId: null,
-          organizationRole: 'MEMBER',
-        },
+      // Delete all UserRole records for this organization
+      await tx.userRole.deleteMany({
+        where: { organizationId },
       });
 
       // Delete all invites
       await tx.organizationInvite.deleteMany({
-        where: { organizationId: user.organization!.id },
+        where: { organizationId },
       });
 
-      // Delete the organization
+      // Delete the organization (cascade will handle remaining relations)
       await tx.organization.delete({
-        where: { id: user.organization!.id },
+        where: { id: organizationId },
       });
     });
 
