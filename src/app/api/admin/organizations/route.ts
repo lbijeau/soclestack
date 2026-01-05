@@ -1,13 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
 import { requireAdmin } from '@/lib/api-utils';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await requireAdmin();
-    if (!auth.ok) return auth.response;
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'Not authenticated',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    // Only platform admins can list all organizations
+    const isPlatformAdmin = await requireAdmin(user, null);
+    if (!isPlatformAdmin) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Requires platform admin access',
+          },
+        },
+        { status: 403 }
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';

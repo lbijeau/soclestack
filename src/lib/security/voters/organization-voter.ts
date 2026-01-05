@@ -9,6 +9,7 @@ import type { Voter } from '../voter';
 import { VoteResult } from '../voter';
 import type { UserWithRoles } from '../index';
 import { hasOrgRole } from '@/lib/organization';
+import { hasRole } from '../index';
 
 /**
  * Supported organization permission attributes
@@ -16,6 +17,7 @@ import { hasOrgRole } from '@/lib/organization';
 const ATTRIBUTES = [
   'organization.view',
   'organization.edit',
+  'organization.manage',
   'organization.delete',
   'organization.members.view',
   'organization.members.manage',
@@ -30,6 +32,7 @@ type OrgAttribute = (typeof ATTRIBUTES)[number];
 const REQUIRED_ROLES: Record<OrgAttribute, OrganizationRole> = {
   'organization.view': 'MEMBER',
   'organization.edit': 'ADMIN',
+  'organization.manage': 'ADMIN',
   'organization.delete': 'OWNER',
   'organization.members.view': 'MEMBER',
   'organization.members.manage': 'ADMIN',
@@ -73,6 +76,17 @@ export class OrganizationVoter implements Voter {
   ): Promise<VoteResult> {
     const org = subject as OrganizationSubject;
     const userWithOrg = user as UserWithOrganization;
+
+    // Platform admins (ROLE_ADMIN with null org context) can manage any organization
+    const isPlatformAdmin = await hasRole(user, 'ROLE_ADMIN', null);
+    if (isPlatformAdmin) {
+      // Platform admins can manage and delete, but not necessarily view member details
+      // unless they're explicitly checking those permissions
+      const requiredRole = REQUIRED_ROLES[attribute as OrgAttribute];
+      if (requiredRole && ['ADMIN', 'OWNER'].includes(requiredRole)) {
+        return VoteResult.GRANTED;
+      }
+    }
 
     // Must be member of this specific organization
     if (userWithOrg.organizationId !== org.id) {

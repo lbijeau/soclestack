@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isRateLimited } from '@/lib/auth';
+import { isRateLimited, getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { headers } from 'next/headers';
 import { requireAdmin } from '@/lib/api-utils';
+import { isGranted } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -20,10 +21,34 @@ interface RouteParams {
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    const auth = await requireAdmin();
-    if (!auth.ok) return auth.response;
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'Not authenticated',
+          },
+        },
+        { status: 401 }
+      );
+    }
 
     const { id } = await params;
+
+    // Only platform admins can view organization details
+    const isPlatformAdmin = await requireAdmin(user, null);
+    if (!isPlatformAdmin) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Requires platform admin access',
+          },
+        },
+        { status: 403 }
+      );
+    }
 
     const organization = await prisma.organization.findUnique({
       where: { id },
@@ -95,11 +120,57 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
-    const auth = await requireAdmin();
-    if (!auth.ok) return auth.response;
-    const user = auth.user;
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'Not authenticated',
+          },
+        },
+        { status: 401 }
+      );
+    }
 
     const { id } = await params;
+
+    // Verify org exists first
+    const organization = await prisma.organization.findUnique({
+      where: { id },
+      include: {
+        users: {
+          where: { organizationRole: 'OWNER' },
+          select: { id: true, email: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!organization) {
+      return NextResponse.json(
+        { error: { type: 'NOT_FOUND', message: 'Organization not found' } },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is admin of this organization (or platform admin)
+    const canManage = await isGranted(user, 'organization.manage', {
+      organizationId: id,
+      subject: { id: organization.id, slug: organization.slug },
+    });
+
+    if (!canManage) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Not authorized to manage this organization',
+          },
+        },
+        { status: 403 }
+      );
+    }
 
     // Rate limit: 10 ownership transfers per hour per admin
     const rateLimitKey = `admin-org-transfer:${user.id}`;
@@ -127,25 +198,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           },
         },
         { status: 400 }
-      );
-    }
-
-    // Verify org exists
-    const organization = await prisma.organization.findUnique({
-      where: { id },
-      include: {
-        users: {
-          where: { organizationRole: 'OWNER' },
-          select: { id: true, email: true },
-          take: 1,
-        },
-      },
-    });
-
-    if (!organization) {
-      return NextResponse.json(
-        { error: { type: 'NOT_FOUND', message: 'Organization not found' } },
-        { status: 404 }
       );
     }
 
@@ -220,11 +272,51 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
-    const auth = await requireAdmin();
-    if (!auth.ok) return auth.response;
-    const user = auth.user;
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'Not authenticated',
+          },
+        },
+        { status: 401 }
+      );
+    }
 
     const { id } = await params;
+
+    // Fetch organization for voter check
+    const organization = await prisma.organization.findUnique({
+      where: { id },
+      include: { _count: { select: { users: true } } },
+    });
+
+    if (!organization) {
+      return NextResponse.json(
+        { error: { type: 'NOT_FOUND', message: 'Organization not found' } },
+        { status: 404 }
+      );
+    }
+
+    // Only org owner or platform admin can delete (checked by OrganizationVoter)
+    const canDelete = await isGranted(user, 'organization.delete', {
+      organizationId: id,
+      subject: { id: organization.id, slug: organization.slug },
+    });
+
+    if (!canDelete) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Only organization owner or platform admin can delete',
+          },
+        },
+        { status: 403 }
+      );
+    }
 
     // Rate limit: 5 organization deletions per hour per admin
     const rateLimitKey = `admin-org-delete:${user.id}`;
@@ -237,18 +329,6 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
           },
         },
         { status: 429 }
-      );
-    }
-
-    const organization = await prisma.organization.findUnique({
-      where: { id },
-      include: { _count: { select: { users: true } } },
-    });
-
-    if (!organization) {
-      return NextResponse.json(
-        { error: { type: 'NOT_FOUND', message: 'Organization not found' } },
-        { status: 404 }
       );
     }
 
