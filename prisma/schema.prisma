@@ -47,12 +47,7 @@ model User {
   notifyLoginAlert     Boolean @default(true) @map("notify_login_alert")
   notify2FAChange      Boolean @default(true) @map("notify_2fa_change")
 
-  // Organization
-  organizationId   String?          @map("organization_id")
-  organizationRole OrganizationRole @default(MEMBER) @map("organization_role")
-
   // Relations
-  organization     Organization?        @relation(fields: [organizationId], references: [id])
   sessions         UserSession[]
   passwordHistory  PasswordHistory[]
   auditLogs        AuditLog[]
@@ -63,7 +58,6 @@ model User {
   apiKeys          ApiKey[]
   userRoles        UserRole[]
 
-  @@index([organizationId])
   @@map("users")
 }
 
@@ -116,25 +110,24 @@ model Role {
 }
 
 model UserRole {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  roleId    String   @map("role_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  roleId         String    @map("role_id")
+  organizationId String?   @map("organization_id") // NULL = platform-wide
+  createdAt      DateTime  @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         Role          @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, roleId])
+  @@unique([userId, roleId, organizationId])
+  // NOTE: Additional partial unique index in migration for organizationId IS NULL
   @@index([userId])
   @@index([roleId])
+  @@index([organizationId])
   @@map("user_roles")
 }
 
-enum OrganizationRole {
-  OWNER // Full control, can delete org
-  ADMIN // Manage users, settings
-  MEMBER // Basic access
-}
 
 model AuditLog {
   id        String   @id @default(cuid())
@@ -190,21 +183,21 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users   User[]
-  invites OrganizationInvite[]
+  userRoles UserRole[]
+  invites   OrganizationInvite[]
 
   @@map("organizations")
 }
 
 model OrganizationInvite {
-  id             String           @id @default(cuid())
+  id             String   @id @default(cuid())
   email          String
-  role           OrganizationRole @default(MEMBER)
-  token          String           @unique
-  expiresAt      DateTime         @map("expires_at")
-  organizationId String           @map("organization_id")
-  invitedById    String           @map("invited_by_id")
-  createdAt      DateTime         @default(now()) @map("created_at")
+  roleId         String   @map("role_id") // Role to assign when invite is accepted
+  token          String   @unique
+  expiresAt      DateTime @map("expires_at")
+  organizationId String   @map("organization_id")
+  invitedById    String   @map("invited_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   invitedBy    User         @relation(fields: [invitedById], references: [id])
