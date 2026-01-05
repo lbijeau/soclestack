@@ -362,9 +362,7 @@ export interface OrganizationDTO {
 }
 
 export interface RegisterResult {
-  user: UserDTO & {
-    organization: OrganizationDTO | null;
-  };
+  user: UserDTO;
   message: string;
 }
 

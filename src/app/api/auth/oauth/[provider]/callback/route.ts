@@ -258,8 +258,8 @@ async function handleExistingOAuthLogin(
     isActive: boolean;
     twoFactorEnabled: boolean;
     email: string;
-    organizationId: string | null;
     userRoles: Array<{
+      organizationId: string | null;
       role: {
         id: string;
         name: string;

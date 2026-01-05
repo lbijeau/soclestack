@@ -153,29 +153,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create user with organization and OAuth account (transaction)
-    const user = await prisma.$transaction(async (tx) => {
-      let organizationId: string | undefined;
-      let organizationRole: 'OWNER' | 'ADMIN' | 'MEMBER' = 'MEMBER';
-
-      if (organizationName) {
-        // Create new organization with user as OWNER
-        const slug = await generateSlug(organizationName);
-        const organization = await tx.organization.create({
-          data: { name: organizationName, slug },
-        });
-        organizationId = organization.id;
-        organizationRole = 'OWNER';
-      } else if (invite) {
-        // Join existing organization with invite's role
-        organizationId = invite.organizationId;
-        organizationRole = invite.role;
-
-        // Delete the invite
-        await tx.organizationInvite.delete({
-          where: { id: invite.id },
-        });
-      }
-
+    const userId = await prisma.$transaction(async (tx) => {
       // Create the user (no password for OAuth-only users)
       const newUser = await tx.user.create({
         data: {
@@ -184,11 +162,49 @@ export async function POST(req: NextRequest) {
           lastName: oauthData.profile.lastName,
           emailVerified: oauthData.profile.emailVerified,
           emailVerifiedAt: oauthData.profile.emailVerified ? new Date() : null,
-          organizationId,
-          organizationRole,
           lastLoginAt: new Date(),
         },
       });
+
+      if (organizationName) {
+        // Create new organization with user as ROLE_OWNER
+        const slug = await generateSlug(organizationName);
+        const organization = await tx.organization.create({
+          data: { name: organizationName, slug },
+        });
+
+        // Find ROLE_OWNER role
+        const ownerRole = await tx.role.findUnique({
+          where: { name: 'ROLE_OWNER' },
+        });
+
+        if (!ownerRole) {
+          throw new Error('ROLE_OWNER not found in database');
+        }
+
+        // Create UserRole linking user to organization as owner
+        await tx.userRole.create({
+          data: {
+            userId: newUser.id,
+            roleId: ownerRole.id,
+            organizationId: organization.id,
+          },
+        });
+      } else if (invite) {
+        // Create UserRole with invite's role and organization
+        await tx.userRole.create({
+          data: {
+            userId: newUser.id,
+            roleId: invite.roleId,
+            organizationId: invite.organizationId,
+          },
+        });
+
+        // Delete the invite
+        await tx.organizationInvite.delete({
+          where: { id: invite.id },
+        });
+      }
 
       // Create OAuth account link
       await tx.oAuthAccount.create({
@@ -205,8 +221,35 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return newUser;
+      return newUser.id;
     });
+
+    // Fetch user with userRoles for session creation
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userRoles: {
+          select: {
+            id: true,
+            createdAt: true,
+            userId: true,
+            roleId: true,
+            organizationId: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+                parentId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new Error('User not found after creation');
+    }
 
     // Create session
     await createUserSession(
