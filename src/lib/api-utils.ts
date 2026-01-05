@@ -8,7 +8,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ServiceError, RateLimitError } from '@/services/auth.errors';
 import { getClientIP, getCurrentUser } from './auth';
-import { isGranted, ROLES, type UserWithComputedRole } from './security/index';
+import {
+  isGranted,
+  hasRole,
+  ROLES,
+  type UserWithComputedRole,
+  type UserWithRoles,
+} from './security/index';
 import { setRateLimitHeaders } from './rate-limit-headers';
 
 /**
@@ -83,52 +89,78 @@ export type AuthResult<T> =
   | { ok: false; response: NextResponse };
 
 /**
- * Require admin authentication for a route handler.
+ * Require admin authentication - overloaded function
  *
- * Returns the authenticated user if authorized, or a NextResponse error.
- * Use with early return pattern:
- *
- * @example
- * ```typescript
- * const auth = await requireAdmin();
- * if (!auth.ok) return auth.response;
- * const user = auth.user;
- * ```
+ * Two usage patterns:
+ * 1. Route handler auth check: requireAdmin() -> AuthResult
+ * 2. Direct role check: requireAdmin(user, orgId) -> boolean
  */
-export async function requireAdmin(): Promise<
-  AuthResult<UserWithComputedRole>
-> {
-  const user = await getCurrentUser();
 
-  if (!user) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        {
-          error: {
-            type: 'AUTHENTICATION_ERROR',
-            message: 'Not authenticated',
+// Overload signatures
+export async function requireAdmin(): Promise<AuthResult<UserWithComputedRole>>;
+export async function requireAdmin(
+  user: UserWithRoles | null,
+  organizationId?: string | null
+): Promise<boolean>;
+
+// Implementation
+export async function requireAdmin(
+  user?: UserWithRoles | null,
+  organizationId?: string | null
+): Promise<AuthResult<UserWithComputedRole> | boolean> {
+  // Route handler pattern (no arguments)
+  if (arguments.length === 0) {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error: {
+              type: 'AUTHENTICATION_ERROR',
+              message: 'Not authenticated',
+            },
           },
-        },
-        { status: 401 }
-      ),
-    };
+          { status: 401 }
+        ),
+      };
+    }
+
+    if (!(await isGranted(currentUser, ROLES.ADMIN))) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error: {
+              type: 'AUTHORIZATION_ERROR',
+              message: 'Admin access required',
+            },
+          },
+          { status: 403 }
+        ),
+      };
+    }
+
+    return { ok: true, user: currentUser };
   }
 
-  if (!(await isGranted(user, ROLES.ADMIN))) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      ),
-    };
-  }
+  // Direct role check pattern (with user argument)
+  if (!user) return false;
+  return hasRole(user, 'ROLE_ADMIN', organizationId);
+}
 
-  return { ok: true, user };
+/**
+ * Check if user has ROLE_MODERATOR in the given organization context
+ *
+ * @param user - User to check
+ * @param organizationId - Organization context (null = platform-wide, undefined = any)
+ * @returns true if user is moderator in the given context
+ */
+export async function requireModerator(
+  user: UserWithRoles | null,
+  organizationId?: string | null
+): Promise<boolean> {
+  if (!user) return false;
+  return hasRole(user, 'ROLE_MODERATOR', organizationId);
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { handleServiceError, getRequestContext } from '@/lib/api-utils';
 import {
@@ -9,7 +9,18 @@ import {
   NotFoundError,
 } from '@/services/auth.errors';
 
+// Mock the security module for role helper tests
+vi.mock('@/lib/security/index', () => ({
+  hasRole: vi.fn(),
+}));
+
+import { hasRole } from '@/lib/security/index';
+import type { UserWithRoles } from '@/lib/security/index';
+
 describe('API Utils', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   describe('handleServiceError', () => {
     it('should handle ValidationError with status 400', async () => {
       const error = new ValidationError('Invalid input', {
@@ -145,6 +156,97 @@ describe('API Utils', () => {
       const context = getRequestContext(mockRequest);
 
       expect(context.clientIP).toBe('unknown');
+    });
+  });
+
+  describe('Role Helper Functions', () => {
+    const mockUser: UserWithRoles = {
+      id: 'user-123',
+      userRoles: [],
+    };
+
+    describe('requireAdmin', () => {
+      it('returns true when user has platform-wide admin', async () => {
+        const { requireAdmin } = await import('@/lib/api-utils');
+        vi.mocked(hasRole).mockResolvedValue(true);
+
+        const result = await requireAdmin(mockUser, null);
+
+        expect(result).toBe(true);
+        expect(hasRole).toHaveBeenCalledWith(mockUser, 'ROLE_ADMIN', null);
+      });
+
+      it('returns true when user has org-scoped admin', async () => {
+        const { requireAdmin } = await import('@/lib/api-utils');
+        vi.mocked(hasRole).mockResolvedValue(true);
+
+        const result = await requireAdmin(mockUser, 'org-123');
+
+        expect(result).toBe(true);
+        expect(hasRole).toHaveBeenCalledWith(mockUser, 'ROLE_ADMIN', 'org-123');
+      });
+
+      it('returns false when user is not admin', async () => {
+        const { requireAdmin } = await import('@/lib/api-utils');
+        vi.mocked(hasRole).mockResolvedValue(false);
+
+        const result = await requireAdmin(mockUser, 'org-123');
+
+        expect(result).toBe(false);
+      });
+
+      it('returns false when user is null', async () => {
+        const { requireAdmin } = await import('@/lib/api-utils');
+
+        const result = await requireAdmin(null, 'org-123');
+
+        expect(result).toBe(false);
+        expect(hasRole).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('requireModerator', () => {
+      it('returns true when user has moderator role', async () => {
+        const { requireModerator } = await import('@/lib/api-utils');
+        vi.mocked(hasRole).mockResolvedValue(true);
+
+        const result = await requireModerator(mockUser, 'org-123');
+
+        expect(result).toBe(true);
+        expect(hasRole).toHaveBeenCalledWith(
+          mockUser,
+          'ROLE_MODERATOR',
+          'org-123'
+        );
+      });
+
+      it('returns true when user has platform-wide moderator', async () => {
+        const { requireModerator } = await import('@/lib/api-utils');
+        vi.mocked(hasRole).mockResolvedValue(true);
+
+        const result = await requireModerator(mockUser, null);
+
+        expect(result).toBe(true);
+        expect(hasRole).toHaveBeenCalledWith(mockUser, 'ROLE_MODERATOR', null);
+      });
+
+      it('returns false when user is not moderator', async () => {
+        const { requireModerator } = await import('@/lib/api-utils');
+        vi.mocked(hasRole).mockResolvedValue(false);
+
+        const result = await requireModerator(mockUser, 'org-123');
+
+        expect(result).toBe(false);
+      });
+
+      it('returns false when user is null', async () => {
+        const { requireModerator } = await import('@/lib/api-utils');
+
+        const result = await requireModerator(null, 'org-123');
+
+        expect(result).toBe(false);
+        expect(hasRole).not.toHaveBeenCalled();
+      });
     });
   });
 });
