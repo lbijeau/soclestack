@@ -82,7 +82,7 @@ const RoleDetailSchema = registry.register(
         .string()
         .regex(/^ROLE_[A-Z][A-Z0-9_]+$/)
         .openapi({
-          description: `Role name must follow the pattern: ROLE_[A-Z][A-Z0-9_]+`,
+          description: `Role name must follow the pattern: ROLE_[A-Z][A-Z0-9_]+. System roles: ROLE_USER, ROLE_MODERATOR, ROLE_ADMIN`,
           example: 'ROLE_MODERATOR',
         }),
       description: z.string().nullable(),
