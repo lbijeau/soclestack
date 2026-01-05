@@ -19,7 +19,7 @@ const ErrorSchema = registry.register(
     error: z.object({
       type: z.string(),
       message: z.string(),
-      details: z.any().optional(),
+      details: z.unknown().nullable().optional().openapi({ type: 'object' }),
     }),
   })
 );
@@ -158,6 +158,8 @@ registry.registerPath({
   method: 'post',
   path: '/api/auth/login',
   summary: 'User Login',
+  description: 'Authenticate user credentials and return access/refresh tokens. Public endpoint requiring email and password.',
+  security: [], // Public endpoint - no authentication required
   request: {
     body: {
       content: {
@@ -195,6 +197,7 @@ registry.registerPath({
   method: 'get',
   path: '/api/users',
   summary: 'List Users',
+  description: 'Retrieve a paginated list of all users. Requires authentication.',
   security: [{ bearerAuth: [] }],
   responses: {
     200: {
