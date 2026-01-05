@@ -84,9 +84,11 @@ describe('Admin Roles API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: not rate limited
-    vi.mocked(isRateLimited).mockResolvedValue(false);
-    // Default: validate role names as true (tests will override for invalid cases)
-    vi.mocked(isPlatformRole).mockReturnValue(true);
+    vi.mocked(isRateLimited).mockReturnValue(false);
+    // Mock isPlatformRole to match actual regex: ROLE_[A-Z][A-Z0-9_]+
+    vi.mocked(isPlatformRole).mockImplementation((value: string) => {
+      return /^ROLE_[A-Z][A-Z0-9_]+$/.test(value);
+    });
   });
 
   describe('GET /api/admin/roles', () => {

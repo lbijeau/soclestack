@@ -88,7 +88,7 @@ describe('Admin Roles [id] API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: not rate limited
-    vi.mocked(isRateLimited).mockResolvedValue(false);
+    vi.mocked(isRateLimited).mockReturnValue(false);
   });
 
   describe('GET /api/admin/roles/[id]', () => {
