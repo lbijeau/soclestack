@@ -2,7 +2,6 @@ import { getIronSession, IronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { prisma } from './db';
-import { env } from './env';
 import { SessionData } from '@/types/auth';
 import {
   generateAccessToken,
@@ -49,10 +48,11 @@ export const SESSION_WARNING_THRESHOLD_MS = 60 * 60 * 1000; // Show warning 1 ho
 
 /**
  * Iron-session options for Node.js environment.
- * Uses validated env module for SESSION_SECRET.
+ * Uses process.env directly to avoid module initialization timing issues.
+ * SESSION_SECRET is validated at startup by the env module.
  */
 const sessionOptions = {
-  password: env.SESSION_SECRET as string,
+  password: process.env.SESSION_SECRET!,
   ...SESSION_CONFIG,
 };
 

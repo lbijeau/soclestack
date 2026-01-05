@@ -57,21 +57,29 @@ export async function GET(req: NextRequest) {
       prisma.organization.findMany({
         where,
         include: {
-          _count: { select: { users: true } },
-          users: {
-            where: { organizationRole: 'OWNER' },
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
+          _count: { select: { userRoles: true } },
+          userRoles: {
+            where: {
+              role: {
+                name: 'ROLE_OWNER',
+              },
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
             },
             take: 1,
           },
         },
         orderBy:
           sortBy === 'memberCount'
-            ? { users: { _count: sortOrder } }
+            ? { userRoles: { _count: sortOrder } }
             : { [sortBy]: sortOrder },
         skip: (page - 1) * limit,
         take: limit,
@@ -85,8 +93,8 @@ export async function GET(req: NextRequest) {
         name: org.name,
         slug: org.slug,
         createdAt: org.createdAt.toISOString(),
-        memberCount: org._count.users,
-        owner: org.users[0] || null,
+        memberCount: org._count.userRoles,
+        owner: org.userRoles[0]?.user || null,
       })),
       pagination: {
         page,

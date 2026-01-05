@@ -113,6 +113,7 @@ async function seedOrganizationsAndUsers(roles: {
     update: {
       password: hashedPassword,
       emailVerified: true,
+      passwordChangedAt: new Date(),
     },
     create: {
       email: 'admin@platform.com',
@@ -120,6 +121,7 @@ async function seedOrganizationsAndUsers(roles: {
       firstName: 'Platform',
       lastName: 'Admin',
       emailVerified: true,
+      passwordChangedAt: new Date(),
     },
   });
 
@@ -148,6 +150,7 @@ async function seedOrganizationsAndUsers(roles: {
     update: {
       password: hashedPassword,
       emailVerified: true,
+      passwordChangedAt: new Date(),
     },
     create: {
       email: 'owner@acme.com',
@@ -155,6 +158,7 @@ async function seedOrganizationsAndUsers(roles: {
       firstName: 'Acme',
       lastName: 'Owner',
       emailVerified: true,
+      passwordChangedAt: new Date(),
     },
   });
 
@@ -182,6 +186,7 @@ async function seedOrganizationsAndUsers(roles: {
     update: {
       password: hashedPassword,
       emailVerified: true,
+      passwordChangedAt: new Date(),
     },
     create: {
       email: 'editor@acme.com',
@@ -189,6 +194,7 @@ async function seedOrganizationsAndUsers(roles: {
       firstName: 'Acme',
       lastName: 'Editor',
       emailVerified: true,
+      passwordChangedAt: new Date(),
     },
   });
 
@@ -216,6 +222,7 @@ async function seedOrganizationsAndUsers(roles: {
     update: {
       password: hashedPassword,
       emailVerified: true,
+      passwordChangedAt: new Date(),
     },
     create: {
       email: 'user@example.com',
@@ -223,6 +230,7 @@ async function seedOrganizationsAndUsers(roles: {
       firstName: 'Regular',
       lastName: 'User',
       emailVerified: true,
+      passwordChangedAt: new Date(),
     },
   });
 
