@@ -54,9 +54,9 @@ const RoleSchema = registry.register(
 - Followed by at least 2 uppercase letters, numbers, or underscores
 - First character after ROLE_ must be a letter
 
-Valid examples: ROLE_USER, ROLE_BILLING_ADMIN, ROLE_SUPPORT_TIER_1
+Valid examples: ROLE_USER, ROLE_MODERATOR, ROLE_ADMIN (system roles), ROLE_BILLING_ADMIN, ROLE_SUPPORT_TIER_1 (custom roles)
 Invalid examples: ROLE_A (too short), ROLE_admin (lowercase), ROLE-ADMIN (hyphen)`,
-          example: 'ROLE_BILLING_ADMIN',
+          example: 'ROLE_MODERATOR',
         }),
       description: z.string().nullable(),
       parentId: z.string().cuid().nullable(),
@@ -83,7 +83,7 @@ const RoleDetailSchema = registry.register(
         .regex(/^ROLE_[A-Z][A-Z0-9_]+$/)
         .openapi({
           description: `Role name must follow the pattern: ROLE_[A-Z][A-Z0-9_]+`,
-          example: 'ROLE_BILLING_ADMIN',
+          example: 'ROLE_MODERATOR',
         }),
       description: z.string().nullable(),
       parentId: z.string().cuid().nullable(),
@@ -128,9 +128,9 @@ const CreateRoleSchema = registry.register(
 - Followed by at least 2 uppercase letters, numbers, or underscores
 - First character after ROLE_ must be a letter
 
-Valid examples: ROLE_USER, ROLE_BILLING_ADMIN, ROLE_SUPPORT_TIER_1
+Valid examples: ROLE_USER, ROLE_MODERATOR, ROLE_ADMIN (system roles), ROLE_BILLING_ADMIN, ROLE_SUPPORT_TIER_1 (custom roles)
 Invalid examples: ROLE_A (too short), ROLE_admin (lowercase), ROLE-ADMIN (hyphen)`,
-          example: 'ROLE_BILLING_ADMIN',
+          example: 'ROLE_MODERATOR',
         }),
       description: z.string().optional(),
       parentId: z.string().cuid().optional(),
