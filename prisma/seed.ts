@@ -1,7 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { ROLES } from '../src/lib/security/index';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+// Default password for all seed users: "password123"
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
 
 async function seedRoles() {
   console.log('🔐 Seeding RBAC roles...');
@@ -106,8 +112,10 @@ async function seedOrganizationsAndUsers(roles: {
     update: {},
     create: {
       email: 'admin@platform.com',
+      password: await hashPassword('password123'),
       firstName: 'Platform',
       lastName: 'Admin',
+      emailVerified: true,
     },
   });
 
@@ -136,8 +144,10 @@ async function seedOrganizationsAndUsers(roles: {
     update: {},
     create: {
       email: 'owner@acme.com',
+      password: await hashPassword('password123'),
       firstName: 'Acme',
       lastName: 'Owner',
+      emailVerified: true,
     },
   });
 
@@ -165,8 +175,10 @@ async function seedOrganizationsAndUsers(roles: {
     update: {},
     create: {
       email: 'editor@acme.com',
+      password: await hashPassword('password123'),
       firstName: 'Acme',
       lastName: 'Editor',
+      emailVerified: true,
     },
   });
 
@@ -194,8 +206,10 @@ async function seedOrganizationsAndUsers(roles: {
     update: {},
     create: {
       email: 'user@example.com',
+      password: await hashPassword('password123'),
       firstName: 'Regular',
       lastName: 'User',
+      emailVerified: true,
     },
   });
 
@@ -223,6 +237,7 @@ async function seedOrganizationsAndUsers(roles: {
   console.log(`  Org Owner: ${orgOwner.email} (ROLE_OWNER @ ${org1.slug})`);
   console.log(`  Org Editor: ${orgEditor.email} (ROLE_EDITOR @ ${org1.slug})`);
   console.log(`  Regular User: ${regularUser.email} (ROLE_USER, platform-wide)`);
+  console.log('\n🔑 All users have password: password123');
 }
 
 async function main() {
