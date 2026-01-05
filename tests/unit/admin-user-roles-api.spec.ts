@@ -5,6 +5,7 @@ import { GET, PUT } from '@/app/api/admin/users/[id]/roles/route';
 // Mock dependencies
 vi.mock('@/lib/auth', () => ({
   getCurrentUser: vi.fn(),
+  isRateLimited: vi.fn(),
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -37,7 +38,7 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
 
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isGranted } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
@@ -88,6 +89,8 @@ describe('Admin User Roles API', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: not rate limited
+    vi.mocked(isRateLimited).mockResolvedValue(false);
   });
 
   describe('GET /api/admin/users/[id]/roles', () => {

@@ -12,40 +12,46 @@ describe('validateRoleName', () => {
 
   it('returns error for name not starting with ROLE_', () => {
     expect(validateRoleName('ADMIN')).toBe(
-      'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
     );
     expect(validateRoleName('role_admin')).toBe(
-      'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
     );
   });
 
   it('returns error for name with lowercase letters', () => {
     expect(validateRoleName('ROLE_admin')).toBe(
-      'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
     );
     expect(validateRoleName('ROLE_Admin')).toBe(
-      'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
     );
   });
 
   it('returns error for name with invalid characters', () => {
     expect(validateRoleName('ROLE_ADMIN-USER')).toBe(
-      'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
     );
     expect(validateRoleName('ROLE_ADMIN USER')).toBe(
-      'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
     );
     expect(validateRoleName('ROLE_ADMIN.USER')).toBe(
-      'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
     );
   });
 
   it('returns error for ROLE_ followed by underscore or number', () => {
     expect(validateRoleName('ROLE__ADMIN')).toBe(
-      'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
     );
     expect(validateRoleName('ROLE_123')).toBe(
-      'Name must start with ROLE_ and contain only uppercase letters, numbers, and underscores'
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
+    );
+  });
+
+  it('returns error for single character after ROLE_', () => {
+    expect(validateRoleName('ROLE_A')).toBe(
+      'Role name must follow pattern ROLE_[A-Z][A-Z0-9_]+ (minimum 2 characters after ROLE_ prefix)'
     );
   });
 
@@ -55,7 +61,6 @@ describe('validateRoleName', () => {
     expect(validateRoleName('ROLE_MODERATOR')).toBeNull();
     expect(validateRoleName('ROLE_SUPER_ADMIN')).toBeNull();
     expect(validateRoleName('ROLE_LEVEL2_USER')).toBeNull();
-    expect(validateRoleName('ROLE_A')).toBeNull();
     expect(validateRoleName('ROLE_A1')).toBeNull();
     expect(validateRoleName('ROLE_TEST_123')).toBeNull();
   });

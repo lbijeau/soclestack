@@ -5,6 +5,7 @@ import { GET, PATCH, DELETE } from '@/app/api/admin/roles/[id]/route';
 // Mock dependencies
 vi.mock('@/lib/auth', () => ({
   getCurrentUser: vi.fn(),
+  isRateLimited: vi.fn(),
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -31,7 +32,7 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
 
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isGranted, clearRoleHierarchyCache } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
@@ -86,6 +87,8 @@ describe('Admin Roles [id] API', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: not rate limited
+    vi.mocked(isRateLimited).mockResolvedValue(false);
   });
 
   describe('GET /api/admin/roles/[id]', () => {

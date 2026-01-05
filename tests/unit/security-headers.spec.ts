@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCSP, securityHeaders } from '@/lib/security-headers';
+import { buildCSP, securityHeaders, getSecurityHeaders } from '@/lib/security-headers';
 
 describe('buildCSP', () => {
   it('should include nonce in script-src', () => {
@@ -77,9 +77,15 @@ describe('securityHeaders', () => {
     expect(securityHeaders['Referrer-Policy']).toBe('origin-when-cross-origin');
   });
 
-  it('should include HSTS header', () => {
-    expect(securityHeaders['Strict-Transport-Security']).toContain(
+  it('should include HSTS header in production', () => {
+    const prodHeaders = getSecurityHeaders(false);
+    expect(prodHeaders['Strict-Transport-Security']).toContain(
       'max-age=31536000'
     );
+  });
+
+  it('should NOT include HSTS header in development', () => {
+    const devHeaders = getSecurityHeaders(true);
+    expect(devHeaders['Strict-Transport-Security']).toBeUndefined();
   });
 });

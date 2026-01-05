@@ -65,48 +65,48 @@ describe('RBAC Security Service', () => {
 
   describe('getHighestRole', () => {
     it('should return USER for null user', () => {
-      expect(getHighestRole(null)).toBe('USER');
+      expect(getHighestRole(null)).toBe('ROLE_USER');
     });
 
     it('should return USER for user with no roles', () => {
       const user: UserWithRoles = { id: 'user-1', userRoles: [] };
-      expect(getHighestRole(user)).toBe('USER');
+      expect(getHighestRole(user)).toBe('ROLE_USER');
     });
 
     it('should return USER for user with undefined userRoles', () => {
       const user: UserWithRoles = { id: 'user-1' };
-      expect(getHighestRole(user)).toBe('USER');
+      expect(getHighestRole(user)).toBe('ROLE_USER');
     });
 
     it('should return ADMIN for user with ROLE_ADMIN', () => {
       const user = createMockUser([ROLES.ADMIN]);
-      expect(getHighestRole(user)).toBe('ADMIN');
+      expect(getHighestRole(user)).toBe('ROLE_ADMIN');
     });
 
     it('should return MODERATOR for user with ROLE_MODERATOR', () => {
       const user = createMockUser([ROLES.MODERATOR]);
-      expect(getHighestRole(user)).toBe('MODERATOR');
+      expect(getHighestRole(user)).toBe('ROLE_MODERATOR');
     });
 
     it('should return USER for user with only ROLE_USER', () => {
       const user = createMockUser([ROLES.USER]);
-      expect(getHighestRole(user)).toBe('USER');
+      expect(getHighestRole(user)).toBe('ROLE_USER');
     });
 
     it('should return highest role when user has multiple roles', () => {
       // User with both MODERATOR and USER should return MODERATOR
       const user = createMockUser([ROLES.MODERATOR, ROLES.USER]);
-      expect(getHighestRole(user)).toBe('MODERATOR');
+      expect(getHighestRole(user)).toBe('ROLE_MODERATOR');
     });
 
     it('should return ADMIN when user has all roles', () => {
       const user = createMockUser([ROLES.USER, ROLES.MODERATOR, ROLES.ADMIN]);
-      expect(getHighestRole(user)).toBe('ADMIN');
+      expect(getHighestRole(user)).toBe('ROLE_ADMIN');
     });
 
     it('should handle unknown roles gracefully', () => {
       const user = createMockUser(['ROLE_UNKNOWN']);
-      expect(getHighestRole(user)).toBe('USER');
+      expect(getHighestRole(user)).toBe('ROLE_USER');
     });
   });
 
@@ -325,18 +325,18 @@ describe('RBAC Security Service', () => {
     });
 
     it('should return USER for null user', async () => {
-      expect(await getUserRoleDisplay(null)).toBe('USER');
+      expect(await getUserRoleDisplay(null)).toBe('ROLE_USER');
     });
 
     it('should return highest role for display', async () => {
       const adminUser = createMockUser([ROLES.ADMIN]);
-      expect(await getUserRoleDisplay(adminUser)).toBe('ADMIN');
+      expect(await getUserRoleDisplay(adminUser)).toBe('ROLE_ADMIN');
 
       const modUser = createMockUser([ROLES.MODERATOR]);
-      expect(await getUserRoleDisplay(modUser)).toBe('MODERATOR');
+      expect(await getUserRoleDisplay(modUser)).toBe('ROLE_MODERATOR');
 
       const regularUser = createMockUser([ROLES.USER]);
-      expect(await getUserRoleDisplay(regularUser)).toBe('USER');
+      expect(await getUserRoleDisplay(regularUser)).toBe('ROLE_USER');
     });
   });
 });
