@@ -1,0 +1,24 @@
+apis:
+  soclestack@v1:
+    root: docs/public/openapi.json
+
+extends:
+  - recommended
+
+rules:
+  operation-description: error
+  operation-2xx-response: error
+  operation-4xx-response: warn
+  no-ambiguous-paths: error
+  no-http-verbs-in-paths: warn
+  no-identical-paths: error
+  no-unresolved-refs: error
+  operation-operationId-unique: error
+  operation-operationId: off  # operationId not required for this project
+  operation-summary: warn
+  path-declaration-must-exist: error
+  path-not-include-query: error
+  path-parameters-defined: error
+  security-defined: error
+  tag-description: off
+  info-license: off  # License field not required
