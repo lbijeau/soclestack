@@ -84,11 +84,7 @@ export async function GET() {
       select: {
         id: true,
         email: true,
-        role: {
-          select: {
-            name: true,
-          },
-        },
+        roleId: true,
         expiresAt: true,
         createdAt: true,
         invitedBy: {
@@ -103,10 +99,20 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Transform role objects to role names for response
+    // Fetch all unique roles
+    const roleIds = [...new Set(invites.map((inv) => inv.roleId))];
+    const roles = await prisma.role.findMany({
+      where: { id: { in: roleIds } },
+      select: { id: true, name: true },
+    });
+
+    const roleMap = new Map(roles.map((r) => [r.id, r.name]));
+
+    // Transform roleId to role names for response
     const transformedInvites = invites.map((inv) => ({
       ...inv,
-      role: inv.role.name,
+      role: roleMap.get(inv.roleId) || 'ROLE_USER',
+      roleId: undefined, // Remove roleId from response
     }));
 
     return NextResponse.json({ invites: transformedInvites });
@@ -321,11 +327,6 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         email: true,
-        role: {
-          select: {
-            name: true,
-          },
-        },
         expiresAt: true,
         createdAt: true,
       },
@@ -352,7 +353,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { invite: { ...invite, role: invite.role.name } },
+      { invite: { ...invite, role: role.name } },
       { status: 201 }
     );
   } catch (error) {
