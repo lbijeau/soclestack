@@ -30,6 +30,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
             email: true,
           },
         },
+        role: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -65,7 +70,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       invite: {
         email: invite.email,
-        role: invite.role,
+        role: invite.role.name,
         expiresAt: invite.expiresAt,
         organization: invite.organization,
         invitedBy: inviterName,

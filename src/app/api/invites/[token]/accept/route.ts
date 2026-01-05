@@ -27,13 +27,21 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Get current user
+    // Get current user with their organization roles
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
       select: {
         id: true,
         email: true,
-        organizationId: true,
+        userRoles: {
+          where: {
+            organizationId: { not: null },
+          },
+          select: {
+            id: true,
+            organizationId: true,
+          },
+        },
       },
     });
 
@@ -47,7 +55,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Check if user already belongs to an organization
-    if (user.organizationId) {
+    if (user.userRoles.length > 0) {
       return NextResponse.json(
         {
           error: {
@@ -113,12 +121,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     // Accept the invite in transaction
     await prisma.$transaction(async (tx) => {
-      // Update user to join organization
-      await tx.user.update({
-        where: { id: user.id },
+      // Create UserRole to join organization
+      await tx.userRole.create({
         data: {
+          userId: user.id,
+          roleId: invite.roleId,
           organizationId: invite.organizationId,
-          organizationRole: invite.role,
         },
       });
 
@@ -128,13 +136,19 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       });
     });
 
+    // Fetch role name for response
+    const role = await prisma.role.findUnique({
+      where: { id: invite.roleId },
+      select: { name: true },
+    });
+
     return NextResponse.json({
       message: 'Successfully joined the organization',
       organization: {
         id: invite.organization.id,
         name: invite.organization.name,
         slug: invite.organization.slug,
-        role: invite.role,
+        role: role?.name || 'ROLE_USER',
       },
     });
   } catch (error) {
