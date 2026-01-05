@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, hasRequiredRole } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 import { userListParamsSchema } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
