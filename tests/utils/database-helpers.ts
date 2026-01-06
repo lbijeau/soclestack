@@ -1,6 +1,7 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { TestUser, TestDataFactory } from './test-data-factory';
 import bcrypt from 'bcryptjs';
+import { ROLES } from '@/lib/constants/roles';
 
 // Create a test-specific Prisma client
 const testPrisma = new PrismaClient({
@@ -51,11 +52,19 @@ export class DatabaseHelpers {
           username: user.username,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role,
           isActive: user.isActive,
           emailVerified: user.emailVerified,
         },
       });
+
+      // Assign role if provided (using unified role architecture)
+      if (user.role) {
+        await this.assignUserRole({
+          userId: createdUser.id,
+          roleName: user.role,
+          organizationId: null, // Platform-wide by default for test users
+        });
+      }
 
       // Return user with original password for test use
       return {
@@ -96,7 +105,7 @@ export class DatabaseHelpers {
     const adminUser = await this.createTestUser({
       email: 'admin@test.com',
       password: 'AdminTest123!',
-      role: Role.ADMIN,
+      role: ROLES.ADMIN,
       username: 'admin',
       firstName: 'Admin',
       lastName: 'User',
@@ -105,7 +114,7 @@ export class DatabaseHelpers {
     const moderatorUser = await this.createTestUser({
       email: 'moderator@test.com',
       password: 'ModeratorTest123!',
-      role: Role.MODERATOR,
+      role: ROLES.MODERATOR,
       username: 'moderator',
       firstName: 'Moderator',
       lastName: 'User',
@@ -114,7 +123,7 @@ export class DatabaseHelpers {
     const regularUser = await this.createTestUser({
       email: 'user@test.com',
       password: 'UserTest123!',
-      role: Role.USER,
+      role: ROLES.USER,
       username: 'testuser',
       firstName: 'Test',
       lastName: 'User',
@@ -123,7 +132,7 @@ export class DatabaseHelpers {
     const unverifiedUser = await this.createTestUser({
       email: 'unverified@test.com',
       password: 'UnverifiedTest123!',
-      role: Role.USER,
+      role: ROLES.USER,
       emailVerified: false,
       username: 'unverified',
       firstName: 'Unverified',
@@ -133,7 +142,7 @@ export class DatabaseHelpers {
     const inactiveUser = await this.createTestUser({
       email: 'inactive@test.com',
       password: 'InactiveTest123!',
-      role: Role.USER,
+      role: ROLES.USER,
       isActive: false,
       username: 'inactive',
       firstName: 'Inactive',
@@ -266,6 +275,11 @@ export class DatabaseHelpers {
     verifiedUsers: number;
     adminUsers: number;
   }> {
+    // Get admin role ID
+    const adminRole = await this.prisma.role.findUnique({
+      where: { name: ROLES.ADMIN },
+    });
+
     const [
       userCount,
       sessionCount,
@@ -277,7 +291,11 @@ export class DatabaseHelpers {
       this.prisma.userSession.count(),
       this.prisma.user.count({ where: { isActive: true } }),
       this.prisma.user.count({ where: { emailVerified: true } }),
-      this.prisma.user.count({ where: { role: Role.ADMIN } }),
+      adminRole
+        ? this.prisma.userRole.count({
+            where: { roleId: adminRole.id },
+          })
+        : 0,
     ]);
 
     return {
