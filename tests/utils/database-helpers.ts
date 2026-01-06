@@ -22,6 +22,18 @@ export class DatabaseHelpers {
     try {
       // Clean up in order to respect foreign key constraints
       await this.prisma.userSession.deleteMany({});
+
+      // Delete UserRole records for test users first
+      await this.prisma.userRole.deleteMany({
+        where: {
+          user: {
+            email: {
+              endsWith: '@test.com',
+            },
+          },
+        },
+      });
+
       await this.prisma.user.deleteMany({
         where: {
           email: {
@@ -45,8 +57,17 @@ export class DatabaseHelpers {
     const hashedPassword = await bcrypt.hash(user.password, 12);
 
     try {
-      const createdUser = await this.prisma.user.create({
-        data: {
+      const createdUser = await this.prisma.user.upsert({
+        where: { email: user.email },
+        update: {
+          password: hashedPassword,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isActive: user.isActive,
+          emailVerified: user.emailVerified,
+        },
+        create: {
           email: user.email,
           password: hashedPassword,
           username: user.username,
@@ -102,6 +123,9 @@ export class DatabaseHelpers {
     unverifiedUser: any;
     inactiveUser: any;
   }> {
+    // Clean up existing test users first
+    await this.cleanupDatabase();
+
     const adminUser = await this.createTestUser({
       email: 'admin@test.com',
       password: 'AdminTest123!',
@@ -332,6 +356,7 @@ export class DatabaseHelpers {
 
   /**
    * Assign a role to a user (create UserRole record)
+   * Handles parallel test execution by catching unique constraint errors
    */
   static async assignUserRole(data: {
     userId: string;
@@ -346,17 +371,36 @@ export class DatabaseHelpers {
       throw new Error(`Role ${data.roleName} not found`);
     }
 
-    return await this.prisma.userRole.create({
-      data: {
-        userId: data.userId,
-        roleId: role.id,
-        organizationId: data.organizationId,
-      },
-      include: {
-        role: true,
-        organization: true,
-      },
-    });
+    try {
+      return await this.prisma.userRole.create({
+        data: {
+          userId: data.userId,
+          roleId: role.id,
+          organizationId: data.organizationId,
+        },
+        include: {
+          role: true,
+          organization: true,
+        },
+      });
+    } catch (error: any) {
+      // If unique constraint error (P2002), the role is already assigned
+      // This can happen when tests run in parallel - fetch and return existing record
+      if (error.code === 'P2002') {
+        return await this.prisma.userRole.findFirst({
+          where: {
+            userId: data.userId,
+            roleId: role.id,
+            organizationId: data.organizationId,
+          },
+          include: {
+            role: true,
+            organization: true,
+          },
+        });
+      }
+      throw error;
+    }
   }
 
   /**
