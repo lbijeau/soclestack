@@ -10,6 +10,7 @@ Welcome to the SocleStack documentation. This guide helps you navigate the avail
 | Understand the architecture | [Technical Architecture](./TECHNICAL_ARCHITECTURE.md) |
 | Set up my environment | [Environment Variables](./ENVIRONMENT.md) |
 | Learn about the database | [Database Schema](./DATABASE.md) |
+| Understand permissions | [Permission Reference](./PERMISSIONS.md) |
 | Use the API | [API Examples](./API_EXAMPLES.md) |
 | Deploy to production | [Deployment Guide](./deployment/cloudflare-setup.md) |
 | Run tests | [Testing Guide](./testing/README.md) |
@@ -24,6 +25,7 @@ docs/
 ├── TECHNICAL_ARCHITECTURE.md # System design and patterns
 ├── DATABASE.md               # Schema and data models
 ├── MIGRATIONS.md             # Database migration guide
+├── PERMISSIONS.md            # Authorization & permissions reference
 ├── ENVIRONMENT.md            # Configuration reference
 ├── API_REFERENCE.md          # API endpoints overview
 ├── API_EXAMPLES.md           # Practical API usage examples

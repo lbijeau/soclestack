@@ -46,6 +46,7 @@ export default withMermaid(
                   { text: 'Technical Architecture', link: '/TECHNICAL_ARCHITECTURE' },
                   { text: 'Database Schema', link: '/DATABASE' },
                   { text: 'Migrations', link: '/MIGRATIONS' },
+                  { text: 'Permissions', link: '/PERMISSIONS' },
                 ]
               },
                     {
