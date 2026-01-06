@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { TestUser, TestDataFactory } from './test-data-factory';
 import bcrypt from 'bcryptjs';
-import { ROLES } from '@/lib/constants/roles';
+import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
 
 // Create a test-specific Prisma client
 const testPrisma = new PrismaClient({
