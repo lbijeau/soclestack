@@ -220,11 +220,14 @@ export { isPlatformRole } from '../security';
 export { VoteResult, VotingStrategy } from './voter';
 export type { Voter } from './voter';
 
-// Re-export permission constants and types
+// Re-export permission constants, type guards, and types
 export {
   PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
   USER_PERMISSIONS,
+  isOrganizationPermission,
+  isUserPermission,
+  isPermission,
 } from './permissions';
 export type {
   Permission,

@@ -11,7 +11,7 @@ import { hasRole } from '../role-checker';
 import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
 import {
   PERMISSIONS,
-  ORGANIZATION_PERMISSIONS,
+  isOrganizationPermission,
   type OrganizationPermission,
 } from '../permissions';
 
@@ -41,10 +41,7 @@ export class OrganizationVoter implements Voter {
    * Check if this voter handles the given attribute and subject
    */
   supports(attribute: string, subject?: unknown): boolean {
-    return (
-      ORGANIZATION_PERMISSIONS.includes(attribute as OrganizationPermission) &&
-      this.isOrganization(subject)
-    );
+    return isOrganizationPermission(attribute) && this.isOrganization(subject);
   }
 
   /**

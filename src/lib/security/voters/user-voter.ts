@@ -13,11 +13,7 @@ import { VoteResult } from '../voter';
 import type { UserWithRoles } from '../role-checker';
 import { hasRole } from '../role-checker';
 import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
-import {
-  PERMISSIONS,
-  USER_PERMISSIONS,
-  type UserPermission,
-} from '../permissions';
+import { PERMISSIONS, isUserPermission } from '../permissions';
 
 /**
  * Minimal user shape for type checking
@@ -31,10 +27,7 @@ export class UserVoter implements Voter {
    * Check if this voter handles the given attribute and subject
    */
   supports(attribute: string, subject?: unknown): boolean {
-    return (
-      USER_PERMISSIONS.includes(attribute as UserPermission) &&
-      this.isUser(subject)
-    );
+    return isUserPermission(attribute) && this.isUser(subject);
   }
 
   /**

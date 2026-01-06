@@ -72,3 +72,26 @@ export const USER_PERMISSIONS = [
 
 export type OrganizationPermission = (typeof ORGANIZATION_PERMISSIONS)[number];
 export type UserPermission = (typeof USER_PERMISSIONS)[number];
+
+/**
+ * Type guard to check if a string is a valid OrganizationPermission
+ */
+export function isOrganizationPermission(
+  attr: string
+): attr is OrganizationPermission {
+  return (ORGANIZATION_PERMISSIONS as readonly string[]).includes(attr);
+}
+
+/**
+ * Type guard to check if a string is a valid UserPermission
+ */
+export function isUserPermission(attr: string): attr is UserPermission {
+  return (USER_PERMISSIONS as readonly string[]).includes(attr);
+}
+
+/**
+ * Type guard to check if a string is any valid Permission
+ */
+export function isPermission(attr: string): attr is Permission {
+  return isOrganizationPermission(attr) || isUserPermission(attr);
+}

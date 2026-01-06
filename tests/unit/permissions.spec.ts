@@ -3,6 +3,9 @@ import {
   PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
   USER_PERMISSIONS,
+  isOrganizationPermission,
+  isUserPermission,
+  isPermission,
   type Permission,
   type OrganizationPermission,
   type UserPermission,
@@ -124,6 +127,63 @@ describe('Permission Registry', () => {
       expect(
         USER_PERMISSIONS.includes('invalid.permission' as UserPermission)
       ).toBe(false);
+    });
+  });
+
+  describe('Type guard functions', () => {
+    describe('isOrganizationPermission()', () => {
+      it('should return true for valid organization permissions', () => {
+        expect(isOrganizationPermission('organization.view')).toBe(true);
+        expect(isOrganizationPermission('organization.edit')).toBe(true);
+        expect(isOrganizationPermission('organization.members.manage')).toBe(
+          true
+        );
+      });
+
+      it('should return false for user permissions', () => {
+        expect(isOrganizationPermission('user.view')).toBe(false);
+        expect(isOrganizationPermission('user.edit')).toBe(false);
+      });
+
+      it('should return false for invalid strings', () => {
+        expect(isOrganizationPermission('invalid')).toBe(false);
+        expect(isOrganizationPermission('')).toBe(false);
+        expect(isOrganizationPermission('ROLE_ADMIN')).toBe(false);
+      });
+    });
+
+    describe('isUserPermission()', () => {
+      it('should return true for valid user permissions', () => {
+        expect(isUserPermission('user.view')).toBe(true);
+        expect(isUserPermission('user.edit')).toBe(true);
+        expect(isUserPermission('user.roles.manage')).toBe(true);
+      });
+
+      it('should return false for organization permissions', () => {
+        expect(isUserPermission('organization.view')).toBe(false);
+        expect(isUserPermission('organization.edit')).toBe(false);
+      });
+
+      it('should return false for invalid strings', () => {
+        expect(isUserPermission('invalid')).toBe(false);
+        expect(isUserPermission('')).toBe(false);
+        expect(isUserPermission('ROLE_USER')).toBe(false);
+      });
+    });
+
+    describe('isPermission()', () => {
+      it('should return true for any valid permission', () => {
+        expect(isPermission('organization.view')).toBe(true);
+        expect(isPermission('user.view')).toBe(true);
+        expect(isPermission('organization.members.manage')).toBe(true);
+        expect(isPermission('user.roles.manage')).toBe(true);
+      });
+
+      it('should return false for invalid strings', () => {
+        expect(isPermission('invalid')).toBe(false);
+        expect(isPermission('')).toBe(false);
+        expect(isPermission('ROLE_ADMIN')).toBe(false);
+      });
     });
   });
 });
