@@ -331,6 +331,35 @@ export class DatabaseHelpers {
   }
 
   /**
+   * Assign a role to a user (create UserRole record)
+   */
+  static async assignUserRole(data: {
+    userId: string;
+    roleName: string;
+    organizationId: string | null;
+  }): Promise<any> {
+    const role = await this.prisma.role.findUnique({
+      where: { name: data.roleName },
+    });
+
+    if (!role) {
+      throw new Error(`Role ${data.roleName} not found`);
+    }
+
+    return await this.prisma.userRole.create({
+      data: {
+        userId: data.userId,
+        roleId: role.id,
+        organizationId: data.organizationId,
+      },
+      include: {
+        role: true,
+        organization: true,
+      },
+    });
+  }
+
+  /**
    * Close database connection
    */
   static async disconnect(): Promise<void> {
