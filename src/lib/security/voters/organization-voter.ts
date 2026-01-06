@@ -9,34 +9,23 @@ import { VoteResult } from '../voter';
 import type { UserWithRoles } from '../role-checker';
 import { hasRole } from '../role-checker';
 import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
-
-/**
- * Supported organization permission attributes
- */
-const ATTRIBUTES = [
-  'organization.view',
-  'organization.edit',
-  'organization.manage',
-  'organization.delete',
-  'organization.members.view',
-  'organization.members.manage',
-  'organization.invites.manage',
-] as const;
-
-type OrgAttribute = (typeof ATTRIBUTES)[number];
+import {
+  PERMISSIONS,
+  ORGANIZATION_PERMISSIONS,
+  type OrganizationPermission,
+} from '../permissions';
 
 /**
  * Minimum role required for each permission
- * Using ROLE_* constants instead of old OrganizationRole enum
  */
-const REQUIRED_ROLES: Record<OrgAttribute, string> = {
-  'organization.view': ROLES.USER, // Any member
-  'organization.edit': ROLES.ADMIN,
-  'organization.manage': ROLES.ADMIN,
-  'organization.delete': ROLES.OWNER,
-  'organization.members.view': ROLES.USER, // Any member
-  'organization.members.manage': ROLES.ADMIN,
-  'organization.invites.manage': ROLES.ADMIN,
+const REQUIRED_ROLES: Record<OrganizationPermission, string> = {
+  [PERMISSIONS.ORGANIZATION.VIEW]: ROLES.USER,
+  [PERMISSIONS.ORGANIZATION.EDIT]: ROLES.ADMIN,
+  [PERMISSIONS.ORGANIZATION.MANAGE]: ROLES.ADMIN,
+  [PERMISSIONS.ORGANIZATION.DELETE]: ROLES.OWNER,
+  [PERMISSIONS.ORGANIZATION.MEMBERS.VIEW]: ROLES.USER,
+  [PERMISSIONS.ORGANIZATION.MEMBERS.MANAGE]: ROLES.ADMIN,
+  [PERMISSIONS.ORGANIZATION.INVITES.MANAGE]: ROLES.ADMIN,
 };
 
 /**
@@ -53,7 +42,7 @@ export class OrganizationVoter implements Voter {
    */
   supports(attribute: string, subject?: unknown): boolean {
     return (
-      ATTRIBUTES.includes(attribute as OrgAttribute) &&
+      ORGANIZATION_PERMISSIONS.includes(attribute as OrganizationPermission) &&
       this.isOrganization(subject)
     );
   }
@@ -74,7 +63,7 @@ export class OrganizationVoter implements Voter {
       return VoteResult.GRANTED;
     }
 
-    const requiredRole = REQUIRED_ROLES[attribute as OrgAttribute];
+    const requiredRole = REQUIRED_ROLES[attribute as OrganizationPermission];
     if (!requiredRole) {
       return VoteResult.ABSTAIN;
     }

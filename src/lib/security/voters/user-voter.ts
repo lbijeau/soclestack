@@ -13,18 +13,11 @@ import { VoteResult } from '../voter';
 import type { UserWithRoles } from '../role-checker';
 import { hasRole } from '../role-checker';
 import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
-
-/**
- * Supported user permission attributes
- */
-const ATTRIBUTES = [
-  'user.view',
-  'user.edit',
-  'user.delete',
-  'user.roles.manage',
-] as const;
-
-type UserAttribute = (typeof ATTRIBUTES)[number];
+import {
+  PERMISSIONS,
+  USER_PERMISSIONS,
+  type UserPermission,
+} from '../permissions';
 
 /**
  * Minimal user shape for type checking
@@ -39,7 +32,8 @@ export class UserVoter implements Voter {
    */
   supports(attribute: string, subject?: unknown): boolean {
     return (
-      ATTRIBUTES.includes(attribute as UserAttribute) && this.isUser(subject)
+      USER_PERMISSIONS.includes(attribute as UserPermission) &&
+      this.isUser(subject)
     );
   }
 
@@ -56,7 +50,10 @@ export class UserVoter implements Voter {
     // Self-access checks
     if (user.id === targetUser.id) {
       // Users can view and edit themselves
-      if (attribute === 'user.view' || attribute === 'user.edit') {
+      if (
+        attribute === PERMISSIONS.USER.VIEW ||
+        attribute === PERMISSIONS.USER.EDIT
+      ) {
         return VoteResult.GRANTED;
       }
       // Users cannot delete themselves or manage their own roles
@@ -70,7 +67,10 @@ export class UserVoter implements Voter {
 
     // MODERATOR can view/edit other users but not delete or manage roles
     if (await hasRole(user, ROLES.MODERATOR)) {
-      if (attribute === 'user.view' || attribute === 'user.edit') {
+      if (
+        attribute === PERMISSIONS.USER.VIEW ||
+        attribute === PERMISSIONS.USER.EDIT
+      ) {
         return VoteResult.GRANTED;
       }
     }
