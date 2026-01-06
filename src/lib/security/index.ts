@@ -34,7 +34,7 @@ export type RoleName = (typeof ROLES)[keyof typeof ROLES];
 const voterCache = new Map<string, number>();
 
 // Re-export UserWithRoles type for backward compatibility
-export type { UserWithRoles }
+export type { UserWithRoles };
 
 /**
  * Extended User type that includes userRoles relation and computed role
