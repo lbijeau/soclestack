@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -472,8 +472,8 @@ export function AuditLogViewer() {
                 </tr>
               ) : (
                 logs.map((log) => (
-                  <>
-                    <tr key={log.id} className="border-b hover:bg-gray-50">
+                  <Fragment key={log.id}>
+                    <tr className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3 whitespace-nowrap">
                         {formatDate(log.createdAt)}
                       </td>
@@ -522,7 +522,7 @@ export function AuditLogViewer() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))
               )}
             </tbody>
