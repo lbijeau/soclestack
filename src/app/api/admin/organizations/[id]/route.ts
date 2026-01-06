@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { headers } from 'next/headers';
 import { requireAdmin } from '@/lib/api-utils';
-import { isGranted } from '@/lib/security/index';
+import { isGranted, PERMISSIONS } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -176,7 +176,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
 
     // Check if user is admin of this organization (or platform admin)
-    const canManage = await isGranted(user, 'organization.manage', {
+    const canManage = await isGranted(user, PERMISSIONS.ORGANIZATION.MANAGE, {
       organizationId: id,
       subject: { id: organization.id, slug: organization.slug },
     });
@@ -338,7 +338,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     // Only org owner or platform admin can delete (checked by OrganizationVoter)
-    const canDelete = await isGranted(user, 'organization.delete', {
+    const canDelete = await isGranted(user, PERMISSIONS.ORGANIZATION.DELETE, {
       organizationId: id,
       subject: { id: organization.id, slug: organization.slug },
     });

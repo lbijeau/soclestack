@@ -18,6 +18,7 @@ import {
   clearRoleHierarchyCache,
   type UserWithRoles,
 } from './role-checker';
+import type { Permission } from './permissions';
 
 // Voter class names for debug logging
 const VOTER_NAMES = ['OrganizationVoter', 'UserVoter'] as const;
@@ -61,7 +62,7 @@ export type UserWithComputedRole = User & {
  */
 export async function isGranted(
   user: UserWithRoles | null,
-  attribute: string,
+  attribute: Permission | RoleName,
   context?: {
     organizationId?: string | null;
     subject?: unknown;
@@ -218,3 +219,18 @@ export { isPlatformRole } from '../security';
 // Re-export voter types
 export { VoteResult, VotingStrategy } from './voter';
 export type { Voter } from './voter';
+
+// Re-export permission constants, type guards, and types
+export {
+  PERMISSIONS,
+  ORGANIZATION_PERMISSIONS,
+  USER_PERMISSIONS,
+  isOrganizationPermission,
+  isUserPermission,
+  isPermission,
+} from './permissions';
+export type {
+  Permission,
+  OrganizationPermission,
+  UserPermission,
+} from './permissions';
