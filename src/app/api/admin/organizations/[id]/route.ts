@@ -91,9 +91,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       if (rolePriorityA !== rolePriorityB) {
         return rolePriorityA - rolePriorityB;
       }
-      return (
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
 
     return NextResponse.json({

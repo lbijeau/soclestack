@@ -14,8 +14,9 @@
 
 import type { Voter } from '../voter';
 import { VoteResult } from '../voter';
-import type { UserWithRoles } from '../index';
-import { hasRole, ROLES } from '../index';
+import type { UserWithRoles } from '../role-checker';
+import { hasRole } from '../role-checker';
+import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
 
 /**
  * Supported user permission attributes

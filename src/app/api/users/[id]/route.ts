@@ -513,9 +513,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     // Only admins can delete users
     const hasAdmin = authUser.userRoles.some((ur) =>
-      ['ROLE_ADMIN', 'ROLE_OWNER', 'ROLE_PLATFORM_ADMIN'].includes(
-        ur.role.name
-      )
+      ['ROLE_ADMIN', 'ROLE_OWNER', 'ROLE_PLATFORM_ADMIN'].includes(ur.role.name)
     );
 
     if (!hasAdmin) {
