@@ -1,5 +1,5 @@
 import { getCurrentUser } from '@/lib/auth';
-import { isGranted, ROLES } from '@/lib/security/index';
+import { isGranted, hasRole, ROLES } from '@/lib/security/index';
 import { UserManagement } from '@/components/admin/user-management';
 import {
   Card,
@@ -37,8 +37,8 @@ export default async function AdminPage() {
     redirect('/dashboard');
   }
 
-  // Check if user is admin for admin-only features
-  const isAdmin = await isGranted(user, ROLES.ADMIN);
+  // Check if user is platform admin (not org-scoped) for admin-only features
+  const isPlatformAdmin = await hasRole(user, ROLES.ADMIN, null);
 
   // Get time boundaries
   const now = new Date();
@@ -194,11 +194,11 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        {/* Quick Links - Only for ADMIN */}
-        {isAdmin && (
+        {/* Quick Links - Only for Platform Admins */}
+        {isPlatformAdmin && (
           <div className="mb-8">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">
-              Admin Tools
+              Platform Admin Tools
             </h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <Link href="/admin/organizations">
