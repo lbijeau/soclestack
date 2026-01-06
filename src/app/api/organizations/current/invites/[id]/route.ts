@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { hasOrgRole } from '@/lib/organization';
+import { getCurrentOrganizationId } from '@/lib/organization';
+import { hasRole, userWithRolesInclude } from '@/lib/security/index';
 import { AuthError } from '@/types/auth';
 
 export const runtime = 'nodejs';
@@ -28,25 +29,39 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { organizationId: true, organizationRole: true },
-    });
+    // Get current organization ID
+    const organizationId = await getCurrentOrganizationId(session.userId);
 
-    if (!user?.organizationId) {
+    if (!organizationId) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'You do not belong to an organization',
+            message:
+              'You do not belong to an organization or belong to multiple organizations',
           } as AuthError,
         },
         { status: 404 }
       );
     }
 
+    // Get user with roles for authorization check
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { id: true, ...userWithRolesInclude },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: { type: 'NOT_FOUND', message: 'User not found' } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
     // Check if user has ADMIN or higher role
-    if (!hasOrgRole(user.organizationRole, 'ADMIN')) {
+    if (!(await hasRole(user, 'ROLE_ADMIN', organizationId))) {
       return NextResponse.json(
         {
           error: {
@@ -63,7 +78,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       where: { id: inviteId },
     });
 
-    if (!invite || invite.organizationId !== user.organizationId) {
+    if (!invite || invite.organizationId !== organizationId) {
       return NextResponse.json(
         {
           error: {

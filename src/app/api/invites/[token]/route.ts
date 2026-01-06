@@ -57,6 +57,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Fetch the role separately using roleId
+    const role = await prisma.role.findUnique({
+      where: { id: invite.roleId },
+      select: { name: true },
+    });
+
     const inviterName =
       invite.invitedBy.firstName && invite.invitedBy.lastName
         ? `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`
@@ -65,7 +71,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       invite: {
         email: invite.email,
-        role: invite.role,
+        role: role?.name || 'ROLE_USER',
         expiresAt: invite.expiresAt,
         organization: invite.organization,
         invitedBy: inviterName,

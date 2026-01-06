@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, hasRequiredRole } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 import { userListParamsSchema } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
@@ -23,10 +23,42 @@ export async function GET(req: NextRequest) {
         { status: auth.status }
       );
     }
-    const { user } = auth;
+    const { user: authUser } = auth;
 
-    // Check authorization (only admins and moderators can list users)
-    if (!hasRequiredRole(user.role, 'MODERATOR')) {
+    // Get full user with roles for authorization
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        ...userWithRolesInclude,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'User not found',
+          } as AuthError,
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check authorization - user must have MODERATOR+ role in any organization or platform-wide
+    const hasModerator = user.userRoles.some((ur) =>
+      [
+        'ROLE_MODERATOR',
+        'ROLE_ADMIN',
+        'ROLE_OWNER',
+        'ROLE_PLATFORM_ADMIN',
+      ].includes(ur.role.name)
+    );
+
+    if (!hasModerator) {
       return NextResponse.json(
         {
           error: {
@@ -63,11 +95,33 @@ export async function GET(req: NextRequest) {
     // Build where clause with organization filter
     // Platform super-admins (no org) can see all users
     // Organization-bound admins can only see users in their org
+
+    // Check if user is platform admin (has ADMIN role with no organization)
+    const isPlatformAdmin = user.userRoles.some(
+      (ur) => ur.organizationId === null && ur.role.name === 'ROLE_ADMIN'
+    );
+
+    // If not platform admin, get organization IDs where user is admin
+    const adminOrgIds = isPlatformAdmin
+      ? []
+      : user.userRoles
+          .filter(
+            (ur) =>
+              ur.organizationId !== null &&
+              (ur.role.name === 'ROLE_ADMIN' || ur.role.name === 'ROLE_OWNER')
+          )
+          .map((ur) => ur.organizationId as string);
+
     const where: Prisma.UserWhereInput = {
       // Organization-level access filter
-      ...(user.organizationId !== null && {
-        organizationId: user.organizationId,
-      }),
+      ...(!isPlatformAdmin &&
+        adminOrgIds.length > 0 && {
+          userRoles: {
+            some: {
+              organizationId: { in: adminOrgIds },
+            },
+          },
+        }),
       ...(search && {
         OR: [
           { email: { contains: search } },

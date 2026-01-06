@@ -1,4 +1,3 @@
-import { OrganizationRole } from '@prisma/client';
 import { prisma } from './db';
 import crypto from 'crypto';
 
@@ -45,51 +44,6 @@ export function generateInviteToken(): string {
 }
 
 /**
- * Check if a user has the required organization role or higher
- */
-export function hasOrgRole(
-  userRole: OrganizationRole,
-  requiredRole: OrganizationRole
-): boolean {
-  const roleHierarchy: Record<OrganizationRole, number> = {
-    MEMBER: 0,
-    ADMIN: 1,
-    OWNER: 2,
-  };
-
-  return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
-}
-
-/**
- * Check if user can manage another user in the organization
- * - Cannot manage yourself
- * - Cannot manage someone with equal or higher role
- * - Must be at least ADMIN to manage anyone
- */
-export function canManageUser(
-  managerRole: OrganizationRole,
-  targetRole: OrganizationRole,
-  isSelf: boolean
-): boolean {
-  if (isSelf) return false;
-  if (!hasOrgRole(managerRole, 'ADMIN')) return false;
-  if (hasOrgRole(targetRole, managerRole)) return false;
-  return true;
-}
-
-/**
- * Get the display name for an organization role
- */
-export function getOrgRoleDisplayName(role: OrganizationRole): string {
-  const displayNames: Record<OrganizationRole, string> = {
-    OWNER: 'Owner',
-    ADMIN: 'Admin',
-    MEMBER: 'Member',
-  };
-  return displayNames[role];
-}
-
-/**
  * Invite expiry duration in days
  */
 export const INVITE_EXPIRY_DAYS = 7;
@@ -104,25 +58,32 @@ export function createInviteExpiry(): Date {
 }
 
 /**
- * Check if an admin user can access/manage a target user based on organization membership.
+ * Get user's current organization
+ * For now, returns the organization ID if user belongs to exactly one organization
+ * Returns null if user belongs to zero or multiple organizations
  *
- * Rules:
- * - Platform super-admins (no organizationId) can access any user
- * - Organization-bound admins can only access users in their organization
- *
- * @param adminOrgId - The admin's organizationId (null for platform super-admins)
- * @param targetOrgId - The target user's organizationId
- * @returns true if the admin can access the target user
+ * @param userId - The user ID to check
+ * @returns Organization ID if user has exactly one org, null otherwise
  */
-export function canAccessUserInOrg(
-  adminOrgId: string | null,
-  targetOrgId: string | null
-): boolean {
-  // Platform super-admins (no org) can access anyone
-  if (adminOrgId === null) {
-    return true;
+export async function getCurrentOrganizationId(
+  userId: string
+): Promise<string | null> {
+  const userRoles = await prisma.userRole.findMany({
+    where: {
+      userId,
+      organizationId: { not: null },
+    },
+    select: {
+      organizationId: true,
+    },
+    distinct: ['organizationId'],
+  });
+
+  // User has exactly one organization
+  if (userRoles.length === 1 && userRoles[0].organizationId) {
+    return userRoles[0].organizationId;
   }
 
-  // Organization-bound admins can only access users in their org
-  return adminOrgId === targetOrgId;
+  // User has zero or multiple organizations
+  return null;
 }

@@ -3,7 +3,6 @@ import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getAuditLogs, AuditAction, AuditCategory } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
-import { hasOrgRole } from '@/lib/organization';
 import { isGranted, ROLES, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
@@ -35,13 +34,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get user with organization info
+    // Get user with roles
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
       select: {
         id: true,
-        organizationId: true,
-        organizationRole: true,
         ...userWithRolesInclude,
       },
     });
@@ -80,31 +77,68 @@ export async function GET(req: NextRequest) {
     if (to) filters.to = new Date(to);
 
     // Determine organization scoping
-    // System ADMIN can see all logs or filter by any org
-    // Organization ADMIN can only see logs from their organization
-    if (await isGranted(user, ROLES.ADMIN)) {
-      // System admin - can see all or filter by specific org
+    // Platform ADMIN can see all logs or filter by any org
+    // Organization ADMIN can only see logs from their organization(s)
+    const isPlatformAdmin = await isGranted(user, ROLES.ADMIN);
+
+    if (isPlatformAdmin) {
+      // Platform admin - can see all or filter by specific org
       if (orgScope && orgScope !== 'all') {
         filters.organizationId = orgScope;
       }
       // If orgScope is 'all' or not specified, no filter applied (sees everything)
-    } else if (
-      user.organizationId &&
-      hasOrgRole(user.organizationRole, 'ADMIN')
-    ) {
-      // Organization admin - can only see their org's logs
-      filters.organizationId = user.organizationId;
     } else {
-      // Not authorized to view audit logs
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
+      // Check if user is admin of any organizations
+      const adminOrgs = user.userRoles.filter(
+        (ur) =>
+          ur.organizationId &&
+          (ur.role.name === 'ROLE_ADMIN' || ur.role.name === 'ROLE_OWNER')
       );
+
+      if (adminOrgs.length === 0) {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'AUTHORIZATION_ERROR',
+              message: 'Admin access required',
+            },
+          },
+          { status: 403 }
+        );
+      }
+
+      // Org admin can only see their org(s) logs
+      if (adminOrgs.length === 1) {
+        filters.organizationId = adminOrgs[0].organizationId!;
+      } else if (orgScope && orgScope !== 'all') {
+        // Verify they're admin of the requested org
+        const hasAccess = adminOrgs.some(
+          (ur) => ur.organizationId === orgScope
+        );
+        if (!hasAccess) {
+          return NextResponse.json(
+            {
+              error: {
+                type: 'AUTHORIZATION_ERROR',
+                message: 'Not authorized for this organization',
+              },
+            },
+            { status: 403 }
+          );
+        }
+        filters.organizationId = orgScope;
+      } else {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'VALIDATION_ERROR',
+              message:
+                'You are admin of multiple organizations. Please specify organizationId parameter.',
+            },
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const result = await getAuditLogs(filters);

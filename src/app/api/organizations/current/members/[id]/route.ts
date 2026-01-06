@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { OrganizationRole } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { hasOrgRole, canManageUser } from '@/lib/organization';
+import { getCurrentOrganizationId } from '@/lib/organization';
+import { hasRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
 import { AuthError } from '@/types/auth';
 
 export const runtime = 'nodejs';
 
 const updateMemberSchema = z.object({
-  role: z.nativeEnum(OrganizationRole),
+  roleName: z.string().startsWith('ROLE_'),
 });
 
 interface RouteParams {
@@ -34,25 +34,39 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { organizationId: true, organizationRole: true },
-    });
+    // Get current organization ID
+    const organizationId = await getCurrentOrganizationId(session.userId);
 
-    if (!currentUser?.organizationId) {
+    if (!organizationId) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'You do not belong to an organization',
+            message:
+              'You do not belong to an organization or belong to multiple organizations',
           } as AuthError,
         },
         { status: 404 }
       );
     }
 
-    // Check if user has ADMIN or higher role
-    if (!hasOrgRole(currentUser.organizationRole, 'ADMIN')) {
+    // Get current user with roles
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { id: true, ...userWithRolesInclude },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          error: { type: 'NOT_FOUND', message: 'User not found' } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check if user has ADMIN or higher role in this organization
+    if (!(await hasRole(currentUser, ROLES.ADMIN, organizationId))) {
       return NextResponse.json(
         {
           error: {
@@ -64,41 +78,64 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Find the target member
-    const targetMember = await prisma.user.findUnique({
-      where: { id: memberId },
-      select: { id: true, organizationId: true, organizationRole: true },
+    // Find the target member's UserRole in this organization
+    const targetUserRole = await prisma.userRole.findFirst({
+      where: {
+        userId: memberId,
+        organizationId,
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            parentId: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
 
-    if (
-      !targetMember ||
-      targetMember.organizationId !== currentUser.organizationId
-    ) {
+    if (!targetUserRole) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'Member not found',
+            message: 'Member not found in this organization',
           } as AuthError,
         },
         { status: 404 }
       );
     }
 
-    // Check if current user can manage target member
-    const isSelf = session.userId === memberId;
-    if (
-      !canManageUser(
-        currentUser.organizationRole,
-        targetMember.organizationRole,
-        isSelf
-      )
-    ) {
+    // Cannot modify yourself
+    if (session.userId === memberId) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHORIZATION_ERROR',
-            message: 'You cannot manage this member',
+            message: 'You cannot change your own role',
+          } as AuthError,
+        },
+        { status: 403 }
+      );
+    }
+
+    // Cannot change OWNER role (only via ownership transfer endpoint)
+    if (targetUserRole.role.name === ROLES.OWNER) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: "Cannot change the owner's role directly",
           } as AuthError,
         },
         { status: 403 }
@@ -121,46 +158,53 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { role } = validationResult.data;
+    const { roleName } = validationResult.data;
 
-    // Prevent promoting to a role equal to or higher than current user's role
-    if (hasOrgRole(role, currentUser.organizationRole)) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'You cannot promote a member to your role or higher',
-          } as AuthError,
-        },
-        { status: 403 }
-      );
-    }
-
-    // Special check: cannot change OWNER role (only transfer ownership via separate endpoint)
-    if (targetMember.organizationRole === 'OWNER') {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: "Cannot change the owner's role directly",
-          } as AuthError,
-        },
-        { status: 403 }
-      );
-    }
-
-    const updatedMember = await prisma.user.update({
-      where: { id: memberId },
-      data: { organizationRole: role },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        firstName: true,
-        lastName: true,
-        organizationRole: true,
-      },
+    // Find the new role
+    const newRole = await prisma.role.findUnique({
+      where: { name: roleName },
     });
+
+    if (!newRole) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'Invalid role specified',
+          } as AuthError,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Prevent promoting to ADMIN or OWNER (simplified role hierarchy check)
+    if (roleName === ROLES.ADMIN || roleName === ROLES.OWNER) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'You cannot promote a member to ADMIN or OWNER role',
+          } as AuthError,
+        },
+        { status: 403 }
+      );
+    }
+
+    // Update the UserRole
+    await prisma.userRole.update({
+      where: { id: targetUserRole.id },
+      data: { roleId: newRole.id },
+    });
+
+    // Fetch updated member details
+    const updatedMember = {
+      id: targetUserRole.user.id,
+      email: targetUserRole.user.email,
+      username: targetUserRole.user.username,
+      firstName: targetUserRole.user.firstName,
+      lastName: targetUserRole.user.lastName,
+      role: roleName,
+    };
 
     return NextResponse.json({ member: updatedMember });
   } catch (error) {
@@ -195,25 +239,39 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { organizationId: true, organizationRole: true },
-    });
+    // Get current organization ID
+    const organizationId = await getCurrentOrganizationId(session.userId);
 
-    if (!currentUser?.organizationId) {
+    if (!organizationId) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'You do not belong to an organization',
+            message:
+              'You do not belong to an organization or belong to multiple organizations',
           } as AuthError,
         },
         { status: 404 }
       );
     }
 
-    // Check if user has ADMIN or higher role
-    if (!hasOrgRole(currentUser.organizationRole, 'ADMIN')) {
+    // Get current user with roles
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { id: true, ...userWithRolesInclude },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          error: { type: 'NOT_FOUND', message: 'User not found' } as AuthError,
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check if user has ADMIN or higher role in this organization
+    if (!(await hasRole(currentUser, ROLES.ADMIN, organizationId))) {
       return NextResponse.json(
         {
           error: {
@@ -225,41 +283,40 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Find the target member
-    const targetMember = await prisma.user.findUnique({
-      where: { id: memberId },
-      select: { id: true, organizationId: true, organizationRole: true },
+    // Find the target member's UserRole in this organization
+    const targetUserRole = await prisma.userRole.findFirst({
+      where: {
+        userId: memberId,
+        organizationId,
+      },
+      include: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
-    if (
-      !targetMember ||
-      targetMember.organizationId !== currentUser.organizationId
-    ) {
+    if (!targetUserRole) {
       return NextResponse.json(
         {
           error: {
             type: 'NOT_FOUND',
-            message: 'Member not found',
+            message: 'Member not found in this organization',
           } as AuthError,
         },
         { status: 404 }
       );
     }
 
-    // Check if current user can manage target member
-    const isSelf = session.userId === memberId;
-    if (
-      !canManageUser(
-        currentUser.organizationRole,
-        targetMember.organizationRole,
-        isSelf
-      )
-    ) {
+    // Cannot remove yourself
+    if (session.userId === memberId) {
       return NextResponse.json(
         {
           error: {
             type: 'AUTHORIZATION_ERROR',
-            message: 'You cannot remove this member',
+            message: 'You cannot remove yourself from the organization',
           } as AuthError,
         },
         { status: 403 }
@@ -267,7 +324,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     // Cannot remove the owner
-    if (targetMember.organizationRole === 'OWNER') {
+    if (targetUserRole.role.name === ROLES.OWNER) {
       return NextResponse.json(
         {
           error: {
@@ -279,13 +336,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Remove member from organization
-    await prisma.user.update({
-      where: { id: memberId },
-      data: {
-        organizationId: null,
-        organizationRole: 'MEMBER',
-      },
+    // Remove member by deleting their UserRole for this organization
+    await prisma.userRole.delete({
+      where: { id: targetUserRole.id },
     });
 
     return NextResponse.json({ message: 'Member removed successfully' });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { ApiKeyPermission, Role } from '@prisma/client';
+import { ApiKeyPermission } from '@prisma/client';
 
 // Use vi.hoisted to define mocks that will be used in vi.mock factories
 const { mockValidateApiKey, mockIsMethodAllowed } = vi.hoisted(() => ({
@@ -61,7 +61,7 @@ describe('API Key Authentication', () => {
         user: {
           id: 'user-123',
           email: 'test@example.com',
-          role: Role.USER,
+          role: 'ROLE_USER',
           organizationId: 'org-123',
           username: 'testuser',
           firstName: 'Test',
@@ -90,7 +90,7 @@ describe('API Key Authentication', () => {
 
       expect(user.id).toBe('user-123');
       expect(user.email).toBe('test@example.com');
-      expect(user.role).toBe(Role.USER);
+      expect(user.role).toBe('ROLE_USER');
       expect(user.organizationId).toBe('org-123');
     });
 

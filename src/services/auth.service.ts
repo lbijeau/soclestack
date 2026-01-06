@@ -362,9 +362,7 @@ export interface OrganizationDTO {
 }
 
 export interface RegisterResult {
-  user: UserDTO & {
-    organization: OrganizationDTO | null;
-  };
+  user: UserDTO;
   message: string;
 }
 
@@ -471,33 +469,8 @@ export async function register(
 
   // Create user with organization (transaction to ensure consistency)
   const user = await prisma.$transaction(async (tx) => {
-    let organizationId: string | undefined;
-    let organizationRole: 'OWNER' | 'ADMIN' | 'MEMBER' = 'MEMBER';
-
-    if (organizationName) {
-      // Create new organization with user as OWNER
-      const slug = await generateSlug(organizationName);
-      const organization = await tx.organization.create({
-        data: {
-          name: organizationName,
-          slug,
-        },
-      });
-      organizationId = organization.id;
-      organizationRole = 'OWNER';
-    } else if (invite) {
-      // Join existing organization with invite's role
-      organizationId = invite.organizationId;
-      organizationRole = invite.role;
-
-      // Delete the invite
-      await tx.organizationInvite.delete({
-        where: { id: invite.id },
-      });
-    }
-
-    // Create the user
-    return tx.user.create({
+    // Create the user first
+    const newUser = await tx.user.create({
       data: {
         email,
         username,
@@ -507,13 +480,60 @@ export async function register(
         lastName,
         emailVerificationToken: hashedVerificationToken,
         emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        organizationId,
-        organizationRole,
-      },
-      include: {
-        organization: true,
       },
     });
+
+    if (organizationName) {
+      // Create new organization
+      const slug = await generateSlug(organizationName);
+      const organization = await tx.organization.create({
+        data: {
+          name: organizationName,
+          slug,
+        },
+      });
+
+      // Get ROLE_OWNER
+      const ownerRole = await tx.role.findUnique({
+        where: { name: 'ROLE_OWNER' },
+      });
+      if (!ownerRole) {
+        throw new Error('ROLE_OWNER not found');
+      }
+
+      // Create UserRole with ROLE_OWNER for this organization
+      await tx.userRole.create({
+        data: {
+          userId: newUser.id,
+          roleId: ownerRole.id,
+          organizationId: organization.id,
+        },
+      });
+    } else if (invite) {
+      // Get the role from invite
+      const inviteRole = await tx.role.findUnique({
+        where: { id: invite.roleId },
+      });
+      if (!inviteRole) {
+        throw new Error('Invite role not found');
+      }
+
+      // Create UserRole with invite's role for the organization
+      await tx.userRole.create({
+        data: {
+          userId: newUser.id,
+          roleId: invite.roleId,
+          organizationId: invite.organizationId,
+        },
+      });
+
+      // Delete the invite
+      await tx.organizationInvite.delete({
+        where: { id: invite.id },
+      });
+    }
+
+    return newUser;
   });
 
   // Send verification email (fire-and-forget)
@@ -536,14 +556,6 @@ export async function register(
       emailVerified: user.emailVerified,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
-      organization: user.organization
-        ? {
-            id: user.organization.id,
-            name: user.organization.name,
-            slug: user.organization.slug,
-            role: user.organizationRole || 'MEMBER',
-          }
-        : null,
     },
   };
 }

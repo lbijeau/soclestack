@@ -1,13 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
 import { requireAdmin } from '@/lib/api-utils';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await requireAdmin();
-    if (!auth.ok) return auth.response;
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'Not authenticated',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    // Only platform admins can list all organizations
+    const isPlatformAdmin = await requireAdmin(user, null);
+    if (!isPlatformAdmin) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Requires platform admin access',
+          },
+        },
+        { status: 403 }
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
@@ -32,21 +57,29 @@ export async function GET(req: NextRequest) {
       prisma.organization.findMany({
         where,
         include: {
-          _count: { select: { users: true } },
-          users: {
-            where: { organizationRole: 'OWNER' },
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
+          _count: { select: { userRoles: true } },
+          userRoles: {
+            where: {
+              role: {
+                name: 'ROLE_OWNER',
+              },
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
             },
             take: 1,
           },
         },
         orderBy:
           sortBy === 'memberCount'
-            ? { users: { _count: sortOrder } }
+            ? { userRoles: { _count: sortOrder } }
             : { [sortBy]: sortOrder },
         skip: (page - 1) * limit,
         take: limit,
@@ -60,8 +93,8 @@ export async function GET(req: NextRequest) {
         name: org.name,
         slug: org.slug,
         createdAt: org.createdAt.toISOString(),
-        memberCount: org._count.users,
-        owner: org.users[0] || null,
+        memberCount: org._count.userRoles,
+        owner: org.userRoles[0]?.user || null,
       })),
       pagination: {
         page,

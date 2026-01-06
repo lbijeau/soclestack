@@ -4,7 +4,6 @@ import { getSession, getClientIP, getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
-import { canAccessUserInOrg } from '@/lib/organization';
 import {
   getHighestRole,
   userWithRolesInclude,
@@ -107,25 +106,11 @@ export async function POST(req: NextRequest) {
         id: true,
         email: true,
         isActive: true,
-        organizationId: true,
         ...userWithRolesInclude,
       },
     });
 
     if (!targetUser) {
-      return NextResponse.json(
-        { error: { type: 'NOT_FOUND', message: 'User not found' } },
-        { status: 404 }
-      );
-    }
-
-    // Check organization-level access
-    if (
-      !canAccessUserInOrg(
-        currentUser?.organizationId ?? null,
-        targetUser.organizationId
-      )
-    ) {
       return NextResponse.json(
         { error: { type: 'NOT_FOUND', message: 'User not found' } },
         { status: 404 }

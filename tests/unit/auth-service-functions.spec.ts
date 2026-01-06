@@ -450,7 +450,7 @@ describe('Auth Service Functions', () => {
       });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: '1',
-        role: 'ADMIN',
+        userRoles: [{ role: { name: 'ROLE_ADMIN' } }],
         twoFactorEnabled: true,
         twoFactorSecret: 'secret',
       } as any);

@@ -3,7 +3,6 @@ import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { AuditAction, AuditCategory } from '@/lib/audit';
 import { isImpersonating } from '@/lib/auth/impersonation';
-import { hasOrgRole } from '@/lib/organization';
 import { isGranted, ROLES, userWithRolesInclude } from '@/lib/security/index';
 import log from '@/lib/logger';
 
@@ -109,8 +108,6 @@ export async function GET(req: NextRequest) {
       where: { id: session.userId },
       select: {
         id: true,
-        organizationId: true,
-        organizationRole: true,
         ...userWithRolesInclude,
       },
     });
@@ -160,25 +157,81 @@ export async function GET(req: NextRequest) {
     }
 
     // Authorization and org scoping
-    if (await isGranted(user, ROLES.ADMIN)) {
+    const isPlatformAdmin = await isGranted(user, ROLES.ADMIN);
+
+    if (isPlatformAdmin) {
+      // Platform admin can export all or filter by specific org
       if (orgScope && orgScope !== 'all') {
-        where.user = { ...where.user, organizationId: orgScope };
-      }
-    } else if (
-      user.organizationId &&
-      hasOrgRole(user.organizationRole, 'ADMIN')
-    ) {
-      where.user = { ...where.user, organizationId: user.organizationId };
-    } else {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
+        where.user = {
+          ...where.user,
+          userRoles: {
+            some: { organizationId: orgScope },
           },
-        },
-        { status: 403 }
+        };
+      }
+    } else {
+      // Check if user is admin of any organizations
+      const adminOrgs = user.userRoles.filter(
+        (ur) =>
+          ur.organizationId &&
+          (ur.role.name === 'ROLE_ADMIN' || ur.role.name === 'ROLE_OWNER')
       );
+
+      if (adminOrgs.length === 0) {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'AUTHORIZATION_ERROR',
+              message: 'Admin access required',
+            },
+          },
+          { status: 403 }
+        );
+      }
+
+      // Org admin can only export for their org(s)
+      // If they're admin of multiple orgs, they must specify which one
+      if (adminOrgs.length === 1) {
+        where.user = {
+          ...where.user,
+          userRoles: {
+            some: { organizationId: adminOrgs[0].organizationId },
+          },
+        };
+      } else if (orgScope && orgScope !== 'all') {
+        // Verify they're admin of the requested org
+        const hasAccess = adminOrgs.some(
+          (ur) => ur.organizationId === orgScope
+        );
+        if (!hasAccess) {
+          return NextResponse.json(
+            {
+              error: {
+                type: 'AUTHORIZATION_ERROR',
+                message: 'Not authorized for this organization',
+              },
+            },
+            { status: 403 }
+          );
+        }
+        where.user = {
+          ...where.user,
+          userRoles: {
+            some: { organizationId: orgScope },
+          },
+        };
+      } else {
+        return NextResponse.json(
+          {
+            error: {
+              type: 'VALIDATION_ERROR',
+              message:
+                'You are admin of multiple organizations. Please specify organizationId parameter.',
+            },
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const timestamp = new Date().toISOString().split('T')[0];

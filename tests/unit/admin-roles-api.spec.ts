@@ -5,6 +5,7 @@ import { GET, POST } from '@/app/api/admin/roles/route';
 // Mock dependencies
 vi.mock('@/lib/auth', () => ({
   getCurrentUser: vi.fn(),
+  isRateLimited: vi.fn(),
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -19,6 +20,7 @@ vi.mock('@/lib/db', () => ({
 
 vi.mock('@/lib/security/index', () => ({
   isGranted: vi.fn(),
+  isPlatformRole: vi.fn(),
   ROLES: {
     ADMIN: 'ROLE_ADMIN',
     MODERATOR: 'ROLE_MODERATOR',
@@ -31,9 +33,9 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
 
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isRateLimited } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { isGranted, clearRoleHierarchyCache } from '@/lib/security/index';
+import { isGranted, isPlatformRole, clearRoleHierarchyCache } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
 
 describe('Admin Roles API', () => {
@@ -81,6 +83,12 @@ describe('Admin Roles API', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: not rate limited
+    vi.mocked(isRateLimited).mockReturnValue(false);
+    // Mock isPlatformRole to match actual regex: ROLE_[A-Z][A-Z0-9_]+
+    vi.mocked(isPlatformRole).mockImplementation((value: string) => {
+      return /^ROLE_[A-Z][A-Z0-9_]+$/.test(value);
+    });
   });
 
   describe('GET /api/admin/roles', () => {

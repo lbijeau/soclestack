@@ -28,6 +28,7 @@ function createMockUser(roleNames: string[]): UserWithRoles {
   return {
     id: 'user-123',
     userRoles: roleNames.map((name, index) => ({
+      organizationId: null, // Default to platform-wide roles
       role: {
         id: `role-${index}`,
         name,
@@ -65,48 +66,48 @@ describe('RBAC Security Service', () => {
 
   describe('getHighestRole', () => {
     it('should return USER for null user', () => {
-      expect(getHighestRole(null)).toBe('USER');
+      expect(getHighestRole(null)).toBe('ROLE_USER');
     });
 
     it('should return USER for user with no roles', () => {
       const user: UserWithRoles = { id: 'user-1', userRoles: [] };
-      expect(getHighestRole(user)).toBe('USER');
+      expect(getHighestRole(user)).toBe('ROLE_USER');
     });
 
     it('should return USER for user with undefined userRoles', () => {
       const user: UserWithRoles = { id: 'user-1' };
-      expect(getHighestRole(user)).toBe('USER');
+      expect(getHighestRole(user)).toBe('ROLE_USER');
     });
 
     it('should return ADMIN for user with ROLE_ADMIN', () => {
       const user = createMockUser([ROLES.ADMIN]);
-      expect(getHighestRole(user)).toBe('ADMIN');
+      expect(getHighestRole(user)).toBe('ROLE_ADMIN');
     });
 
     it('should return MODERATOR for user with ROLE_MODERATOR', () => {
       const user = createMockUser([ROLES.MODERATOR]);
-      expect(getHighestRole(user)).toBe('MODERATOR');
+      expect(getHighestRole(user)).toBe('ROLE_MODERATOR');
     });
 
     it('should return USER for user with only ROLE_USER', () => {
       const user = createMockUser([ROLES.USER]);
-      expect(getHighestRole(user)).toBe('USER');
+      expect(getHighestRole(user)).toBe('ROLE_USER');
     });
 
     it('should return highest role when user has multiple roles', () => {
       // User with both MODERATOR and USER should return MODERATOR
       const user = createMockUser([ROLES.MODERATOR, ROLES.USER]);
-      expect(getHighestRole(user)).toBe('MODERATOR');
+      expect(getHighestRole(user)).toBe('ROLE_MODERATOR');
     });
 
     it('should return ADMIN when user has all roles', () => {
       const user = createMockUser([ROLES.USER, ROLES.MODERATOR, ROLES.ADMIN]);
-      expect(getHighestRole(user)).toBe('ADMIN');
+      expect(getHighestRole(user)).toBe('ROLE_ADMIN');
     });
 
     it('should handle unknown roles gracefully', () => {
       const user = createMockUser(['ROLE_UNKNOWN']);
-      expect(getHighestRole(user)).toBe('USER');
+      expect(getHighestRole(user)).toBe('ROLE_USER');
     });
   });
 
@@ -325,18 +326,103 @@ describe('RBAC Security Service', () => {
     });
 
     it('should return USER for null user', async () => {
-      expect(await getUserRoleDisplay(null)).toBe('USER');
+      expect(await getUserRoleDisplay(null)).toBe('ROLE_USER');
     });
 
     it('should return highest role for display', async () => {
       const adminUser = createMockUser([ROLES.ADMIN]);
-      expect(await getUserRoleDisplay(adminUser)).toBe('ADMIN');
+      expect(await getUserRoleDisplay(adminUser)).toBe('ROLE_ADMIN');
 
       const modUser = createMockUser([ROLES.MODERATOR]);
-      expect(await getUserRoleDisplay(modUser)).toBe('MODERATOR');
+      expect(await getUserRoleDisplay(modUser)).toBe('ROLE_MODERATOR');
 
       const regularUser = createMockUser([ROLES.USER]);
-      expect(await getUserRoleDisplay(regularUser)).toBe('USER');
+      expect(await getUserRoleDisplay(regularUser)).toBe('ROLE_USER');
+    });
+  });
+
+  describe('isGranted with context', () => {
+    let isGranted: typeof import('@/lib/security/index').isGranted;
+
+    beforeEach(async () => {
+      vi.mocked(prisma.role.findMany).mockResolvedValue(mockRolesWithHierarchy);
+      const module = await import('@/lib/security/index');
+      isGranted = module.isGranted;
+      module.clearRoleHierarchyCache();
+    });
+
+    it('should accept organizationId in context parameter', async () => {
+      const user = createMockUser([ROLES.ADMIN]);
+
+      // Should not throw with context parameter
+      const result = await isGranted(user, ROLES.ADMIN, {
+        organizationId: 'org-123',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should filter roles by organization context', async () => {
+      // User has ADMIN role in org-123 only
+      const user: UserWithRoles = {
+        id: 'user-123',
+        userRoles: [
+          {
+            organizationId: 'org-123',
+            role: {
+              id: 'role-admin',
+              name: ROLES.ADMIN,
+              parentId: null,
+            },
+          },
+        ],
+      };
+
+      // Should have ADMIN in org-123
+      const resultInOrg = await isGranted(user, ROLES.ADMIN, {
+        organizationId: 'org-123',
+      });
+      expect(resultInOrg).toBe(true);
+
+      // Should NOT have ADMIN in different org
+      const resultInOtherOrg = await isGranted(user, ROLES.ADMIN, {
+        organizationId: 'org-456',
+      });
+      expect(resultInOtherOrg).toBe(false);
+    });
+
+    it('should allow platform-wide roles in all org contexts', async () => {
+      // User has platform-wide ADMIN role
+      const user: UserWithRoles = {
+        id: 'user-123',
+        userRoles: [
+          {
+            organizationId: null, // Platform-wide
+            role: {
+              id: 'role-admin',
+              name: ROLES.ADMIN,
+              parentId: null,
+            },
+          },
+        ],
+      };
+
+      // Platform-wide role works in any org context
+      const resultInOrg1 = await isGranted(user, ROLES.ADMIN, {
+        organizationId: 'org-123',
+      });
+      expect(resultInOrg1).toBe(true);
+
+      const resultInOrg2 = await isGranted(user, ROLES.ADMIN, {
+        organizationId: 'org-456',
+      });
+      expect(resultInOrg2).toBe(true);
+
+      // Also works in platform context
+      const resultPlatform = await isGranted(user, ROLES.ADMIN, {
+        organizationId: null,
+      });
+      expect(resultPlatform).toBe(true);
     });
   });
 });

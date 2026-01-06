@@ -83,8 +83,6 @@ export async function POST(req: NextRequest) {
         id: true,
         email: true,
         password: true,
-        organizationRole: true,
-        organizationId: true,
         ...userWithRolesInclude,
       },
     });
@@ -111,7 +109,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Organization owners must transfer ownership first
-    if (user.organizationId && user.organizationRole === 'OWNER') {
+    const hasOwnerRole = user.userRoles.some(
+      (ur) => ur.organizationId !== null && ur.role.name === 'ROLE_OWNER'
+    );
+
+    if (hasOwnerRole) {
       return NextResponse.json(
         {
           error: {

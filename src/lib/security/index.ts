@@ -13,18 +13,16 @@ import type { User, UserRole } from '@prisma/client';
 import type { PlatformRole } from '@/types/auth';
 import { VoteResult } from './voter';
 import { voters } from './voters';
+import { ROLE_NAMES } from '@/lib/constants/roles';
 
 // Voter class names for debug logging
 const VOTER_NAMES = ['OrganizationVoter', 'UserVoter'] as const;
 
 /**
  * Role name constants to avoid magic strings
+ * Re-exported from shared constants for backward compatibility
  */
-export const ROLES = {
-  ADMIN: 'ROLE_ADMIN',
-  MODERATOR: 'ROLE_MODERATOR',
-  USER: 'ROLE_USER',
-} as const;
+export const ROLES = ROLE_NAMES;
 
 export type RoleName = (typeof ROLES)[keyof typeof ROLES];
 
@@ -40,6 +38,7 @@ const voterCache = new Map<string, number>();
 export interface UserWithRoles {
   id: string;
   userRoles?: Array<{
+    organizationId: string | null;
     role: {
       id: string;
       name: string;
@@ -69,19 +68,25 @@ export type UserWithComputedRole = User & {
  *
  * @param user - User object (must include userRoles relation)
  * @param attribute - Role name (e.g., 'ROLE_ADMIN') or permission (e.g., 'organization.edit')
- * @param subject - Optional subject for voter-based contextual checks
+ * @param context - Optional context (organizationId, subject for voters)
  */
 export async function isGranted(
   user: UserWithRoles | null,
   attribute: string,
-  subject?: unknown
+  context?: {
+    organizationId?: string | null;
+    subject?: unknown;
+  }
 ): Promise<boolean> {
   if (!user) return false;
 
   // Role-based check (ROLE_* attributes)
   if (attribute.startsWith('ROLE_')) {
-    return hasRole(user, attribute);
+    return hasRole(user, attribute, context?.organizationId);
   }
+
+  // Extract subject from context for backward compatibility
+  const subject = context?.subject;
 
   // Check voter cache first
   const cachedIndex = voterCache.get(attribute);
@@ -146,14 +151,17 @@ export async function isGranted(
  *
  * Example: User with ROLE_ADMIN also has ROLE_MODERATOR and ROLE_USER
  * because ROLE_ADMIN -> ROLE_MODERATOR -> ROLE_USER in hierarchy
+ *
+ * @param organizationId - Organization context (null = platform-wide, undefined = any)
  */
 export async function hasRole(
   user: UserWithRoles | null,
-  roleName: string
+  roleName: string,
+  organizationId?: string | null
 ): Promise<boolean> {
   if (!user) return false;
 
-  const userRoleNames = getUserRoleNames(user);
+  const userRoleNames = getUserRoleNames(user, organizationId);
   if (userRoleNames.length === 0) return false;
 
   const allRoles = await resolveHierarchy(userRoleNames);
@@ -161,13 +169,38 @@ export async function hasRole(
 }
 
 /**
- * Get user's directly assigned role names
+ * Get user's directly assigned role names, filtered by organization context
+ *
+ * @param organizationId - Filter by org context:
+ *   - undefined: Return roles from ALL contexts
+ *   - null: Return only platform-wide roles (organizationId = null)
+ *   - string: Return roles for that org + platform-wide roles
  */
-function getUserRoleNames(user: UserWithRoles): string[] {
+function getUserRoleNames(
+  user: UserWithRoles,
+  organizationId?: string | null
+): string[] {
   if (!user.userRoles || user.userRoles.length === 0) {
     return [];
   }
-  return user.userRoles.map((ur) => ur.role.name);
+
+  // Filter by organization context
+  const filteredRoles = user.userRoles.filter((ur) => {
+    if (organizationId === undefined) {
+      // No filter - all roles
+      return true;
+    }
+
+    // Platform-wide roles (null) work everywhere
+    if (ur.organizationId === null) {
+      return true;
+    }
+
+    // Org-specific roles must match
+    return ur.organizationId === organizationId;
+  });
+
+  return filteredRoles.map((ur) => ur.role.name);
 }
 
 /**
@@ -325,7 +358,12 @@ export function getHighestRole(user: UserWithRoles | null): PlatformRole {
  */
 export const userWithRolesInclude = {
   userRoles: {
-    include: {
+    select: {
+      id: true,
+      createdAt: true,
+      userId: true,
+      roleId: true,
+      organizationId: true,
       role: {
         select: {
           id: true,

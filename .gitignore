@@ -74,3 +74,4 @@ logs/
 docs/api-generated
 docs/public/openapi.json
 docs/public/openapi.yaml
+.worktrees/

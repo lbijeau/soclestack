@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, hasRequiredRole } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 import {
   updateUserRoleSchema,
   updateUserStatusSchema,
 } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
-import { canAccessUserInOrg } from '@/lib/organization';
 import { getHighestRole, userWithRolesInclude } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
@@ -35,19 +34,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
 
-    // Users can view their own profile, admins/moderators can view profiles in their org
-    if (auth.user.id !== id && !hasRequiredRole(auth.user.role, 'MODERATOR')) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Insufficient permissions',
-          } as AuthError,
-        },
-        { status: 403 }
-      );
-    }
-
+    // Fetch target user
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -61,7 +48,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
-        organizationId: true,
         ...userWithRolesInclude,
         sessions: {
           where: { isActive: true },
@@ -89,11 +75,87 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check organization-level access for non-self requests
-    if (
-      auth.user.id !== id &&
-      !canAccessUserInOrg(auth.user.organizationId, user.organizationId)
-    ) {
+    // Users can view their own profile
+    if (auth.user.id === id) {
+      const userWithRole = {
+        ...user,
+        role: getHighestRole(user),
+      };
+      return NextResponse.json({ user: userWithRole });
+    }
+
+    // For non-self requests, check if auth user has MODERATOR+ in any organization
+    const authUserFull = await prisma.user.findUnique({
+      where: { id: auth.user.id },
+      select: {
+        id: true,
+        ...userWithRolesInclude,
+      },
+    });
+
+    if (!authUserFull) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'User not found',
+          } as AuthError,
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check if auth user has MODERATOR+ role in any organization
+    const hasModerator = authUserFull.userRoles.some((ur) =>
+      [
+        'ROLE_MODERATOR',
+        'ROLE_ADMIN',
+        'ROLE_OWNER',
+        'ROLE_PLATFORM_ADMIN',
+      ].includes(ur.role.name)
+    );
+
+    if (!hasModerator) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Insufficient permissions',
+          } as AuthError,
+        },
+        { status: 403 }
+      );
+    }
+
+    // Get organizations where auth user has MODERATOR+
+    const authOrgIds = authUserFull.userRoles
+      .filter((ur) =>
+        [
+          'ROLE_MODERATOR',
+          'ROLE_ADMIN',
+          'ROLE_OWNER',
+          'ROLE_PLATFORM_ADMIN',
+        ].includes(ur.role.name)
+      )
+      .map((ur) => ur.organizationId)
+      .filter((orgId): orgId is string => orgId !== null);
+
+    // Check if target user is in any of those organizations (or if auth user is platform admin)
+    const hasPlatformAccess = authUserFull.userRoles.some(
+      (ur) =>
+        ur.organizationId === null &&
+        ['ROLE_ADMIN', 'ROLE_PLATFORM_ADMIN'].includes(ur.role.name)
+    );
+
+    const targetUserOrgIds = user.userRoles
+      .map((ur) => ur.organizationId)
+      .filter((orgId): orgId is string => orgId !== null);
+
+    const hasSharedOrg =
+      hasPlatformAccess ||
+      targetUserOrgIds.some((orgId) => authOrgIds.includes(orgId));
+
+    if (!hasSharedOrg) {
       return NextResponse.json(
         {
           error: {
@@ -145,13 +207,33 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await req.json();
 
+    // Get auth user with roles
+    const authUser = await prisma.user.findUnique({
+      where: { id: auth.user.id },
+      select: {
+        id: true,
+        ...userWithRolesInclude,
+      },
+    });
+
+    if (!authUser) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'User not found',
+          } as AuthError,
+        },
+        { status: 401 }
+      );
+    }
+
     // Find target user
     const targetUser = await prisma.user.findUnique({
       where: { id },
       select: {
         id: true,
         email: true,
-        organizationId: true,
         ...userWithRolesInclude,
       },
     });
@@ -168,25 +250,16 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check organization-level access
-    if (
-      !canAccessUserInOrg(auth.user.organizationId, targetUser.organizationId)
-    ) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'NOT_FOUND',
-            message: 'User not found',
-          } as AuthError,
-        },
-        { status: 404 }
-      );
-    }
-
     // Check if trying to update role
     if ('role' in body) {
       // Only admins can change roles
-      if (!hasRequiredRole(auth.user.role, 'ADMIN')) {
+      const hasAdmin = authUser.userRoles.some((ur) =>
+        ['ROLE_ADMIN', 'ROLE_OWNER', 'ROLE_PLATFORM_ADMIN'].includes(
+          ur.role.name
+        )
+      );
+
+      if (!hasAdmin) {
         return NextResponse.json(
           {
             error: {
@@ -287,7 +360,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     // Check if trying to update status
     if ('isActive' in body) {
       // Only admins can change user status
-      if (!hasRequiredRole(auth.user.role, 'ADMIN')) {
+      const hasAdmin = authUser.userRoles.some((ur) =>
+        ['ROLE_ADMIN', 'ROLE_OWNER', 'ROLE_PLATFORM_ADMIN'].includes(
+          ur.role.name
+        )
+      );
+
+      if (!hasAdmin) {
         return NextResponse.json(
           {
             error: {
@@ -396,19 +475,6 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Only admins can delete users
-    if (!hasRequiredRole(auth.user.role, 'ADMIN')) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Only administrators can delete users',
-          } as AuthError,
-        },
-        { status: 403 }
-      );
-    }
-
     const { id } = await params;
 
     // Can't delete own account
@@ -424,10 +490,53 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Get auth user with roles
+    const authUser = await prisma.user.findUnique({
+      where: { id: auth.user.id },
+      select: {
+        id: true,
+        ...userWithRolesInclude,
+      },
+    });
+
+    if (!authUser) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHENTICATION_ERROR',
+            message: 'User not found',
+          } as AuthError,
+        },
+        { status: 401 }
+      );
+    }
+
+    // Only admins can delete users
+    const hasAdmin = authUser.userRoles.some((ur) =>
+      ['ROLE_ADMIN', 'ROLE_OWNER', 'ROLE_PLATFORM_ADMIN'].includes(
+        ur.role.name
+      )
+    );
+
+    if (!hasAdmin) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'AUTHORIZATION_ERROR',
+            message: 'Only administrators can delete users',
+          } as AuthError,
+        },
+        { status: 403 }
+      );
+    }
+
     // Check if user exists
     const targetUser = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, organizationId: true },
+      select: {
+        id: true,
+        ...userWithRolesInclude,
+      },
     });
 
     if (!targetUser) {
@@ -442,22 +551,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check organization-level access
-    if (
-      !canAccessUserInOrg(auth.user.organizationId, targetUser.organizationId)
-    ) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'NOT_FOUND',
-            message: 'User not found',
-          } as AuthError,
-        },
-        { status: 404 }
-      );
-    }
-
-    // Delete user (cascade will handle related records)
+    // Delete user (cascade will handle related records including UserRole)
     await prisma.user.delete({
       where: { id },
     });

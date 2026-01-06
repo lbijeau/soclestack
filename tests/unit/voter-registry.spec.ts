@@ -36,7 +36,7 @@ describe('Voter Registry Integration', () => {
         const org = { id: 'org-123', slug: 'test-org' };
         const user = createUser('user-1', org.id, 'MEMBER');
 
-        const result = await isGranted(user, 'organization.view', org);
+        const result = await isGranted(user, 'organization.view', { subject: org });
         expect(result).toBe(true);
       });
 
@@ -44,7 +44,7 @@ describe('Voter Registry Integration', () => {
         const org = { id: 'org-123', slug: 'test-org' };
         const user = createUser('user-1', 'other-org', 'MEMBER');
 
-        const result = await isGranted(user, 'organization.view', org);
+        const result = await isGranted(user, 'organization.view', { subject: org });
         expect(result).toBe(false);
       });
 
@@ -52,7 +52,7 @@ describe('Voter Registry Integration', () => {
         const org = { id: 'org-123', slug: 'test-org' };
         const user = createUser('user-1', org.id, 'MEMBER');
 
-        const result = await isGranted(user, 'organization.edit', org);
+        const result = await isGranted(user, 'organization.edit', { subject: org });
         expect(result).toBe(false);
       });
 
@@ -60,7 +60,7 @@ describe('Voter Registry Integration', () => {
         const org = { id: 'org-123', slug: 'test-org' };
         const user = createUser('user-1', org.id, 'ADMIN');
 
-        const result = await isGranted(user, 'organization.edit', org);
+        const result = await isGranted(user, 'organization.edit', { subject: org });
         expect(result).toBe(true);
       });
 
@@ -68,7 +68,7 @@ describe('Voter Registry Integration', () => {
         const org = { id: 'org-123', slug: 'test-org' };
         const user = createUser('user-1', org.id, 'OWNER');
 
-        const result = await isGranted(user, 'organization.delete', org);
+        const result = await isGranted(user, 'organization.delete', { subject: org });
         expect(result).toBe(true);
       });
 
@@ -76,7 +76,7 @@ describe('Voter Registry Integration', () => {
         const org = { id: 'org-123', slug: 'test-org' };
         const user = createUser('user-1', org.id, 'ADMIN');
 
-        const result = await isGranted(user, 'organization.delete', org);
+        const result = await isGranted(user, 'organization.delete', { subject: org });
         expect(result).toBe(false);
       });
     });
@@ -87,7 +87,7 @@ describe('Voter Registry Integration', () => {
         const user = createUser('user-123');
         const targetUser = { id: 'user-123' };
 
-        const result = await isGranted(user, 'user.view', targetUser);
+        const result = await isGranted(user, 'user.view', { subject: targetUser });
         expect(result).toBe(true);
       });
 
@@ -95,7 +95,7 @@ describe('Voter Registry Integration', () => {
         const user = createUser('user-123');
         const targetUser = { id: 'user-123' };
 
-        const result = await isGranted(user, 'user.edit', targetUser);
+        const result = await isGranted(user, 'user.edit', { subject: targetUser });
         expect(result).toBe(true);
       });
 
@@ -103,7 +103,7 @@ describe('Voter Registry Integration', () => {
         const user = createUser('user-123');
         const targetUser = { id: 'user-123' };
 
-        const result = await isGranted(user, 'user.delete', targetUser);
+        const result = await isGranted(user, 'user.delete', { subject: targetUser });
         expect(result).toBe(false);
       });
 
@@ -111,7 +111,7 @@ describe('Voter Registry Integration', () => {
         const user = createUser('user-123');
         const targetUser = { id: 'user-123' };
 
-        const result = await isGranted(user, 'user.roles.manage', targetUser);
+        const result = await isGranted(user, 'user.roles.manage', { subject: targetUser });
         expect(result).toBe(false);
       });
     });
@@ -120,14 +120,14 @@ describe('Voter Registry Integration', () => {
       it('should deny unknown permissions', async () => {
         const user = createUser('user-1');
 
-        const result = await isGranted(user, 'unknown.permission', {});
+        const result = await isGranted(user, 'unknown.permission', { subject: {} });
         expect(result).toBe(false);
       });
 
       it('should deny when no subject provided for voter-based permission', async () => {
         const user = createUser('user-1');
 
-        const result = await isGranted(user, 'organization.view', undefined);
+        const result = await isGranted(user, 'organization.view', { subject: undefined });
         expect(result).toBe(false);
       });
     });
@@ -135,8 +135,10 @@ describe('Voter Registry Integration', () => {
     describe('null user', () => {
       it('should deny all permissions for null user', async () => {
         const result = await isGranted(null, 'organization.view', {
-          id: 'org-1',
-          slug: 'test',
+          subject: {
+            id: 'org-1',
+            slug: 'test',
+          },
         });
         expect(result).toBe(false);
       });
@@ -148,11 +150,11 @@ describe('Voter Registry Integration', () => {
         const user = createUser('user-1', org.id, 'ADMIN');
 
         // First call - populates cache
-        const result1 = await isGranted(user, 'organization.edit', org);
+        const result1 = await isGranted(user, 'organization.edit', { subject: org });
         expect(result1).toBe(true);
 
         // Second call - uses cache
-        const result2 = await isGranted(user, 'organization.edit', org);
+        const result2 = await isGranted(user, 'organization.edit', { subject: org });
         expect(result2).toBe(true);
       });
 
@@ -160,11 +162,11 @@ describe('Voter Registry Integration', () => {
         const user = createUser('user-1');
 
         // First call - finds no voter, caches as -1
-        const result1 = await isGranted(user, 'unknown.attribute', {});
+        const result1 = await isGranted(user, 'unknown.attribute', { subject: {} });
         expect(result1).toBe(false);
 
         // Second call - uses cached -1
-        const result2 = await isGranted(user, 'unknown.attribute', {});
+        const result2 = await isGranted(user, 'unknown.attribute', { subject: {} });
         expect(result2).toBe(false);
       });
 
@@ -174,10 +176,10 @@ describe('Voter Registry Integration', () => {
         const user = createUser('user-1', org1.id, 'MEMBER');
 
         // Same attribute, different subjects
-        const result1 = await isGranted(user, 'organization.view', org1);
+        const result1 = await isGranted(user, 'organization.view', { subject: org1 });
         expect(result1).toBe(true);
 
-        const result2 = await isGranted(user, 'organization.view', org2);
+        const result2 = await isGranted(user, 'organization.view', { subject: org2 });
         expect(result2).toBe(false); // Different org, not a member
       });
     });
