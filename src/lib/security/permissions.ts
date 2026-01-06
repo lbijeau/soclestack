@@ -47,6 +47,11 @@ export type Permission = ExtractPermissions<typeof PERMISSIONS>;
 
 /**
  * Flat arrays for voter attribute checking
+ *
+ * Why both PERMISSIONS object and flat arrays?
+ * - PERMISSIONS object: Provides namespaced access for callers (PERMISSIONS.USER.VIEW)
+ * - Flat arrays: Required for Array.includes() checks in voter supports() methods
+ *   TypeScript's .includes() needs a readonly tuple, not nested object values
  */
 export const ORGANIZATION_PERMISSIONS = [
   PERMISSIONS.ORGANIZATION.VIEW,
