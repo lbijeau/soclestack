@@ -78,7 +78,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 - [ ] CSP `unsafe-inline` for styles addressed (nonce styles or external CSS)
 - [ ] PostgreSQL configured and migrated
 - [ ] Redis configured for rate limiting (`UPSTASH_REDIS_REST_URL`)
-- [ ] Email service configured (Resend)
+- [ ] Email service configured (`RESEND_API_KEY` - logs only in dev)
 - [ ] All environment variables set (validated by Zod on startup)
 - [ ] HTTPS enabled
 - [ ] Security headers reviewed
