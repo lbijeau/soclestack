@@ -147,7 +147,7 @@ export function clearVoterCache(): void {
 }
 
 /**
- * Legacy compatibility - check if user has required role level
+ * Legacy compatibility - check if user has required role level (platform-wide)
  *
  * @deprecated Use hasRole() or isGranted() instead
  */
@@ -155,21 +155,22 @@ export async function hasRequiredRoleAsync(
   user: UserWithRoles | null,
   requiredRole: 'USER' | 'MODERATOR' | 'ADMIN'
 ): Promise<boolean> {
-  return hasRole(user, `ROLE_${requiredRole}`);
+  return hasRole(user, `ROLE_${requiredRole}`, null);
 }
 
 /**
  * Get user's highest role name (for display purposes)
  *
  * Returns the most privileged role: ROLE_ADMIN > ROLE_MODERATOR > ROLE_USER
+ * Checks platform-wide roles only (organizationId = null)
  */
 export async function getUserRoleDisplay(
   user: UserWithRoles | null
 ): Promise<PlatformRole> {
   if (!user) return ROLES.USER;
 
-  if (await hasRole(user, ROLES.ADMIN)) return ROLES.ADMIN;
-  if (await hasRole(user, ROLES.MODERATOR)) return ROLES.MODERATOR;
+  if (await hasRole(user, ROLES.ADMIN, null)) return ROLES.ADMIN;
+  if (await hasRole(user, ROLES.MODERATOR, null)) return ROLES.MODERATOR;
   return ROLES.USER;
 }
 
