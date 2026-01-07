@@ -235,3 +235,11 @@ export type {
   OrganizationPermission,
   UserPermission,
 } from './permissions';
+
+// Re-export role safeguards
+export {
+  checkLastPlatformAdmin,
+  checkLastOrgAdmin,
+  checkRoleRemovalSafeguards,
+} from './role-safeguards';
+export type { SafeguardResult } from './role-safeguards';

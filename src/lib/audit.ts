@@ -15,6 +15,7 @@ export type AuditAction =
   | 'SECURITY_PASSWORD_CHANGED'
   | 'SECURITY_EMAIL_CHANGED'
   | 'SECURITY_ALL_SESSIONS_REVOKED'
+  | 'ROLE_REMOVAL_BLOCKED'
   // Two-factor authentication
   | 'AUTH_2FA_ENABLED'
   | 'AUTH_2FA_DISABLED'
