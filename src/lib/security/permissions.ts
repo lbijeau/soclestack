@@ -70,6 +70,14 @@ export const USER_PERMISSIONS = [
   PERMISSIONS.USER.ROLES.MANAGE,
 ] as const;
 
+/**
+ * All permissions combined for iteration
+ */
+export const ALL_PERMISSIONS = [
+  ...ORGANIZATION_PERMISSIONS,
+  ...USER_PERMISSIONS,
+] as const;
+
 export type OrganizationPermission = (typeof ORGANIZATION_PERMISSIONS)[number];
 export type UserPermission = (typeof USER_PERMISSIONS)[number];
 
