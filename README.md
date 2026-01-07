@@ -5,15 +5,21 @@
   <br />
 </div>
 
-> **Warning**
-> **NOT PRODUCTION READY** - This project is under active development and has known security vulnerabilities and incomplete implementations. Do not deploy to production without addressing critical issues documented in the GitHub issues.
-
-[![Status](https://img.shields.io/badge/status-development-orange)](#known-limitations)
-[![Security](https://img.shields.io/badge/security-needs%20review-red)](#known-limitations)
+[![Status](https://img.shields.io/badge/status-beta-yellow)](#production-checklist)
+[![LLM-Ready](https://img.shields.io/badge/LLM--Ready-Claude%20%7C%20Cursor%20%7C%20Copilot-blue)](#llm-assisted-development)
 
 ![SocleStack Banner](./public/images/social-preview.png)
 
-A complete Next.js 14 application with Enterprise-grade user management features, built with TypeScript, Prisma, and modern React components. "SocleStack" is the foundational block upon which your SaaS application is built.
+A complete Next.js 14 application with enterprise-grade user management features, built with TypeScript, Prisma, and modern React components. **SocleStack** is the foundational block upon which your SaaS application is built.
+
+## Why SocleStack?
+
+**Skip weeks of boilerplate.** Auth, roles, organizations, API keys, audit logs — it's all here. Clone, configure, and start building your actual product.
+
+**Optimized for LLM-assisted development.** Clean architecture, consistent patterns, and comprehensive documentation make this codebase ideal for AI coding tools like Claude Code, Cursor, and GitHub Copilot. The AI understands the patterns and can extend them reliably.
+
+> **Note**
+> Review the [Production Checklist](#production-checklist) before deploying. Core security is implemented; configuration is required for your environment.
 
 ## Features
 
@@ -60,30 +66,38 @@ Visit [http://localhost:3000](http://localhost:3000)
 | [Migrations](docs/MIGRATIONS.md) | Database migration guide |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues and solutions |
 
-## Known Limitations
-
-> **Warning**: The following issues must be addressed before production deployment.
+## Production Checklist
 
 ### Security Status
 
-| Issue | Status | Description |
-|-------|--------|-------------|
-| CSP Policy | Partial | `unsafe-inline` for styles (scripts use nonces in prod) |
-| CSRF Protection | ✅ Fixed | Double-submit cookie pattern with middleware validation |
-| Rate Limiting | Optional Redis | In-memory default; set `UPSTASH_REDIS_REST_URL` for Redis |
-| Secrets Validation | ✅ Fixed | Zod validates all secrets, no hardcoded fallbacks |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| CSRF Protection | ✅ Ready | Double-submit cookie pattern with middleware validation |
+| Secrets Validation | ✅ Ready | Zod validates all secrets at startup |
+| Rate Limiting | ✅ Ready | In-memory default; Redis recommended for multi-instance |
+| CSP Policy | ⚠️ Partial | Scripts use nonces; styles use `unsafe-inline` |
 
-### Production Checklist
+### Before Deploying
 
-- [ ] CSP `unsafe-inline` for styles addressed (nonce styles or external CSS)
 - [ ] PostgreSQL configured and migrated
-- [ ] Redis configured for rate limiting (`UPSTASH_REDIS_REST_URL`)
-- [ ] Email service configured (`RESEND_API_KEY` - logs only in dev)
-- [ ] All environment variables set (validated by Zod on startup)
-- [ ] HTTPS enabled
-- [ ] Security headers reviewed
+- [ ] Environment variables set (validated by Zod on startup)
+- [ ] Email service configured (`RESEND_API_KEY` — logs only in dev)
+- [ ] Redis for rate limiting (`UPSTASH_REDIS_REST_URL` — optional but recommended)
+- [ ] HTTPS enabled with proper security headers
 
 See [TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md) for full security considerations.
+
+## LLM-Assisted Development
+
+SocleStack is designed to be extended by AI coding assistants. The codebase follows consistent patterns that LLMs can learn and replicate:
+
+- **Consistent file structure** — API routes, components, and services follow predictable conventions
+- **TypeScript throughout** — Strong typing helps AI understand data shapes and catch errors
+- **Zod validation schemas** — Self-documenting request/response contracts
+- **Comprehensive CLAUDE.md** — Project-specific instructions for Claude Code and similar tools
+- **Detailed documentation** — Architecture docs give AI the context it needs
+
+**Recommended workflow:** Describe what you want to build, let the AI scaffold it following existing patterns, then review and refine.
 
 ## Contributing
 
