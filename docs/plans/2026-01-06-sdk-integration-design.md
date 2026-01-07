@@ -43,8 +43,8 @@ Developers deploying SocleStack as their backend often have a separate frontend 
 
 **Package structure:**
 
-- `@soclestack/core` - Headless SDK. API client, auth state machine, token storage, event emitters. Zero UI dependencies.
-- `@soclestack/react` - React components built on core. Unstyled by default with optional Tailwind preset.
+- `@soclestack/core` - Headless SDK. API client, auth state machine, token storage, event emitters, **branding config**. Zero UI dependencies.
+- `@soclestack/react` - React components built on core. Unstyled by default with CSS variable theming. Includes **layout variants** (auth styles, nav styles, density modes).
 
 ## @soclestack/core - Headless SDK
 
@@ -54,6 +54,8 @@ Developers deploying SocleStack as their backend often have a separate frontend 
 2. **Auth State Machine** - Tracks authentication lifecycle
 3. **Token Management** - Storage, refresh, expiry detection
 4. **Event System** - Subscribe to auth changes
+5. **Branding Config** - App name, logo, colors, layout preferences
+6. **Color Utilities** - Derive hover/light variants from primary color
 
 ### Auth State Machine
 
@@ -141,6 +143,60 @@ client.subscribe((state) => {
 - Tree-shakeable
 - <10KB gzipped
 
+### Branding Configuration
+
+```typescript
+interface BrandingConfig {
+  name: string;           // App name for title, emails
+  logoUrl: string;        // Logo URL (relative or absolute)
+  faviconUrl: string;     // Favicon URL
+  primaryColor: string;   // Hex color for buttons, links
+}
+
+interface LayoutConfig {
+  authStyle: 'centered' | 'split' | 'fullpage';
+  navStyle: 'top' | 'sidebar';
+  density: 'compact' | 'comfortable';
+}
+
+// Get branding (future: supports org-level override)
+function getBranding(orgId?: string): BrandingConfig;
+function getLayout(): LayoutConfig;
+
+// Color utilities
+function darken(hex: string, percent: number): string;
+function lighten(hex: string, percent: number): string;
+```
+
+Configuration via `SocleClientOptions`:
+
+```typescript
+const client = new SocleClient({
+  baseUrl: 'https://my-soclestack.example.com',
+  branding: {
+    name: 'My App',
+    logoUrl: '/logo.svg',
+    primaryColor: '#3b82f6',
+  },
+  layout: {
+    authStyle: 'split',
+    navStyle: 'sidebar',
+    density: 'comfortable',
+  },
+});
+```
+
+Or via environment variables (server-side):
+
+```bash
+BRAND_NAME="My App"
+BRAND_LOGO_URL="/logo.svg"
+BRAND_PRIMARY_COLOR="#3b82f6"
+LAYOUT_AUTH_STYLE="split"
+LAYOUT_NAV_STYLE="sidebar"
+LAYOUT_DENSITY="comfortable"
+```
+
 ## @soclestack/react - React Components
 
 ### Design Philosophy
@@ -150,7 +206,7 @@ Unstyled by default. Components render semantic HTML with data attributes for st
 ### Component Inventory (MVP)
 
 ```typescript
-// Provider
+// Provider (injects CSS variables for branding)
 <SocleProvider client={client}>
   <App />
 </SocleProvider>
@@ -172,11 +228,36 @@ Unstyled by default. Components render semantic HTML with data attributes for st
 <OrgSwitcher />        // Dropdown to switch orgs
 <OrgInviteAccept token={} />
 
+// Layout variants
+<AuthLayout>           // Switches based on layout.authStyle
+  <LoginForm />
+</AuthLayout>
+<AppLayout>            // Switches based on layout.navStyle
+  <Dashboard />
+</AppLayout>
+
 // Hooks (for custom UIs)
 useAuth()              // { state, login, logout, ... }
 useUser()              // Current user or null
 useOrganization()      // Current org context
+useBranding()          // { name, logoUrl, primaryColor, ... }
+useLayout()            // { authStyle, navStyle, density }
 ```
+
+### Layout Variants
+
+**Auth layouts** (configured via `layout.authStyle`):
+- `centered` - Card centered on page (default)
+- `split` - Two-column: form on left, hero/branding on right
+- `fullpage` - Form takes full width, minimal chrome
+
+**Navigation layouts** (configured via `layout.navStyle`):
+- `top` - Horizontal navbar (default)
+- `sidebar` - Collapsible left sidebar
+
+**Density modes** (configured via `layout.density`):
+- `comfortable` - Standard spacing (default)
+- `compact` - Tighter padding for data-dense UIs
 
 ### Styling Approaches
 
@@ -184,12 +265,17 @@ useOrganization()      // Current org context
 // Option 1: Unstyled (you provide CSS)
 <LoginForm className="my-login" />
 
-// Option 2: CSS variables theming
+// Option 2: CSS variables (auto-injected by SocleProvider)
+// Provider reads branding config and sets:
 :root {
-  --socle-primary: #3b82f6;
+  --socle-primary: #3b82f6;        // From branding.primaryColor
+  --socle-primary-hover: #2563eb;  // Auto-derived (darken 10%)
+  --socle-primary-light: #dbeafe;  // Auto-derived (lighten 40%)
   --socle-radius: 8px;
   --socle-font-family: inherit;
 }
+[data-density="compact"] { --socle-spacing: 0.75rem; }
+[data-density="comfortable"] { --socle-spacing: 1rem; }
 
 // Option 3: Tailwind preset (import separately)
 import '@soclestack/react/tailwind.css';
@@ -384,14 +470,27 @@ packages/
 │   │   ├── client.ts
 │   │   ├── auth-state.ts
 │   │   ├── api/
-│   │   └── storage/
+│   │   ├── storage/
+│   │   ├── branding.ts       # Branding config
+│   │   └── color-utils.ts    # darken/lighten
 │   ├── package.json
 │   └── tsconfig.json
 ├── react/
 │   ├── src/
-│   │   ├── provider.tsx
+│   │   ├── provider.tsx      # Injects CSS variables
 │   │   ├── hooks/
-│   │   └── components/
+│   │   ├── components/
+│   │   │   ├── LoginForm.tsx
+│   │   │   ├── AuthGuard.tsx
+│   │   │   └── ...
+│   │   └── layouts/
+│   │       ├── AuthLayout.tsx
+│   │       ├── AuthCentered.tsx
+│   │       ├── AuthSplit.tsx
+│   │       ├── AuthFullpage.tsx
+│   │       ├── AppLayout.tsx
+│   │       ├── NavTop.tsx
+│   │       └── NavSidebar.tsx
 │   └── package.json
 └── docs/              # SDK documentation site
 ```
@@ -465,6 +564,7 @@ All packages share version number. Breaking changes bump major across all packag
 
 ## Related
 
+- Theming & Branding Design: `docs/plans/2026-01-06-theming-branding-design.md` (merged into this SDK plan)
 - Unified Role Architecture: `docs/plans/2026-01-04-unified-role-architecture-design.md`
 - RBAC Gap Analysis: `docs/reviews/2026-01-06-rbac-gap-analysis.md`
 
