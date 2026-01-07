@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { headers } from 'next/headers';
 import { requireAdmin } from '@/lib/api-utils';
+import { ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -62,7 +63,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     // Cannot remove owner
-    if (userRole.role.name === 'ROLE_OWNER') {
+    if (userRole.role.name === ROLES.OWNER) {
       return NextResponse.json(
         {
           error: {

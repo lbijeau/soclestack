@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { requireAdmin } from '@/lib/api-utils';
+import { ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest) {
           userRoles: {
             where: {
               role: {
-                name: 'ROLE_OWNER',
+                name: ROLES.OWNER,
               },
             },
             include: {

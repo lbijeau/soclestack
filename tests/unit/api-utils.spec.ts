@@ -12,6 +12,14 @@ import {
 // Mock the security module for role helper tests
 vi.mock('@/lib/security/index', () => ({
   hasRole: vi.fn(),
+  isGranted: vi.fn(),
+  ROLES: {
+    ADMIN: 'ROLE_ADMIN',
+    MODERATOR: 'ROLE_MODERATOR',
+    USER: 'ROLE_USER',
+    OWNER: 'ROLE_OWNER',
+    EDITOR: 'ROLE_EDITOR',
+  },
 }));
 
 import { hasRole } from '@/lib/security/index';

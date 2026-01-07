@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { AuthError } from '@/types/auth';
+import { ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         id: invite.organization.id,
         name: invite.organization.name,
         slug: invite.organization.slug,
-        role: role?.name || 'ROLE_USER',
+        role: role?.name || ROLES.USER,
       },
     });
   } catch (error) {
