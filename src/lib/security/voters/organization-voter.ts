@@ -60,10 +60,12 @@ export class OrganizationVoter implements Voter {
       return VoteResult.GRANTED;
     }
 
-    const requiredRole = REQUIRED_ROLES[attribute as OrganizationPermission];
-    if (!requiredRole) {
+    // Use type guard to narrow attribute type (supports() already validated this)
+    if (!isOrganizationPermission(attribute)) {
       return VoteResult.ABSTAIN;
     }
+
+    const requiredRole = REQUIRED_ROLES[attribute];
 
     // Check if user has the required role in this specific organization
     const hasRequiredRole = await hasRole(user, requiredRole, org.id);
