@@ -59,13 +59,3 @@ export function createMockUserWithRoles(
 
   return user;
 }
-
-/**
- * Setup for voter unit tests - call this in vi.mock() factory.
- * Returns a mock module that preserves actual exports but mocks hasRole.
- */
-export function setupRoleCheckerMock() {
-  return {
-    hasRole: vi.fn(),
-  };
-}
