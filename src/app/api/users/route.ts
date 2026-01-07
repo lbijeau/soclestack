@@ -4,7 +4,11 @@ import { userListParamsSchema } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { Prisma } from '@prisma/client';
-import { getHighestRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
+import {
+  getHighestRole,
+  userWithRolesInclude,
+  ROLES,
+} from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 

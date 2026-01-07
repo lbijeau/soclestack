@@ -37,8 +37,7 @@ const MAX_HIERARCHY_DEPTH = 10;
  * because ROLE_ADMIN -> ROLE_MODERATOR -> ROLE_USER in hierarchy
  *
  * @param organizationId - Organization context (null = platform-wide, string = specific org)
- *                         SECURITY: undefined is rejected to prevent cross-tenant access
- * @throws Error if organizationId is undefined
+ *                         SECURITY: defaults to null to prevent cross-tenant access
  */
 export async function hasRole(
   user: UserWithRoles | null,
