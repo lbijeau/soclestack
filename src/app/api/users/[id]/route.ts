@@ -6,7 +6,11 @@ import {
 } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
-import { getHighestRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
+import {
+  getHighestRole,
+  userWithRolesInclude,
+  ROLES,
+} from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -254,9 +258,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if ('role' in body) {
       // Only admins can change roles
       const hasAdmin = authUser.userRoles.some((ur) =>
-        [ROLES.ADMIN, ROLES.OWNER, 'ROLE_PLATFORM_ADMIN'].includes(
-          ur.role.name
-        )
+        [ROLES.ADMIN, ROLES.OWNER, 'ROLE_PLATFORM_ADMIN'].includes(ur.role.name)
       );
 
       if (!hasAdmin) {
@@ -361,9 +363,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if ('isActive' in body) {
       // Only admins can change user status
       const hasAdmin = authUser.userRoles.some((ur) =>
-        [ROLES.ADMIN, ROLES.OWNER, 'ROLE_PLATFORM_ADMIN'].includes(
-          ur.role.name
-        )
+        [ROLES.ADMIN, ROLES.OWNER, 'ROLE_PLATFORM_ADMIN'].includes(ur.role.name)
       );
 
       if (!hasAdmin) {

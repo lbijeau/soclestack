@@ -36,12 +36,13 @@ const MAX_HIERARCHY_DEPTH = 10;
  * Example: User with ROLE_ADMIN also has ROLE_MODERATOR and ROLE_USER
  * because ROLE_ADMIN -> ROLE_MODERATOR -> ROLE_USER in hierarchy
  *
- * @param organizationId - Organization context (null = platform-wide, undefined = any)
+ * @param organizationId - Organization context (null = platform-wide, string = specific org)
+ *                         SECURITY: defaults to null to prevent cross-tenant access
  */
 export async function hasRole(
   user: UserWithRoles | null,
   roleName: string,
-  organizationId?: string | null
+  organizationId: string | null = null
 ): Promise<boolean> {
   if (!user) return false;
 
@@ -56,13 +57,12 @@ export async function hasRole(
  * Get user's directly assigned role names, filtered by organization context
  *
  * @param organizationId - Filter by org context:
- *   - undefined: Return roles from ALL contexts
  *   - null: Return only platform-wide roles (organizationId = null)
  *   - string: Return roles for that org + platform-wide roles
  */
 function getUserRoleNames(
   user: UserWithRoles,
-  organizationId?: string | null
+  organizationId: string | null
 ): string[] {
   if (!user.userRoles || user.userRoles.length === 0) {
     return [];
@@ -70,11 +70,6 @@ function getUserRoleNames(
 
   // Filter by organization context
   const filteredRoles = user.userRoles.filter((ur) => {
-    if (organizationId === undefined) {
-      // No filter - all roles
-      return true;
-    }
-
     // Platform-wide roles (null) work everywhere
     if (ur.organizationId === null) {
       return true;

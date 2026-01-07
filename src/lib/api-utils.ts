@@ -94,13 +94,15 @@ export type AuthResult<T> =
  * Two usage patterns:
  * 1. Route handler auth check: requireAdmin() -> AuthResult
  * 2. Direct role check: requireAdmin(user, orgId) -> boolean
+ *
+ * SECURITY: organizationId must be explicit (string | null) to prevent cross-tenant access
  */
 
 // Overload signatures
 export async function requireAdmin(): Promise<AuthResult<UserWithComputedRole>>;
 export async function requireAdmin(
   user: UserWithRoles | null,
-  organizationId?: string | null
+  organizationId: string | null
 ): Promise<boolean>;
 
 // Implementation
@@ -154,12 +156,13 @@ export async function requireAdmin(
  * Check if user has ROLE_MODERATOR in the given organization context
  *
  * @param user - User to check
- * @param organizationId - Organization context (null = platform-wide, undefined = any)
+ * @param organizationId - Organization context (null = platform-wide, string = specific org)
+ *                         SECURITY: must be explicit to prevent cross-tenant access
  * @returns true if user is moderator in the given context
  */
 export async function requireModerator(
   user: UserWithRoles | null,
-  organizationId?: string | null
+  organizationId: string | null
 ): Promise<boolean> {
   if (!user) return false;
   return hasRole(user, ROLES.MODERATOR, organizationId);
