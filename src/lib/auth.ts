@@ -487,6 +487,28 @@ export async function logoutFromAllDevices(userId: string): Promise<void> {
   }
 }
 
+/**
+ * Invalidate all sessions for a specific user (without affecting current session)
+ *
+ * Use this when a user's roles or permissions change to force re-authentication.
+ * Unlike logoutFromAllDevices, this doesn't destroy the current session,
+ * making it safe to call from admin endpoints.
+ *
+ * @param userId - The user whose sessions should be invalidated
+ * @returns Number of sessions invalidated
+ */
+export async function invalidateUserSessions(userId: string): Promise<number> {
+  try {
+    const result = await prisma.userSession.deleteMany({
+      where: { userId },
+    });
+    return result.count;
+  } catch (error) {
+    console.error('Invalidate user sessions error:', error);
+    return 0;
+  }
+}
+
 // Clean up expired sessions
 export async function cleanupExpiredSessions(): Promise<void> {
   try {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { isRateLimited, getCurrentUser } from '@/lib/auth';
+import { isRateLimited, getCurrentUser, invalidateUserSessions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { ROLES } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
@@ -346,6 +346,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       });
     });
 
+    // Invalidate user sessions to force re-authentication with new roles
+    await invalidateUserSessions(userId);
+
     // Audit log
     await logAuditEvent({
       action: 'ADMIN_USER_ROLES_UPDATED',
@@ -502,6 +505,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // Invalidate user sessions to force re-authentication with new role
+    await invalidateUserSessions(targetUserId);
+
     // Audit log
     await logAuditEvent({
       action: 'ADMIN_USER_ROLE_ASSIGNED',
@@ -639,6 +645,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         organizationId: parsedOrgId,
       },
     });
+
+    // Invalidate user sessions to force re-authentication without removed role
+    await invalidateUserSessions(targetUserId);
 
     // Audit log
     await logAuditEvent({
