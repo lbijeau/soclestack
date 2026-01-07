@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { isRateLimited, getCurrentUser, invalidateUserSessions } from '@/lib/auth';
+import {
+  isRateLimited,
+  getCurrentUser,
+  invalidateUserSessions,
+} from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { ROLES } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
