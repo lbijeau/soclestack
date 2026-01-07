@@ -471,22 +471,6 @@ export async function logoutUser(sessionToken?: string): Promise<void> {
   }
 }
 
-// Logout from all devices
-export async function logoutFromAllDevices(userId: string): Promise<void> {
-  try {
-    // Remove all user sessions from database
-    await prisma.userSession.deleteMany({
-      where: { userId },
-    });
-
-    // Clear current session
-    const session = await getSession();
-    session.destroy();
-  } catch (error) {
-    console.error('Logout from all devices error:', error);
-  }
-}
-
 /**
  * Invalidate all sessions for a specific user.
  *
@@ -505,6 +489,20 @@ export async function invalidateUserSessions(userId: string): Promise<number> {
   } catch (error) {
     console.error('Invalidate user sessions error:', error);
     return 0;
+  }
+}
+
+// Logout from all devices
+export async function logoutFromAllDevices(userId: string): Promise<void> {
+  try {
+    // Remove all user sessions from database
+    await invalidateUserSessions(userId);
+
+    // Clear current session
+    const session = await getSession();
+    session.destroy();
+  } catch (error) {
+    console.error('Logout from all devices error:', error);
   }
 }
 
