@@ -26,6 +26,26 @@ export interface UserWithRoles {
 let roleHierarchyCache: Map<string, Set<string>> | null = null;
 
 /**
+ * Cache performance metrics
+ */
+export interface CacheMetrics {
+  hits: number;
+  misses: number;
+  size: number;
+  lastWarmTimeMs: number | null;
+  lastWarmAt: Date | null;
+}
+
+// Cache metrics state
+const cacheMetrics: CacheMetrics = {
+  hits: 0,
+  misses: 0,
+  size: 0,
+  lastWarmTimeMs: null,
+  lastWarmAt: null,
+};
+
+/**
  * Maximum depth for role hierarchy traversal (prevents infinite loops from cycles)
  */
 const MAX_HIERARCHY_DEPTH = 10;
@@ -113,8 +133,12 @@ async function resolveHierarchy(roleNames: string[]): Promise<Set<string>> {
  */
 async function getRoleHierarchy(): Promise<Map<string, Set<string>>> {
   if (roleHierarchyCache) {
+    cacheMetrics.hits++;
     return roleHierarchyCache;
   }
+
+  cacheMetrics.misses++;
+  const startTime = Date.now();
 
   const roles = await prisma.role.findMany({
     select: {
@@ -165,6 +189,12 @@ async function getRoleHierarchy(): Promise<Map<string, Set<string>>> {
   }
 
   roleHierarchyCache = hierarchy;
+
+  // Update cache metrics
+  cacheMetrics.lastWarmTimeMs = Date.now() - startTime;
+  cacheMetrics.lastWarmAt = new Date();
+  cacheMetrics.size = hierarchy.size;
+
   return hierarchy;
 }
 
@@ -173,4 +203,28 @@ async function getRoleHierarchy(): Promise<Map<string, Set<string>>> {
  */
 export function clearRoleHierarchyCache(): void {
   roleHierarchyCache = null;
+  cacheMetrics.size = 0;
+}
+
+/**
+ * Get current cache metrics (read-only snapshot)
+ *
+ * Returns hit rate, miss rate, size, and timing information.
+ * Use for monitoring cache effectiveness.
+ */
+export function getCacheMetrics(): CacheMetrics & { hitRate: number } {
+  const total = cacheMetrics.hits + cacheMetrics.misses;
+  return {
+    ...cacheMetrics,
+    hitRate: total > 0 ? cacheMetrics.hits / total : 0,
+  };
+}
+
+/**
+ * Reset cache metrics counters (useful for testing or periodic reset)
+ */
+export function resetCacheMetrics(): void {
+  cacheMetrics.hits = 0;
+  cacheMetrics.misses = 0;
+  // Keep size, lastWarmTimeMs, lastWarmAt as they reflect current cache state
 }
