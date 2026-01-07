@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { isRateLimited, getCurrentUser } from '@/lib/auth';
+import {
+  isRateLimited,
+  getCurrentUser,
+  invalidateUserSessions,
+} from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { ROLES } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
@@ -346,6 +350,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       });
     });
 
+    // Invalidate user sessions to force re-authentication with new roles
+    const sessionsInvalidated = await invalidateUserSessions(userId);
+
     // Audit log
     await logAuditEvent({
       action: 'ADMIN_USER_ROLES_UPDATED',
@@ -358,6 +365,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         previousRoleNames,
         newRoleIds: roleIds,
         newRoleNames: roles.map((r) => r.name),
+        sessionsInvalidated,
       },
     });
 
@@ -502,6 +510,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // Invalidate user sessions to force re-authentication with new role
+    const sessionsInvalidated = await invalidateUserSessions(targetUserId);
+
     // Audit log
     await logAuditEvent({
       action: 'ADMIN_USER_ROLE_ASSIGNED',
@@ -512,6 +523,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         roleName,
         organizationId: assignment.organizationId,
         organizationName: assignment.organization?.name ?? null,
+        sessionsInvalidated,
       },
     });
 
@@ -640,6 +652,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // Invalidate user sessions to force re-authentication without removed role
+    const sessionsInvalidated = await invalidateUserSessions(targetUserId);
+
     // Audit log
     await logAuditEvent({
       action: 'ADMIN_USER_ROLE_REMOVED',
@@ -649,6 +664,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         targetUserId,
         roleName,
         organizationId: parsedOrgId,
+        sessionsInvalidated,
       },
     });
 

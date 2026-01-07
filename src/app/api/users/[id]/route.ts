@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth, invalidateUserSessions } from '@/lib/auth';
 import {
   updateUserRoleSchema,
   updateUserStatusSchema,
@@ -350,6 +350,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           },
         });
       });
+
+      // Invalidate user sessions to force re-authentication with new role
+      await invalidateUserSessions(id);
 
       return NextResponse.json({
         message: 'User role updated successfully',
