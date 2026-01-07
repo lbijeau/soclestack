@@ -32,6 +32,8 @@ describe('Cache Metrics', () => {
       expect(metrics.misses).toBe(0);
       expect(metrics.size).toBe(0);
       expect(metrics.hitRate).toBe(0);
+      expect(metrics.missRate).toBe(0);
+      expect(metrics.totalRequests).toBe(0);
       expect(metrics.lastWarmTimeMs).toBeNull();
       expect(metrics.lastWarmAt).toBeNull();
     });
@@ -155,7 +157,9 @@ describe('Cache Metrics', () => {
       const metrics = getCacheMetrics();
       expect(metrics.misses).toBe(1);
       expect(metrics.hits).toBe(4);
-      expect(metrics.hitRate).toBe(0.8);
+      expect(metrics.hitRate).toBeCloseTo(0.8);
+      expect(metrics.missRate).toBeCloseTo(0.2);
+      expect(metrics.totalRequests).toBe(5);
     });
   });
 

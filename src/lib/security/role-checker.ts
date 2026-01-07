@@ -212,11 +212,18 @@ export function clearRoleHierarchyCache(): void {
  * Returns hit rate, miss rate, size, and timing information.
  * Use for monitoring cache effectiveness.
  */
-export function getCacheMetrics(): CacheMetrics & { hitRate: number } {
+export function getCacheMetrics(): CacheMetrics & {
+  hitRate: number;
+  missRate: number;
+  totalRequests: number;
+} {
   const total = cacheMetrics.hits + cacheMetrics.misses;
+  const hitRate = total > 0 ? cacheMetrics.hits / total : 0;
   return {
     ...cacheMetrics,
-    hitRate: total > 0 ? cacheMetrics.hits / total : 0,
+    hitRate,
+    missRate: total > 0 ? 1 - hitRate : 0,
+    totalRequests: total,
   };
 }
 
