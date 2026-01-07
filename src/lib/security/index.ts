@@ -16,7 +16,10 @@ import { ROLE_NAMES } from '@/lib/constants/roles';
 import {
   hasRole,
   clearRoleHierarchyCache,
+  getCacheMetrics,
+  resetCacheMetrics,
   type UserWithRoles,
+  type CacheMetrics,
 } from './role-checker';
 import type { Permission } from './permissions';
 
@@ -136,8 +139,9 @@ export async function isGranted(
   return false;
 }
 
-// Re-export hasRole and clearRoleHierarchyCache for backward compatibility
-export { hasRole, clearRoleHierarchyCache };
+// Re-export hasRole, cache management, and metrics functions
+export { hasRole, clearRoleHierarchyCache, getCacheMetrics, resetCacheMetrics };
+export type { CacheMetrics };
 
 /**
  * Clear voter lookup cache (call if voters are dynamically modified)
