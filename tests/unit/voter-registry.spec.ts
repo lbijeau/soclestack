@@ -1,11 +1,23 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { isGranted, clearVoterCache } from '@/lib/security/index';
 import { voters } from '@/lib/security/voters';
+import * as roleChecker from '@/lib/security/role-checker';
+import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
+
+// Mock hasRole to work with our test user structure
+vi.mock('@/lib/security/role-checker', async () => {
+  const actual = await vi.importActual('@/lib/security/role-checker');
+  return {
+    ...actual,
+    hasRole: vi.fn(),
+  };
+});
 
 describe('Voter Registry Integration', () => {
   beforeEach(() => {
     // Clear voter cache between tests
     clearVoterCache();
+    vi.clearAllMocks();
   });
 
   describe('voters array', () => {
@@ -24,12 +36,50 @@ describe('Voter Registry Integration', () => {
   });
 
   describe('isGranted() with voters', () => {
-    const createUser = (id: string, orgId?: string, orgRole?: string) => ({
-      id,
-      organizationId: orgId,
-      organizationRole: orgRole,
-      userRoles: [],
-    });
+    const createUser = (id: string, orgId?: string, orgRole?: string) => {
+      const user = {
+        id,
+        organizationId: orgId,
+        organizationRole: orgRole,
+        userRoles: [],
+      };
+
+      // Set up hasRole mock based on organization role
+      vi.mocked(roleChecker.hasRole).mockImplementation(
+        async (_user, roleName, checkOrgId) => {
+          // Check if requesting role for this user's organization
+          if (checkOrgId !== orgId) {
+            return false;
+          }
+
+          // Map organizationRole to required roles
+          if (orgRole === 'OWNER') {
+            return (
+              roleName === ROLES.OWNER ||
+              roleName === ROLES.ADMIN ||
+              roleName === ROLES.MODERATOR ||
+              roleName === ROLES.USER
+            );
+          }
+          if (orgRole === 'ADMIN') {
+            return (
+              roleName === ROLES.ADMIN ||
+              roleName === ROLES.MODERATOR ||
+              roleName === ROLES.USER
+            );
+          }
+          if (orgRole === 'MODERATOR') {
+            return roleName === ROLES.MODERATOR || roleName === ROLES.USER;
+          }
+          if (orgRole === 'MEMBER') {
+            return roleName === ROLES.USER;
+          }
+          return false;
+        }
+      );
+
+      return user;
+    };
 
     describe('organization permissions (via OrganizationVoter)', () => {
       it('should grant organization.view to org member', async () => {

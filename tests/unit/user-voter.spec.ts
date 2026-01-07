@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UserVoter } from '@/lib/security/voters/user-voter';
 import { VoteResult } from '@/lib/security/voter';
-import * as security from '@/lib/security/index';
+import * as roleChecker from '@/lib/security/role-checker';
 
-// Mock the hasRole function
-vi.mock('@/lib/security/index', async () => {
-  const actual = await vi.importActual('@/lib/security/index');
+// Mock the hasRole function from role-checker (where UserVoter imports it)
+vi.mock('@/lib/security/role-checker', async () => {
+  const actual = await vi.importActual('@/lib/security/role-checker');
   return {
     ...actual,
     hasRole: vi.fn(),
@@ -29,7 +29,7 @@ describe('UserVoter', () => {
     };
 
     // Set up hasRole mock based on role
-    vi.mocked(security.hasRole).mockImplementation(async (_user, roleName) => {
+    vi.mocked(roleChecker.hasRole).mockImplementation(async (_user, roleName) => {
       if (mockRole === 'ADMIN') {
         return (
           roleName === 'ROLE_ADMIN' ||

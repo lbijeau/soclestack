@@ -6,6 +6,7 @@ import { GET, PUT } from '@/app/api/admin/users/[id]/roles/route';
 vi.mock('@/lib/auth', () => ({
   getCurrentUser: vi.fn(),
   isRateLimited: vi.fn(),
+  invalidateUserSessions: vi.fn().mockResolvedValue(0),
 }));
 
 vi.mock('@/lib/db', () => ({
