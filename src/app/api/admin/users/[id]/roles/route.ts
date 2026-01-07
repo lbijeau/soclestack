@@ -9,6 +9,7 @@ import { prisma } from '@/lib/db';
 import { ROLES } from '@/lib/security/index';
 import { logAuditEvent } from '@/lib/audit';
 import { requireAdmin } from '@/lib/api-utils';
+import { checkRoleRemovalSafeguards } from '@/lib/security/role-safeguards';
 
 export const runtime = 'nodejs';
 
@@ -641,6 +642,39 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
           },
         },
         { status: 404 }
+      );
+    }
+
+    // Self-protection: prevent admins from removing their own admin role
+    if (roleName === ROLES.ADMIN && targetUserId === user.id) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: 'Cannot remove your own admin role',
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check role removal safeguards (last admin protection)
+    const safeguardCheck = await checkRoleRemovalSafeguards(
+      targetUserId,
+      roleName,
+      parsedOrgId,
+      user.id
+    );
+
+    if (!safeguardCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: safeguardCheck.reason,
+          },
+        },
+        { status: 400 }
       );
     }
 

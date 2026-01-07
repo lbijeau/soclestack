@@ -5,6 +5,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { headers } from 'next/headers';
 import { requireAdmin } from '@/lib/api-utils';
 import { ROLES } from '@/lib/security/index';
+import { checkLastOrgAdmin } from '@/lib/security/role-safeguards';
 
 export const runtime = 'nodejs';
 
@@ -70,6 +71,26 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
             type: 'VALIDATION_ERROR',
             message:
               'Cannot remove organization owner. Transfer ownership first.',
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check last org admin safeguard
+    const safeguardCheck = await checkLastOrgAdmin(
+      userId,
+      id,
+      userRole.role.name,
+      user.id
+    );
+
+    if (!safeguardCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            type: 'VALIDATION_ERROR',
+            message: safeguardCheck.reason,
           },
         },
         { status: 400 }
