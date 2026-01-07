@@ -63,11 +63,16 @@ describe('getCurrentUser', () => {
     const user = await getCurrentUser();
 
     // Verify the Prisma query includes the correct relations
+    // Note: userWithRolesInclude includes additional fields for full UserRole data
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 'user-123', isActive: true },
       include: {
         userRoles: {
           select: {
+            id: true,
+            createdAt: true,
+            userId: true,
+            roleId: true,
             organizationId: true,
             role: {
               select: {

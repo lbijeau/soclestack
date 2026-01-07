@@ -1,11 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { isGranted, clearVoterCache } from '@/lib/security/index';
 import { voters } from '@/lib/security/voters';
+import { createMockUserWithRoles } from '../utils/voter-mock-helpers';
+
+// Mock hasRole to work with our test user structure
+vi.mock('@/lib/security/role-checker', async () => {
+  const actual = await vi.importActual('@/lib/security/role-checker');
+  return {
+    ...actual,
+    hasRole: vi.fn(),
+  };
+});
 
 describe('Voter Registry Integration', () => {
   beforeEach(() => {
     // Clear voter cache between tests
     clearVoterCache();
+    vi.clearAllMocks();
   });
 
   describe('voters array', () => {
@@ -24,12 +35,12 @@ describe('Voter Registry Integration', () => {
   });
 
   describe('isGranted() with voters', () => {
-    const createUser = (id: string, orgId?: string, orgRole?: string) => ({
-      id,
-      organizationId: orgId,
-      organizationRole: orgRole,
-      userRoles: [],
-    });
+    const createUser = (id: string, orgId?: string, orgRole?: string) =>
+      createMockUserWithRoles(
+        id,
+        orgId,
+        orgRole as 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER' | undefined
+      );
 
     describe('organization permissions (via OrganizationVoter)', () => {
       it('should grant organization.view to org member', async () => {

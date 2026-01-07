@@ -1,6 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OrganizationVoter } from '@/lib/security/voters/organization-voter';
 import { VoteResult } from '@/lib/security/voter';
+import { createMockUserWithRoles } from '../utils/voter-mock-helpers';
+
+// Mock hasRole from role-checker (where OrganizationVoter imports it)
+vi.mock('@/lib/security/role-checker', async () => {
+  const actual = await vi.importActual('@/lib/security/role-checker');
+  return {
+    ...actual,
+    hasRole: vi.fn(),
+  };
+});
 
 describe('OrganizationVoter', () => {
   const voter = new OrganizationVoter();
@@ -12,11 +22,10 @@ describe('OrganizationVoter', () => {
   const createUser = (
     orgId: string | null,
     orgRole: 'OWNER' | 'ADMIN' | 'MEMBER' | null
-  ) => ({
-    id: 'user-123',
-    organizationId: orgId,
-    organizationRole: orgRole,
-    userRoles: [],
+  ) => createMockUserWithRoles('user-123', orgId, orgRole);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   describe('supports()', () => {
