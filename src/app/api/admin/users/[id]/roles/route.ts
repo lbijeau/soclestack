@@ -351,7 +351,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     });
 
     // Invalidate user sessions to force re-authentication with new roles
-    await invalidateUserSessions(userId);
+    const sessionsInvalidated = await invalidateUserSessions(userId);
 
     // Audit log
     await logAuditEvent({
@@ -365,6 +365,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         previousRoleNames,
         newRoleIds: roleIds,
         newRoleNames: roles.map((r) => r.name),
+        sessionsInvalidated,
       },
     });
 
@@ -510,7 +511,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     });
 
     // Invalidate user sessions to force re-authentication with new role
-    await invalidateUserSessions(targetUserId);
+    const sessionsInvalidated = await invalidateUserSessions(targetUserId);
 
     // Audit log
     await logAuditEvent({
@@ -522,6 +523,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         roleName,
         organizationId: assignment.organizationId,
         organizationName: assignment.organization?.name ?? null,
+        sessionsInvalidated,
       },
     });
 
@@ -651,7 +653,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     });
 
     // Invalidate user sessions to force re-authentication without removed role
-    await invalidateUserSessions(targetUserId);
+    const sessionsInvalidated = await invalidateUserSessions(targetUserId);
 
     // Audit log
     await logAuditEvent({
@@ -662,6 +664,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         targetUserId,
         roleName,
         organizationId: parsedOrgId,
+        sessionsInvalidated,
       },
     });
 

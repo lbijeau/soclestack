@@ -488,11 +488,10 @@ export async function logoutFromAllDevices(userId: string): Promise<void> {
 }
 
 /**
- * Invalidate all sessions for a specific user (without affecting current session)
+ * Invalidate all sessions for a specific user.
  *
  * Use this when a user's roles or permissions change to force re-authentication.
- * Unlike logoutFromAllDevices, this doesn't destroy the current session,
- * making it safe to call from admin endpoints.
+ * This deletes ALL sessions for the target user, requiring them to log in again.
  *
  * @param userId - The user whose sessions should be invalidated
  * @returns Number of sessions invalidated
