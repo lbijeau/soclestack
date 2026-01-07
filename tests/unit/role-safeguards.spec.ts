@@ -10,8 +10,7 @@ import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
 vi.mock('@/lib/db', () => ({
   prisma: {
     userRole: {
-      count: vi.fn(),
-      findFirst: vi.fn(),
+      findMany: vi.fn(),
     },
     organization: {
       findUnique: vi.fn(),
@@ -34,14 +33,11 @@ describe('Role Safeguards', () => {
 
   describe('checkLastPlatformAdmin', () => {
     it('should allow removal when multiple platform admins exist', async () => {
-      vi.mocked(prisma.userRole.count).mockResolvedValue(3);
-      vi.mocked(prisma.userRole.findFirst).mockResolvedValue({
-        id: 'role-1',
-        userId: 'user-1',
-        roleId: 'admin-role',
-        organizationId: null,
-        createdAt: new Date(),
-      });
+      vi.mocked(prisma.userRole.findMany).mockResolvedValue([
+        { userId: 'user-1' },
+        { userId: 'user-2' },
+        { userId: 'user-3' },
+      ]);
 
       const result = await checkLastPlatformAdmin('user-1', 'actor-1');
 
@@ -51,14 +47,9 @@ describe('Role Safeguards', () => {
     });
 
     it('should block removal when only one platform admin exists', async () => {
-      vi.mocked(prisma.userRole.count).mockResolvedValue(1);
-      vi.mocked(prisma.userRole.findFirst).mockResolvedValue({
-        id: 'role-1',
-        userId: 'user-1',
-        roleId: 'admin-role',
-        organizationId: null,
-        createdAt: new Date(),
-      });
+      vi.mocked(prisma.userRole.findMany).mockResolvedValue([
+        { userId: 'user-1' },
+      ]);
 
       const result = await checkLastPlatformAdmin('user-1', 'actor-1');
 
@@ -76,8 +67,10 @@ describe('Role Safeguards', () => {
     });
 
     it('should allow removal when target is not a platform admin', async () => {
-      vi.mocked(prisma.userRole.count).mockResolvedValue(1);
-      vi.mocked(prisma.userRole.findFirst).mockResolvedValue(null);
+      // One admin exists, but it's not the target user
+      vi.mocked(prisma.userRole.findMany).mockResolvedValue([
+        { userId: 'other-user' },
+      ]);
 
       const result = await checkLastPlatformAdmin('user-1', 'actor-1');
 
@@ -88,14 +81,10 @@ describe('Role Safeguards', () => {
 
   describe('checkLastOrgAdmin', () => {
     it('should allow removal when multiple org admins exist', async () => {
-      vi.mocked(prisma.userRole.count).mockResolvedValue(2);
-      vi.mocked(prisma.userRole.findFirst).mockResolvedValue({
-        id: 'role-1',
-        userId: 'user-1',
-        roleId: 'admin-role',
-        organizationId: 'org-1',
-        createdAt: new Date(),
-      });
+      vi.mocked(prisma.userRole.findMany).mockResolvedValue([
+        { userId: 'user-1', role: { name: ROLES.ADMIN } },
+        { userId: 'user-2', role: { name: ROLES.ADMIN } },
+      ]);
 
       const result = await checkLastOrgAdmin('user-1', 'org-1', ROLES.ADMIN, 'actor-1');
 
@@ -104,14 +93,9 @@ describe('Role Safeguards', () => {
     });
 
     it('should block removal when only one org admin exists', async () => {
-      vi.mocked(prisma.userRole.count).mockResolvedValue(1);
-      vi.mocked(prisma.userRole.findFirst).mockResolvedValue({
-        id: 'role-1',
-        userId: 'user-1',
-        roleId: 'admin-role',
-        organizationId: 'org-1',
-        createdAt: new Date(),
-      });
+      vi.mocked(prisma.userRole.findMany).mockResolvedValue([
+        { userId: 'user-1', role: { name: ROLES.ADMIN } },
+      ]);
       vi.mocked(prisma.organization.findUnique).mockResolvedValue({
         id: 'org-1',
         name: 'Test Org',
@@ -140,18 +124,13 @@ describe('Role Safeguards', () => {
       const result = await checkLastOrgAdmin('user-1', 'org-1', ROLES.USER, 'actor-1');
 
       expect(result.allowed).toBe(true);
-      expect(prisma.userRole.count).not.toHaveBeenCalled();
+      expect(prisma.userRole.findMany).not.toHaveBeenCalled();
     });
 
     it('should check for ROLE_OWNER as admin-level', async () => {
-      vi.mocked(prisma.userRole.count).mockResolvedValue(1);
-      vi.mocked(prisma.userRole.findFirst).mockResolvedValue({
-        id: 'role-1',
-        userId: 'user-1',
-        roleId: 'owner-role',
-        organizationId: 'org-1',
-        createdAt: new Date(),
-      });
+      vi.mocked(prisma.userRole.findMany).mockResolvedValue([
+        { userId: 'user-1', role: { name: ROLES.OWNER } },
+      ]);
       vi.mocked(prisma.organization.findUnique).mockResolvedValue({
         id: 'org-1',
         name: 'Test Org',
@@ -165,18 +144,29 @@ describe('Role Safeguards', () => {
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('Cannot remove the last administrator');
     });
+
+    it('should allow removal when user has both ROLE_ADMIN and ROLE_OWNER', async () => {
+      // User has both admin roles - removing one still leaves one admin role
+      vi.mocked(prisma.userRole.findMany).mockResolvedValue([
+        { userId: 'user-1', role: { name: ROLES.ADMIN } },
+        { userId: 'user-1', role: { name: ROLES.OWNER } },
+      ]);
+
+      const result = await checkLastOrgAdmin('user-1', 'org-1', ROLES.ADMIN, 'actor-1');
+
+      // Should allow because there are 2 admin-level role assignments (count=2)
+      expect(result.allowed).toBe(true);
+      expect(result.reason).toBeUndefined();
+      expect(prisma.organization.findUnique).not.toHaveBeenCalled();
+    });
   });
 
   describe('checkRoleRemovalSafeguards', () => {
     it('should check platform admin for ROLE_ADMIN with null org', async () => {
-      vi.mocked(prisma.userRole.count).mockResolvedValue(2);
-      vi.mocked(prisma.userRole.findFirst).mockResolvedValue({
-        id: 'role-1',
-        userId: 'user-1',
-        roleId: 'admin-role',
-        organizationId: null,
-        createdAt: new Date(),
-      });
+      vi.mocked(prisma.userRole.findMany).mockResolvedValue([
+        { userId: 'user-1' },
+        { userId: 'user-2' },
+      ]);
 
       const result = await checkRoleRemovalSafeguards(
         'user-1',
@@ -186,7 +176,7 @@ describe('Role Safeguards', () => {
       );
 
       expect(result.allowed).toBe(true);
-      expect(prisma.userRole.count).toHaveBeenCalledWith(
+      expect(prisma.userRole.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             organizationId: null,
@@ -196,14 +186,10 @@ describe('Role Safeguards', () => {
     });
 
     it('should check org admin for ROLE_ADMIN with org context', async () => {
-      vi.mocked(prisma.userRole.count).mockResolvedValue(2);
-      vi.mocked(prisma.userRole.findFirst).mockResolvedValue({
-        id: 'role-1',
-        userId: 'user-1',
-        roleId: 'admin-role',
-        organizationId: 'org-1',
-        createdAt: new Date(),
-      });
+      vi.mocked(prisma.userRole.findMany).mockResolvedValue([
+        { userId: 'user-1', role: { name: ROLES.ADMIN } },
+        { userId: 'user-2', role: { name: ROLES.ADMIN } },
+      ]);
 
       const result = await checkRoleRemovalSafeguards(
         'user-1',
@@ -213,7 +199,7 @@ describe('Role Safeguards', () => {
       );
 
       expect(result.allowed).toBe(true);
-      expect(prisma.userRole.count).toHaveBeenCalledWith(
+      expect(prisma.userRole.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             organizationId: 'org-1',
@@ -231,7 +217,7 @@ describe('Role Safeguards', () => {
       );
 
       expect(result.allowed).toBe(true);
-      expect(prisma.userRole.count).not.toHaveBeenCalled();
+      expect(prisma.userRole.findMany).not.toHaveBeenCalled();
     });
   });
 });

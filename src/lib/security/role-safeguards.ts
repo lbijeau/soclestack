@@ -17,26 +17,25 @@ export interface SafeguardResult {
  * Check if removing ROLE_ADMIN from a user would leave no platform admins.
  *
  * Platform admins have ROLE_ADMIN with organizationId: null.
+ * Uses a single query to get all platform admins and check if target is one.
  */
 export async function checkLastPlatformAdmin(
   targetUserId: string,
   actorUserId: string
 ): Promise<SafeguardResult> {
-  const platformAdminCount = await prisma.userRole.count({
+  // Single query: get all platform admin user IDs
+  const platformAdmins = await prisma.userRole.findMany({
     where: {
       role: { name: ROLES.ADMIN },
       organizationId: null,
     },
+    select: { userId: true },
   });
 
-  // Check if target user is a platform admin
-  const targetIsPlatformAdmin = await prisma.userRole.findFirst({
-    where: {
-      userId: targetUserId,
-      role: { name: ROLES.ADMIN },
-      organizationId: null,
-    },
-  });
+  const platformAdminCount = platformAdmins.length;
+  const targetIsPlatformAdmin = platformAdmins.some(
+    (admin) => admin.userId === targetUserId
+  );
 
   if (targetIsPlatformAdmin && platformAdminCount <= 1) {
     // Log the blocked attempt
@@ -65,6 +64,7 @@ export async function checkLastPlatformAdmin(
  * Check if removing an admin role from a user would leave no admins in an organization.
  *
  * Considers both ROLE_ADMIN and ROLE_OWNER as admin-level roles for an org.
+ * Uses a single query to get admin roles and check if target has the specific role.
  */
 export async function checkLastOrgAdmin(
   targetUserId: string,
@@ -77,30 +77,31 @@ export async function checkLastOrgAdmin(
     return { allowed: true };
   }
 
-  // Count users with admin-level roles in this org
-  const orgAdminCount = await prisma.userRole.count({
+  // Single query: get all admin-level role assignments in this org
+  const orgAdminRoles = await prisma.userRole.findMany({
     where: {
       organizationId,
       role: {
         name: { in: [ROLES.ADMIN, ROLES.OWNER] },
       },
     },
-  });
-
-  // Check if target user has this role in this org
-  const targetHasRole = await prisma.userRole.findFirst({
-    where: {
-      userId: targetUserId,
-      organizationId,
-      role: { name: roleName },
+    select: {
+      userId: true,
+      role: { select: { name: true } },
     },
   });
 
+  const orgAdminCount = orgAdminRoles.length;
+  const targetHasRole = orgAdminRoles.some(
+    (assignment) =>
+      assignment.userId === targetUserId && assignment.role.name === roleName
+  );
+
   if (targetHasRole && orgAdminCount <= 1) {
-    // Get org name for better error message
+    // Only fetch org name when we need it for the error message
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { name: true, slug: true },
+      select: { name: true },
     });
 
     // Log the blocked attempt
