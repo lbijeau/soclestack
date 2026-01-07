@@ -174,7 +174,7 @@ export async function GET(req: NextRequest) {
       const adminOrgs = user.userRoles.filter(
         (ur) =>
           ur.organizationId &&
-          (ur.role.name === 'ROLE_ADMIN' || ur.role.name === 'ROLE_OWNER')
+          (ur.role.name === ROLES.ADMIN || ur.role.name === ROLES.OWNER)
       );
 
       if (adminOrgs.length === 0) {

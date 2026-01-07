@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { generateSlug } from '@/lib/organization';
 import { AuthError } from '@/types/auth';
+import { ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -78,11 +79,11 @@ export async function POST(req: NextRequest) {
 
       // Get OWNER role
       const ownerRole = await tx.role.findUnique({
-        where: { name: 'ROLE_OWNER' },
+        where: { name: ROLES.OWNER },
       });
 
       if (!ownerRole) {
-        throw new Error('ROLE_OWNER not found in database');
+        throw new Error(`${ROLES.OWNER} not found in database`);
       }
 
       // Create UserRole record

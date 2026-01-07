@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { getCurrentOrganizationId } from '@/lib/organization';
-import { hasRole, userWithRolesInclude } from '@/lib/security/index';
+import { hasRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
 import { AuthError } from '@/types/auth';
 
 export const runtime = 'nodejs';
@@ -61,7 +61,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     // Check if user has ADMIN or higher role
-    if (!(await hasRole(user, 'ROLE_ADMIN', organizationId))) {
+    if (!(await hasRole(user, ROLES.ADMIN, organizationId))) {
       return NextResponse.json(
         {
           error: {

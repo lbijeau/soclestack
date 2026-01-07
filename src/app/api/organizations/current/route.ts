@@ -96,7 +96,7 @@ export async function GET() {
         name: organization.name,
         slug: organization.slug,
         memberCount,
-        role: userRole?.role.name || 'ROLE_USER',
+        role: userRole?.role.name || ROLES.USER,
         createdAt: organization.createdAt,
       },
     });
@@ -220,7 +220,7 @@ export async function PATCH(req: NextRequest) {
         id: updatedOrg.id,
         name: updatedOrg.name,
         slug: updatedOrg.slug,
-        role: userRole?.role.name || 'ROLE_USER',
+        role: userRole?.role.name || ROLES.USER,
       },
     });
   } catch (error) {

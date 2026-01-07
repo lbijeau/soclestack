@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { X, Loader2, Shield, Info } from 'lucide-react';
 import { apiPut } from '@/lib/api-client';
+import { ROLES } from '@/lib/security/client';
 
 interface Role {
   id: string;
@@ -232,7 +233,7 @@ export function UserRoleSelect({
   if (!isOpen) return null;
 
   // Find admin role for self-protection
-  const adminRole = allRoles.find((r) => r.name === 'ROLE_ADMIN');
+  const adminRole = allRoles.find((r) => r.name === ROLES.ADMIN);
   const isRemovingOwnAdminRole =
     isEditingSelf &&
     adminRole &&
@@ -308,7 +309,7 @@ export function UserRoleSelect({
                       inheritedRoles
                     );
                     const isSelected = directRoleIds.has(role.id);
-                    const isAdminRole = role.name === 'ROLE_ADMIN';
+                    const isAdminRole = role.name === ROLES.ADMIN;
 
                     // Disable admin checkbox if editing self and would remove admin role
                     const isDisabledByProtection =

@@ -11,6 +11,7 @@ import {
   requestPasswordResetSchema,
   resetPasswordSchema,
 } from '@/lib/validations';
+import { ROLES } from '@/lib/security/index';
 import { authenticateUser, createUserSession } from '@/lib/auth';
 import { getRateLimiter } from '@/lib/rate-limiter';
 import {
@@ -75,12 +76,12 @@ function getUserRole(user: any): PlatformRole {
     const roleNames = user.userRoles.map(
       (ur: { role: { name: string } }) => ur.role.name
     );
-    if (roleNames.includes('ROLE_ADMIN')) return 'ROLE_ADMIN';
-    if (roleNames.includes('ROLE_MODERATOR')) return 'ROLE_MODERATOR';
-    return 'ROLE_USER';
+    if (roleNames.includes(ROLES.ADMIN)) return ROLES.ADMIN;
+    if (roleNames.includes(ROLES.MODERATOR)) return ROLES.MODERATOR;
+    return ROLES.USER;
   }
   // Default to USER
-  return 'ROLE_USER';
+  return ROLES.USER;
 }
 
 // ============================================================================
@@ -495,10 +496,10 @@ export async function register(
 
       // Get ROLE_OWNER
       const ownerRole = await tx.role.findUnique({
-        where: { name: 'ROLE_OWNER' },
+        where: { name: ROLES.OWNER },
       });
       if (!ownerRole) {
-        throw new Error('ROLE_OWNER not found');
+        throw new Error(`${ROLES.OWNER} not found`);
       }
 
       // Create UserRole with ROLE_OWNER for this organization
@@ -879,7 +880,7 @@ export async function disable2FA(
   }
 
   // Admins cannot disable their own 2FA
-  if (getUserRole(user) === 'ROLE_ADMIN') {
+  if (getUserRole(user) === ROLES.ADMIN) {
     throw new AuthorizationError('Admins cannot disable 2FA');
   }
 

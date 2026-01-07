@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     // Organization owners must transfer ownership first
     const hasOwnerRole = user.userRoles.some(
-      (ur) => ur.organizationId !== null && ur.role.name === 'ROLE_OWNER'
+      (ur) => ur.organizationId !== null && ur.role.name === ROLES.OWNER
     );
 
     if (hasOwnerRole) {

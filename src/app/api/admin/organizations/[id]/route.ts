@@ -4,17 +4,17 @@ import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
 import { headers } from 'next/headers';
 import { requireAdmin } from '@/lib/api-utils';
-import { isGranted, PERMISSIONS } from '@/lib/security/index';
+import { isGranted, PERMISSIONS, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
 // Role priority for sorting: ROLE_OWNER first, then ROLE_ADMIN, then ROLE_MODERATOR, then ROLE_USER
 const ROLE_PRIORITY: Record<string, number> = {
-  ROLE_OWNER: 0,
-  ROLE_ADMIN: 1,
-  ROLE_MODERATOR: 2,
-  ROLE_EDITOR: 3,
-  ROLE_USER: 4,
+  [ROLES.OWNER]: 0,
+  [ROLES.ADMIN]: 1,
+  [ROLES.MODERATOR]: 2,
+  [ROLES.EDITOR]: 3,
+  [ROLES.USER]: 4,
 };
 
 interface RouteParams {
@@ -152,7 +152,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         userRoles: {
           where: {
             role: {
-              name: 'ROLE_OWNER',
+              name: ROLES.OWNER,
             },
           },
           include: {
@@ -254,11 +254,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     // Get ROLE_ADMIN id for demotion
     const adminRole = await prisma.role.findUnique({
-      where: { name: 'ROLE_ADMIN' },
+      where: { name: ROLES.ADMIN },
     });
 
     if (!adminRole) {
-      throw new Error('ROLE_ADMIN not found in database');
+      throw new Error(`${ROLES.ADMIN} not found in database`);
     }
 
     // Transfer ownership in a transaction

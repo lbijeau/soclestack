@@ -61,7 +61,7 @@ export default async function AdminPage() {
     prisma.user.count({ where: { isActive: true } }),
     prisma.user.count({ where: { lockedUntil: { gt: now } } }),
     prisma.user.count({
-      where: { userRoles: { some: { role: { name: 'ROLE_ADMIN' } } } },
+      where: { userRoles: { some: { role: { name: ROLES.ADMIN } } } },
     }),
     prisma.user.count({ where: { twoFactorEnabled: true } }),
     prisma.auditLog.count({

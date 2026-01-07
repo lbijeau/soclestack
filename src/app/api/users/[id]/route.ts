@@ -6,7 +6,7 @@ import {
 } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
-import { getHighestRole, userWithRolesInclude } from '@/lib/security/index';
+import { getHighestRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -108,10 +108,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     // Check if auth user has MODERATOR+ role in any organization
     const hasModerator = authUserFull.userRoles.some((ur) =>
       [
-        'ROLE_MODERATOR',
-        'ROLE_ADMIN',
-        'ROLE_OWNER',
-        'ROLE_PLATFORM_ADMIN',
+        ROLES.MODERATOR,
+        ROLES.ADMIN,
+        ROLES.OWNER,
+        'ROLE_PLATFORM_ADMIN', // Keep as string - not in standard ROLES
       ].includes(ur.role.name)
     );
 
@@ -131,10 +131,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const authOrgIds = authUserFull.userRoles
       .filter((ur) =>
         [
-          'ROLE_MODERATOR',
-          'ROLE_ADMIN',
-          'ROLE_OWNER',
-          'ROLE_PLATFORM_ADMIN',
+          ROLES.MODERATOR,
+          ROLES.ADMIN,
+          ROLES.OWNER,
+          'ROLE_PLATFORM_ADMIN', // Keep as string - not in standard ROLES
         ].includes(ur.role.name)
       )
       .map((ur) => ur.organizationId)
@@ -144,7 +144,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const hasPlatformAccess = authUserFull.userRoles.some(
       (ur) =>
         ur.organizationId === null &&
-        ['ROLE_ADMIN', 'ROLE_PLATFORM_ADMIN'].includes(ur.role.name)
+        [ROLES.ADMIN, 'ROLE_PLATFORM_ADMIN'].includes(ur.role.name)
     );
 
     const targetUserOrgIds = user.userRoles
@@ -254,7 +254,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if ('role' in body) {
       // Only admins can change roles
       const hasAdmin = authUser.userRoles.some((ur) =>
-        ['ROLE_ADMIN', 'ROLE_OWNER', 'ROLE_PLATFORM_ADMIN'].includes(
+        [ROLES.ADMIN, ROLES.OWNER, 'ROLE_PLATFORM_ADMIN'].includes(
           ur.role.name
         )
       );
@@ -361,7 +361,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if ('isActive' in body) {
       // Only admins can change user status
       const hasAdmin = authUser.userRoles.some((ur) =>
-        ['ROLE_ADMIN', 'ROLE_OWNER', 'ROLE_PLATFORM_ADMIN'].includes(
+        [ROLES.ADMIN, ROLES.OWNER, 'ROLE_PLATFORM_ADMIN'].includes(
           ur.role.name
         )
       );
@@ -513,7 +513,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     // Only admins can delete users
     const hasAdmin = authUser.userRoles.some((ur) =>
-      ['ROLE_ADMIN', 'ROLE_OWNER', 'ROLE_PLATFORM_ADMIN'].includes(ur.role.name)
+      [ROLES.ADMIN, ROLES.OWNER, 'ROLE_PLATFORM_ADMIN'].includes(ur.role.name)
     );
 
     if (!hasAdmin) {

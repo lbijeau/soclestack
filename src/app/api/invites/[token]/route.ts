@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
+import { ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -71,7 +72,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       invite: {
         email: invite.email,
-        role: role?.name || 'ROLE_USER',
+        role: role?.name || ROLES.USER,
         expiresAt: invite.expiresAt,
         organization: invite.organization,
         invitedBy: inviterName,

@@ -15,6 +15,7 @@ import { User, ApiKeyPermission } from '@prisma/client';
 import {
   userWithRolesInclude,
   getHighestRole,
+  ROLES,
   type UserWithRoles,
   type UserWithComputedRole,
 } from './security/index';
@@ -95,7 +96,7 @@ interface EdgeMockResponse {
 export const EMPTY_SESSION: SessionData = {
   userId: '',
   email: '',
-  role: 'ROLE_USER',
+  role: ROLES.USER,
   isLoggedIn: false,
 };
 

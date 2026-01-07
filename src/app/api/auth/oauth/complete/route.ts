@@ -7,6 +7,7 @@ import { generateSlug } from '@/lib/organization';
 import { verifyPendingOAuthToken } from '@/lib/auth/oauth';
 import { z } from 'zod';
 import { generateCsrfToken, CSRF_CONFIG } from '@/lib/csrf';
+import { ROLES } from '@/lib/security/index';
 
 const completeOAuthSchema = z
   .object({
@@ -175,11 +176,11 @@ export async function POST(req: NextRequest) {
 
         // Find ROLE_OWNER role
         const ownerRole = await tx.role.findUnique({
-          where: { name: 'ROLE_OWNER' },
+          where: { name: ROLES.OWNER },
         });
 
         if (!ownerRole) {
-          throw new Error('ROLE_OWNER not found in database');
+          throw new Error(`${ROLES.OWNER} not found in database`);
         }
 
         // Create UserRole linking user to organization as owner

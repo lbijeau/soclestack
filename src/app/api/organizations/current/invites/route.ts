@@ -9,13 +9,13 @@ import {
 } from '@/lib/organization';
 import { AuthError } from '@/types/auth';
 import { sendEmail, organizationInviteTemplate } from '@/lib/email';
-import { hasRole, userWithRolesInclude } from '@/lib/security/index';
+import { hasRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
 const createInviteSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  roleName: z.string().startsWith('ROLE_').default('ROLE_USER'),
+  roleName: z.string().startsWith('ROLE_').default(ROLES.USER),
 });
 
 // GET /api/organizations/current/invites - List pending invites (ADMIN+)
@@ -67,7 +67,7 @@ export async function GET() {
     }
 
     // Check if user has ADMIN or higher role in this organization
-    if (!(await hasRole(user, 'ROLE_ADMIN', organizationId))) {
+    if (!(await hasRole(user, ROLES.ADMIN, organizationId))) {
       return NextResponse.json(
         {
           error: {
@@ -111,7 +111,7 @@ export async function GET() {
     // Transform roleId to role names for response
     const transformedInvites = invites.map((inv) => ({
       ...inv,
-      role: roleMap.get(inv.roleId) || 'ROLE_USER',
+      role: roleMap.get(inv.roleId) || ROLES.USER,
       roleId: undefined, // Remove roleId from response
     }));
 
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user has ADMIN or higher role
-    if (!(await hasRole(user, 'ROLE_ADMIN', organizationId))) {
+    if (!(await hasRole(user, ROLES.ADMIN, organizationId))) {
       return NextResponse.json(
         {
           error: {
@@ -256,7 +256,7 @@ export async function POST(req: NextRequest) {
       // User has this role or higher, which means they can invite
       // But we need to prevent inviting with same or higher role
       // For now, simplified: only allow inviting ROLE_USER and ROLE_MODERATOR if you're ADMIN+
-      if (roleName === 'ROLE_ADMIN' || roleName === 'ROLE_OWNER') {
+      if (roleName === ROLES.ADMIN || roleName === ROLES.OWNER) {
         return NextResponse.json(
           {
             error: {

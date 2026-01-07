@@ -4,7 +4,7 @@ import { userListParamsSchema } from '@/lib/validations';
 import { prisma } from '@/lib/db';
 import { AuthError } from '@/types/auth';
 import { Prisma } from '@prisma/client';
-import { getHighestRole, userWithRolesInclude } from '@/lib/security/index';
+import { getHighestRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
 
@@ -51,10 +51,10 @@ export async function GET(req: NextRequest) {
     // Check authorization - user must have MODERATOR+ role in any organization or platform-wide
     const hasModerator = user.userRoles.some((ur) =>
       [
-        'ROLE_MODERATOR',
-        'ROLE_ADMIN',
-        'ROLE_OWNER',
-        'ROLE_PLATFORM_ADMIN',
+        ROLES.MODERATOR,
+        ROLES.ADMIN,
+        ROLES.OWNER,
+        'ROLE_PLATFORM_ADMIN', // Keep as string - not in standard ROLES
       ].includes(ur.role.name)
     );
 
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
 
     // Check if user is platform admin (has ADMIN role with no organization)
     const isPlatformAdmin = user.userRoles.some(
-      (ur) => ur.organizationId === null && ur.role.name === 'ROLE_ADMIN'
+      (ur) => ur.organizationId === null && ur.role.name === ROLES.ADMIN
     );
 
     // If not platform admin, get organization IDs where user is admin
@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
           .filter(
             (ur) =>
               ur.organizationId !== null &&
-              (ur.role.name === 'ROLE_ADMIN' || ur.role.name === 'ROLE_OWNER')
+              (ur.role.name === ROLES.ADMIN || ur.role.name === ROLES.OWNER)
           )
           .map((ur) => ur.organizationId as string);
 

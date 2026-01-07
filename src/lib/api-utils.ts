@@ -147,7 +147,7 @@ export async function requireAdmin(
 
   // Direct role check pattern (with user argument)
   if (!user) return false;
-  return hasRole(user, 'ROLE_ADMIN', organizationId);
+  return hasRole(user, ROLES.ADMIN, organizationId);
 }
 
 /**
@@ -162,5 +162,5 @@ export async function requireModerator(
   organizationId?: string | null
 ): Promise<boolean> {
   if (!user) return false;
-  return hasRole(user, 'ROLE_MODERATOR', organizationId);
+  return hasRole(user, ROLES.MODERATOR, organizationId);
 }
