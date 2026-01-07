@@ -1,6 +1,10 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="128" y="360" width="256" height="64" rx="8" fill="#1e3a8a"/>
-  <rect x="160" y="280" width="192" height="64" rx="8" fill="#2563eb"/>
-  <rect x="192" y="200" width="128" height="64" rx="8" fill="#60a5fa"/>
-  <circle cx="256" cy="140" r="32" fill="#93c5fd"/>
+  <!-- Bottom pill - darkest blue -->
+  <rect x="128" y="360" width="256" height="72" rx="36" fill="#1e3a8a"/>
+  <!-- Middle pill - medium blue -->
+  <rect x="152" y="272" width="208" height="72" rx="36" fill="#2563eb"/>
+  <!-- Upper pill - light blue -->
+  <rect x="176" y="184" width="160" height="72" rx="36" fill="#60a5fa"/>
+  <!-- Top circle - lightest blue -->
+  <circle cx="256" cy="120" r="48" fill="#93c5fd"/>
 </svg>
