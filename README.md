@@ -64,22 +64,22 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 > **Warning**: The following issues must be addressed before production deployment.
 
-### Critical Security Issues
+### Security Status
 
 | Issue | Status | Description |
 |-------|--------|-------------|
-| CSP Policy | Needs Fix | `unsafe-eval` and `unsafe-inline` defeat XSS protection |
-| CSRF Protection | Incomplete | Tokens generated but never validated |
-| Rate Limiting | In-Memory | Lost on restart; doesn't scale horizontally |
-| Fallback Secrets | Insecure | Hardcoded fallbacks if env vars missing |
+| CSP Policy | Partial | `unsafe-inline` for styles (scripts use nonces in prod) |
+| CSRF Protection | ✅ Fixed | Double-submit cookie pattern with middleware validation |
+| Rate Limiting | Optional Redis | In-memory default; set `UPSTASH_REDIS_REST_URL` for Redis |
+| Secrets Validation | ✅ Fixed | Zod validates all secrets, no hardcoded fallbacks |
 
 ### Production Checklist
 
-- [ ] All critical security issues resolved
+- [ ] CSP `unsafe-inline` for styles addressed (nonce styles or external CSS)
 - [ ] PostgreSQL configured and migrated
-- [ ] Redis configured for rate limiting
-- [ ] Email service configured and tested
-- [ ] All environment variables set (no fallbacks)
+- [ ] Redis configured for rate limiting (`UPSTASH_REDIS_REST_URL`)
+- [ ] Email service configured (Resend)
+- [ ] All environment variables set (validated by Zod on startup)
 - [ ] HTTPS enabled
 - [ ] Security headers reviewed
 
