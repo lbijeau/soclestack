@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OrganizationVoter } from '@/lib/security/voters/organization-voter';
 import { VoteResult } from '@/lib/security/voter';
-import * as roleChecker from '@/lib/security/role-checker';
-import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
+import { createMockUserWithRoles } from '../utils/voter-mock-helpers';
 
 // Mock hasRole from role-checker (where OrganizationVoter imports it)
 vi.mock('@/lib/security/role-checker', async () => {
@@ -23,52 +22,7 @@ describe('OrganizationVoter', () => {
   const createUser = (
     orgId: string | null,
     orgRole: 'OWNER' | 'ADMIN' | 'MEMBER' | null
-  ) => {
-    const user = {
-      id: 'user-123',
-      organizationId: orgId,
-      organizationRole: orgRole,
-      userRoles: [],
-    };
-
-    // Set up hasRole mock based on organization role
-    vi.mocked(roleChecker.hasRole).mockImplementation(
-      async (_user, roleName, checkOrgId) => {
-        // Platform admin check (null org context) - not in scope for these tests
-        if (checkOrgId === null) {
-          return false;
-        }
-
-        // Must be for the same org as the user belongs to
-        if (checkOrgId !== orgId) {
-          return false;
-        }
-
-        // Map organizationRole to required roles
-        if (orgRole === 'OWNER') {
-          return (
-            roleName === ROLES.OWNER ||
-            roleName === ROLES.ADMIN ||
-            roleName === ROLES.MODERATOR ||
-            roleName === ROLES.USER
-          );
-        }
-        if (orgRole === 'ADMIN') {
-          return (
-            roleName === ROLES.ADMIN ||
-            roleName === ROLES.MODERATOR ||
-            roleName === ROLES.USER
-          );
-        }
-        if (orgRole === 'MEMBER') {
-          return roleName === ROLES.USER;
-        }
-        return false;
-      }
-    );
-
-    return user;
-  };
+  ) => createMockUserWithRoles('user-123', orgId, orgRole);
 
   beforeEach(() => {
     vi.clearAllMocks();
