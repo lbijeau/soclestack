@@ -19,6 +19,7 @@ import {
   UserPlus,
   LogIn,
   Building2,
+  Mail,
 } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -229,6 +230,23 @@ export default async function AdminPage() {
                         </div>
                         <div className="text-sm text-gray-500">
                           View security events
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/admin/emails">
+                <Card className="cursor-pointer transition-shadow hover:shadow-md">
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <Mail className="h-8 w-8 text-blue-600" />
+                      <div className="ml-4">
+                        <div className="font-medium text-gray-900">
+                          Email Logs
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          View sent emails
                         </div>
                       </div>
                     </div>
