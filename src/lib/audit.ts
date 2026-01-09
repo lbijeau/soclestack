@@ -57,7 +57,9 @@ export type AuditAction =
   | 'ADMIN_ROLE_CREATED'
   | 'ADMIN_ROLE_UPDATED'
   | 'ADMIN_ROLE_DELETED'
-  | 'ADMIN_USER_ROLES_UPDATED';
+  | 'ADMIN_USER_ROLES_UPDATED'
+  // Admin Email Management
+  | 'ADMIN_EMAIL_RESEND';
 
 export type AuditCategory = 'authentication' | 'security' | 'admin';
 
