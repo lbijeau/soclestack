@@ -123,14 +123,13 @@ async function attemptSend(
 /**
  * Execute email send with retry logic.
  * Shared implementation for sendEmail and resendEmail.
- * Uses a transaction to ensure atomicity of status updates.
  */
 async function executeWithRetry(
   emailLogId: string,
   to: string,
   subject: string,
   html: string,
-  type: string
+  type: EmailType
 ): Promise<SendEmailResult> {
   let lastError: string | undefined;
 
@@ -198,19 +197,17 @@ export async function sendEmail(
 ): Promise<SendEmailResult> {
   const { to, subject, html, type, userId } = options;
 
-  // Create email log entry with PENDING status using transaction
-  const emailLog = await prisma.$transaction(async (tx) => {
-    return tx.emailLog.create({
-      data: {
-        to,
-        subject,
-        htmlBody: html,
-        type,
-        userId: userId || null,
-        status: 'PENDING',
-        attempts: 0,
-      },
-    });
+  // Create email log entry with PENDING status
+  const emailLog = await prisma.emailLog.create({
+    data: {
+      to,
+      subject,
+      htmlBody: html,
+      type,
+      userId: userId || null,
+      status: 'PENDING',
+      attempts: 0,
+    },
   });
 
   return executeWithRetry(emailLog.id, to, subject, html, type);
@@ -218,6 +215,7 @@ export async function sendEmail(
 
 /**
  * Resend a previously failed email.
+ * Only FAILED or BOUNCED emails can be resent.
  * Resets status to PENDING and attempts to 0, then runs through send flow.
  */
 export async function resendEmail(
@@ -231,18 +229,24 @@ export async function resendEmail(
     return { success: false, error: 'Email log not found' };
   }
 
-  // Reset status and attempts in transaction
-  await prisma.$transaction(async (tx) => {
-    await tx.emailLog.update({
-      where: { id: emailLogId },
-      data: {
-        status: 'PENDING',
-        attempts: 0,
-        lastError: null,
-        sentAt: null,
-        providerId: null,
-      },
-    });
+  // Only allow resending failed or bounced emails
+  if (emailLog.status !== 'FAILED' && emailLog.status !== 'BOUNCED') {
+    return {
+      success: false,
+      error: `Cannot resend email with status ${emailLog.status}`,
+    };
+  }
+
+  // Reset status and attempts
+  await prisma.emailLog.update({
+    where: { id: emailLogId },
+    data: {
+      status: 'PENDING',
+      attempts: 0,
+      lastError: null,
+      sentAt: null,
+      providerId: null,
+    },
   });
 
   return executeWithRetry(
@@ -250,7 +254,7 @@ export async function resendEmail(
     emailLog.to,
     emailLog.subject,
     emailLog.htmlBody,
-    emailLog.type
+    emailLog.type as EmailType
   );
 }
 

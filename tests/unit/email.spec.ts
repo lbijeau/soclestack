@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock prisma with $transaction support
+// Mock prisma
 vi.mock('@/lib/db', () => ({
   prisma: {
     emailLog: {
@@ -8,14 +8,6 @@ vi.mock('@/lib/db', () => ({
       update: vi.fn(),
       findUnique: vi.fn(),
     },
-    $transaction: vi.fn((callback) =>
-      callback({
-        emailLog: {
-          create: vi.fn(),
-          update: vi.fn(),
-        },
-      })
-    ),
   },
 }));
 
@@ -105,8 +97,6 @@ describe('Email Service', () => {
     findUnique: ReturnType<typeof vi.fn>;
   };
 
-  const mockTransaction = prisma.$transaction as ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset env to test mode
@@ -115,21 +105,12 @@ describe('Email Service', () => {
     // Reset lazy-initialized Resend client
     _resetResendClient();
 
-    // Setup default transaction mock
-    mockTransaction.mockImplementation(async (callback) => {
-      const txMock = {
-        emailLog: {
-          create: vi.fn().mockResolvedValue({
-            id: 'log-123',
-            status: 'PENDING',
-            attempts: 0,
-          }),
-          update: vi.fn().mockResolvedValue({}),
-        },
-      };
-      return callback(txMock);
+    // Setup default mocks
+    mockEmailLog.create.mockResolvedValue({
+      id: 'log-123',
+      status: 'PENDING',
+      attempts: 0,
     });
-
     mockEmailLog.update.mockResolvedValue({});
   });
 
@@ -164,34 +145,19 @@ describe('Email Service', () => {
       type: 'verification',
     };
 
-    it('should create email log entry in transaction before attempting send', async () => {
-      let capturedData: unknown;
-      mockTransaction.mockImplementation(async (callback) => {
-        const txMock = {
-          emailLog: {
-            create: vi.fn().mockImplementation((args) => {
-              capturedData = args.data;
-              return Promise.resolve({
-                id: 'log-123',
-                ...args.data,
-              });
-            }),
-            update: vi.fn().mockResolvedValue({}),
-          },
-        };
-        return callback(txMock);
-      });
-
+    it('should create email log entry before attempting send', async () => {
       await sendEmail(defaultOptions);
 
-      expect(capturedData).toEqual({
-        to: defaultOptions.to,
-        subject: defaultOptions.subject,
-        htmlBody: defaultOptions.html,
-        type: defaultOptions.type,
-        userId: null,
-        status: 'PENDING',
-        attempts: 0,
+      expect(mockEmailLog.create).toHaveBeenCalledWith({
+        data: {
+          to: defaultOptions.to,
+          subject: defaultOptions.subject,
+          htmlBody: defaultOptions.html,
+          type: defaultOptions.type,
+          userId: null,
+          status: 'PENDING',
+          attempts: 0,
+        },
       });
     });
 
@@ -201,26 +167,13 @@ describe('Email Service', () => {
         userId: 'user-456',
       };
 
-      let capturedData: unknown;
-      mockTransaction.mockImplementation(async (callback) => {
-        const txMock = {
-          emailLog: {
-            create: vi.fn().mockImplementation((args) => {
-              capturedData = args.data;
-              return Promise.resolve({
-                id: 'log-123',
-                ...args.data,
-              });
-            }),
-            update: vi.fn().mockResolvedValue({}),
-          },
-        };
-        return callback(txMock);
-      });
-
       await sendEmail(optionsWithUser);
 
-      expect((capturedData as { userId: string }).userId).toBe('user-456');
+      expect(mockEmailLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'user-456',
+        }),
+      });
     });
 
     it('should update log to SENT on success in dev mode', async () => {
@@ -241,18 +194,10 @@ describe('Email Service', () => {
     });
 
     it('should return emailLogId in result', async () => {
-      mockTransaction.mockImplementation(async (callback) => {
-        const txMock = {
-          emailLog: {
-            create: vi.fn().mockResolvedValue({
-              id: 'log-abc-123',
-              status: 'PENDING',
-              attempts: 0,
-            }),
-            update: vi.fn().mockResolvedValue({}),
-          },
-        };
-        return callback(txMock);
+      mockEmailLog.create.mockResolvedValue({
+        id: 'log-abc-123',
+        status: 'PENDING',
+        attempts: 0,
       });
 
       const result = await sendEmail(defaultOptions);
@@ -411,18 +356,6 @@ describe('Email Service', () => {
   });
 
   describe('resendEmail', () => {
-    beforeEach(() => {
-      // Reset transaction mock for resendEmail tests
-      mockTransaction.mockImplementation(async (callback) => {
-        const txMock = {
-          emailLog: {
-            update: vi.fn().mockResolvedValue({}),
-          },
-        };
-        return callback(txMock);
-      });
-    });
-
     it('should return error if email log not found', async () => {
       mockEmailLog.findUnique.mockResolvedValue(null);
 
@@ -432,7 +365,59 @@ describe('Email Service', () => {
       expect(result.error).toBe('Email log not found');
     });
 
-    it('should reset status to PENDING in transaction before retrying', async () => {
+    it('should return error if email status is SENT', async () => {
+      mockEmailLog.findUnique.mockResolvedValue({
+        id: 'log-123',
+        to: 'user@example.com',
+        subject: 'Test',
+        htmlBody: '<p>Test</p>',
+        type: 'verification',
+        status: 'SENT',
+        attempts: 1,
+      });
+
+      const result = await resendEmail('log-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Cannot resend email with status SENT');
+    });
+
+    it('should return error if email status is PENDING', async () => {
+      mockEmailLog.findUnique.mockResolvedValue({
+        id: 'log-123',
+        to: 'user@example.com',
+        subject: 'Test',
+        htmlBody: '<p>Test</p>',
+        type: 'verification',
+        status: 'PENDING',
+        attempts: 0,
+      });
+
+      const result = await resendEmail('log-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Cannot resend email with status PENDING');
+    });
+
+    it('should allow resending BOUNCED emails', async () => {
+      mockEmailLog.findUnique.mockResolvedValue({
+        id: 'log-123',
+        to: 'user@example.com',
+        subject: 'Test',
+        htmlBody: '<p>Test</p>',
+        type: 'verification',
+        status: 'BOUNCED',
+        attempts: 1,
+      });
+
+      (env as { NODE_ENV: string }).NODE_ENV = 'test';
+
+      const result = await resendEmail('log-123');
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reset status to PENDING before retrying', async () => {
       mockEmailLog.findUnique.mockResolvedValue({
         id: 'log-123',
         to: 'user@example.com',
@@ -443,27 +428,18 @@ describe('Email Service', () => {
         attempts: 3,
       });
 
-      let capturedData: unknown;
-      mockTransaction.mockImplementation(async (callback) => {
-        const txMock = {
-          emailLog: {
-            update: vi.fn().mockImplementation((args) => {
-              capturedData = args.data;
-              return Promise.resolve({});
-            }),
-          },
-        };
-        return callback(txMock);
-      });
-
       await resendEmail('log-123');
 
-      expect(capturedData).toEqual({
-        status: 'PENDING',
-        attempts: 0,
-        lastError: null,
-        sentAt: null,
-        providerId: null,
+      // First update should reset status
+      expect(mockEmailLog.update).toHaveBeenCalledWith({
+        where: { id: 'log-123' },
+        data: {
+          status: 'PENDING',
+          attempts: 0,
+          lastError: null,
+          sentAt: null,
+          providerId: null,
+        },
       });
     });
 
@@ -513,22 +489,6 @@ describe('Email Service', () => {
   });
 
   describe('helper functions', () => {
-    beforeEach(() => {
-      mockTransaction.mockImplementation(async (callback) => {
-        const txMock = {
-          emailLog: {
-            create: vi.fn().mockResolvedValue({
-              id: 'log-123',
-              status: 'PENDING',
-              attempts: 0,
-            }),
-            update: vi.fn().mockResolvedValue({}),
-          },
-        };
-        return callback(txMock);
-      });
-    });
-
     it('sendVerificationEmail should use correct type', async () => {
       const result = await sendVerificationEmail(
         'user@example.com',
@@ -537,6 +497,11 @@ describe('Email Service', () => {
       );
 
       expect(result).toBe(true);
+      expect(mockEmailLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          type: 'verification',
+        }),
+      });
     });
 
     it('sendPasswordResetEmail should use correct type', async () => {
@@ -547,26 +512,14 @@ describe('Email Service', () => {
       );
 
       expect(result).toBe(true);
+      expect(mockEmailLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          type: 'password_reset',
+        }),
+      });
     });
 
     it('helper functions should pass userId when provided', async () => {
-      let capturedData: unknown;
-      mockTransaction.mockImplementation(async (callback) => {
-        const txMock = {
-          emailLog: {
-            create: vi.fn().mockImplementation((args) => {
-              capturedData = args.data;
-              return Promise.resolve({
-                id: 'log-123',
-                ...args.data,
-              });
-            }),
-            update: vi.fn().mockResolvedValue({}),
-          },
-        };
-        return callback(txMock);
-      });
-
       await sendVerificationEmail(
         'user@example.com',
         'token-123',
@@ -574,7 +527,11 @@ describe('Email Service', () => {
         'user-789'
       );
 
-      expect((capturedData as { userId: string }).userId).toBe('user-789');
+      expect(mockEmailLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'user-789',
+        }),
+      });
     });
   });
 });
