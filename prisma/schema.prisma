@@ -57,6 +57,7 @@ model User {
   oauthAccounts    OAuthAccount[]
   apiKeys          ApiKey[]
   userRoles        UserRole[]
+  emailLogs        EmailLog[]
 
   @@map("users")
 }
@@ -249,4 +250,37 @@ model ApiKey {
 enum ApiKeyPermission {
   READ_ONLY
   READ_WRITE
+}
+
+enum EmailStatus {
+  PENDING   // Created, not yet sent
+  SENT      // Accepted by provider
+  DELIVERED // Confirmed delivered (future: webhook)
+  FAILED    // All retries exhausted
+  BOUNCED   // Provider reported bounce (future: webhook)
+}
+
+model EmailLog {
+  id         String      @id @default(cuid())
+  to         String
+  userId     String?     @map("user_id")
+  user       User?       @relation(fields: [userId], references: [id])
+  type       String      // "verification", "password_reset", "invite"
+  subject    String
+  htmlBody   String      @map("html_body") @db.Text
+  status     EmailStatus @default(PENDING)
+  attempts   Int         @default(0)
+  lastError  String?     @map("last_error")
+  sentAt     DateTime?   @map("sent_at")
+  provider   String      @default("resend")
+  providerId String?     @map("provider_id") // Provider's message ID
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  @@index([to])
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("email_logs")
 }
