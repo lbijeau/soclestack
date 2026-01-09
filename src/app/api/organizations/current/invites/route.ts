@@ -350,6 +350,7 @@ export async function POST(req: NextRequest) {
       to: email,
       subject: emailTemplate.subject,
       html: emailTemplate.html,
+      type: 'invite',
     });
 
     return NextResponse.json(
