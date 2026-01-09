@@ -220,6 +220,7 @@ export async function sendEmail(
   const emailLog = await prisma.emailLog.create({
     data: {
       to,
+      from: EMAIL_FROM,
       subject,
       htmlBody: html,
       type,

@@ -83,6 +83,7 @@ import {
   resendEmail,
   SendEmailOptions,
   EMAIL_TYPES,
+  isValidEmailType,
   sendVerificationEmail,
   sendPasswordResetEmail,
   _resetResendClient,
@@ -137,6 +138,24 @@ describe('Email Service', () => {
     });
   });
 
+  describe('isValidEmailType', () => {
+    it('should return true for valid email types', () => {
+      expect(isValidEmailType('verification')).toBe(true);
+      expect(isValidEmailType('password_reset')).toBe(true);
+      expect(isValidEmailType('invite')).toBe(true);
+      expect(isValidEmailType('new_device_alert')).toBe(true);
+      expect(isValidEmailType('account_locked')).toBe(true);
+      expect(isValidEmailType('2fa_enabled')).toBe(true);
+    });
+
+    it('should return false for invalid email types', () => {
+      expect(isValidEmailType('invalid')).toBe(false);
+      expect(isValidEmailType('')).toBe(false);
+      expect(isValidEmailType('VERIFICATION')).toBe(false);
+      expect(isValidEmailType('email')).toBe(false);
+    });
+  });
+
   describe('sendEmail', () => {
     const defaultOptions: SendEmailOptions = {
       to: 'user@example.com',
@@ -151,6 +170,7 @@ describe('Email Service', () => {
       expect(mockEmailLog.create).toHaveBeenCalledWith({
         data: {
           to: defaultOptions.to,
+          from: 'test@example.com',
           subject: defaultOptions.subject,
           htmlBody: defaultOptions.html,
           type: defaultOptions.type,
