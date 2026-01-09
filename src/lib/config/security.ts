@@ -47,6 +47,11 @@ export const SECURITY_CONFIG = {
     htmlBodyRetentionDays: 90, // Purge htmlBody from old records after 90 days
     batchSize: 100, // Process records in batches
   },
+  circuitBreaker: {
+    failureThreshold: 5, // Open circuit after 5 consecutive failures
+    resetTimeoutMs: 30_000, // Try recovery after 30 seconds
+    successThreshold: 2, // Close circuit after 2 successes in half-open
+  },
 } as const;
 
 export type SecurityConfig = typeof SECURITY_CONFIG;
