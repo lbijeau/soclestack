@@ -75,7 +75,8 @@ export async function POST(req: NextRequest) {
         user.email,
         unlockToken,
         user.lockedUntil,
-        user.firstName || user.username || undefined
+        user.firstName || user.username || undefined,
+        user.id
       );
     }
 

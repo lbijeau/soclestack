@@ -295,7 +295,8 @@ export async function login(
       authenticatedUser.email,
       deviceInfo,
       clientIP,
-      new Date()
+      new Date(),
+      authenticatedUser.id
     ).catch((err) =>
       log.email.failed('new_device_alert', authenticatedUser.email, err)
     );
@@ -538,9 +539,12 @@ export async function register(
   });
 
   // Send verification email (fire-and-forget)
-  sendVerificationEmail(email, plainVerificationToken, firstName).catch((err) =>
-    log.email.failed('verification', email, err)
-  );
+  sendVerificationEmail(
+    email,
+    plainVerificationToken,
+    firstName,
+    user.id
+  ).catch((err) => log.email.failed('verification', email, err));
 
   // Return success result
   return {
@@ -822,7 +826,7 @@ export async function verify2FASetup(
   });
 
   // Send notification (fire-and-forget)
-  sendTwoFactorEnabledNotification(user.email).catch((err) =>
+  sendTwoFactorEnabledNotification(user.email, userId).catch((err) =>
     log.email.failed('2fa_enabled', user.email, err)
   );
 }
@@ -915,7 +919,7 @@ export async function disable2FA(
   });
 
   // Send notification (fire-and-forget)
-  sendTwoFactorDisabledNotification(user.email).catch((err) =>
+  sendTwoFactorDisabledNotification(user.email, userId).catch((err) =>
     log.email.failed('2fa_disabled', user.email, err)
   );
 }
@@ -997,9 +1001,12 @@ export async function requestPasswordReset(
   });
 
   // Send password reset email (fire-and-forget)
-  sendPasswordResetEmail(email, resetToken, user.firstName ?? undefined).catch(
-    (err) => log.email.failed('password_reset', email, err)
-  );
+  sendPasswordResetEmail(
+    email,
+    resetToken,
+    user.firstName ?? undefined,
+    user.id
+  ).catch((err) => log.email.failed('password_reset', email, err));
 
   return { message };
 }
@@ -1088,8 +1095,8 @@ export async function resetPassword(
   });
 
   // Send notification (fire-and-forget)
-  sendPasswordChangedNotification(user.email, new Date()).catch((err) =>
-    log.email.failed('password_changed', user.email, err)
+  sendPasswordChangedNotification(user.email, new Date(), user.id).catch(
+    (err) => log.email.failed('password_changed', user.email, err)
   );
 }
 
@@ -1191,6 +1198,7 @@ export async function resendVerificationEmail(userId: string): Promise<void> {
   await sendVerificationEmail(
     user.email,
     plainVerificationToken,
-    user.firstName || user.username || undefined
+    user.firstName || user.username || undefined,
+    userId
   );
 }

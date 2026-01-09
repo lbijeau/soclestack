@@ -102,7 +102,12 @@ export async function recordFailedAttempt(
     });
 
     // Send email notification (fire-and-forget)
-    sendAccountLockedNotification(user.email, lockedUntil).catch((err) =>
+    sendAccountLockedNotification(
+      user.email,
+      lockedUntil,
+      undefined,
+      userId
+    ).catch((err) =>
       console.error('Failed to send account locked notification:', err)
     );
   }

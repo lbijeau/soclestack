@@ -364,7 +364,8 @@ export async function PATCH(req: NextRequest) {
         sendEmailChangedNotification(
           profileUser.email,
           updateData.email,
-          new Date()
+          new Date(),
+          profileUser.id
         ).catch((err) =>
           log.email.failed('email_changed', profileUser.email, err)
         );
@@ -373,7 +374,8 @@ export async function PATCH(req: NextRequest) {
         sendVerificationEmail(
           updateData.email,
           verificationToken,
-          profileUser.firstName || profileUser.username || undefined
+          profileUser.firstName || profileUser.username || undefined,
+          profileUser.id
         ).catch((err) =>
           log.email.failed('verification', updateData.email!, err)
         );
