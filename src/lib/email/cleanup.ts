@@ -5,7 +5,10 @@ export interface CleanupResult {
   hardDeleted: number;
   bodiesPurged: number;
   errors: string[];
+  dryRun: boolean;
 }
+
+const PURGED_MARKER = '[PURGED]';
 
 /**
  * Clean up email logs according to retention policy.
@@ -17,8 +20,12 @@ export interface CleanupResult {
  * - GDPR compliance (data minimization)
  * - Security (tokens in htmlBody don't persist indefinitely)
  * - Storage optimization
+ *
+ * @param dryRun - If true, only count records without modifying them
  */
-export async function cleanupEmailLogs(): Promise<CleanupResult> {
+export async function cleanupEmailLogs(
+  dryRun: boolean = false
+): Promise<CleanupResult> {
   const { softDeleteRetentionDays, htmlBodyRetentionDays, batchSize } =
     SECURITY_CONFIG.emailRetention;
 
@@ -34,19 +41,26 @@ export async function cleanupEmailLogs(): Promise<CleanupResult> {
     hardDeleted: 0,
     bodiesPurged: 0,
     errors: [],
+    dryRun,
   };
 
   // 1. Hard-delete soft-deleted records past retention period
   try {
-    const deleteResult = await prisma.emailLog.deleteMany({
-      where: {
-        deletedAt: {
-          not: null,
-          lt: softDeleteCutoff,
-        },
+    const whereClause = {
+      deletedAt: {
+        not: null,
+        lt: softDeleteCutoff,
       },
-    });
-    result.hardDeleted = deleteResult.count;
+    };
+
+    if (dryRun) {
+      result.hardDeleted = await prisma.emailLog.count({ where: whereClause });
+    } else {
+      const deleteResult = await prisma.emailLog.deleteMany({
+        where: whereClause,
+      });
+      result.hardDeleted = deleteResult.count;
+    }
   } catch (error) {
     result.errors.push(
       `Failed to hard-delete records: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -56,43 +70,49 @@ export async function cleanupEmailLogs(): Promise<CleanupResult> {
   // 2. Purge htmlBody from old records (keep metadata)
   // Process in batches to avoid memory issues
   try {
-    let purgedCount = 0;
-    let hasMore = true;
+    const whereClause = {
+      createdAt: { lt: htmlBodyCutoff },
+      htmlBody: { not: PURGED_MARKER, notIn: [''] },
+      deletedAt: null, // Only process non-deleted records
+    };
 
-    while (hasMore) {
-      const oldRecords = await prisma.emailLog.findMany({
-        where: {
-          createdAt: { lt: htmlBodyCutoff },
-          htmlBody: { not: '' },
-          deletedAt: null, // Only process non-deleted records
-        },
-        select: { id: true },
-        take: batchSize,
-      });
+    if (dryRun) {
+      result.bodiesPurged = await prisma.emailLog.count({ where: whereClause });
+    } else {
+      let purgedCount = 0;
+      let hasMore = true;
 
-      if (oldRecords.length === 0) {
-        hasMore = false;
-        break;
+      while (hasMore) {
+        const oldRecords = await prisma.emailLog.findMany({
+          where: whereClause,
+          select: { id: true },
+          take: batchSize,
+        });
+
+        if (oldRecords.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        const updateResult = await prisma.emailLog.updateMany({
+          where: {
+            id: { in: oldRecords.map((r) => r.id) },
+          },
+          data: {
+            htmlBody: PURGED_MARKER,
+          },
+        });
+
+        purgedCount += updateResult.count;
+
+        // If we got fewer than batchSize, we're done
+        if (oldRecords.length < batchSize) {
+          hasMore = false;
+        }
       }
 
-      const updateResult = await prisma.emailLog.updateMany({
-        where: {
-          id: { in: oldRecords.map((r) => r.id) },
-        },
-        data: {
-          htmlBody: '[PURGED]',
-        },
-      });
-
-      purgedCount += updateResult.count;
-
-      // If we got fewer than batchSize, we're done
-      if (oldRecords.length < batchSize) {
-        hasMore = false;
-      }
+      result.bodiesPurged = purgedCount;
     }
-
-    result.bodiesPurged = purgedCount;
   } catch (error) {
     result.errors.push(
       `Failed to purge htmlBody: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -134,7 +154,7 @@ export async function getEmailLogStats(): Promise<{
       prisma.emailLog.count({
         where: {
           createdAt: { lt: htmlBodyCutoff },
-          htmlBody: { not: '' },
+          htmlBody: { not: PURGED_MARKER, notIn: [''] },
           deletedAt: null,
         },
       }),

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isImpersonating } from '@/lib/auth/impersonation';
@@ -10,24 +10,28 @@ import { headers } from 'next/headers';
 export const runtime = 'nodejs';
 
 /**
- * GET /api/admin/emails/cleanup
- * Get email log statistics for retention monitoring.
+ * Verify admin access for cleanup endpoints.
+ * Returns user ID if authorized, or error response.
  */
-export async function GET() {
-  try {
-    const session = await getSession();
+async function verifyAdminAccess(): Promise<
+  { userId: string } | { error: NextResponse }
+> {
+  const session = await getSession();
 
-    if (!session.isLoggedIn || !session.userId) {
-      return NextResponse.json(
+  if (!session.isLoggedIn || !session.userId) {
+    return {
+      error: NextResponse.json(
         {
           error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
         },
         { status: 401 }
-      );
-    }
+      ),
+    };
+  }
 
-    if (isImpersonating(session)) {
-      return NextResponse.json(
+  if (isImpersonating(session)) {
+    return {
+      error: NextResponse.json(
         {
           error: {
             type: 'FORBIDDEN',
@@ -35,23 +39,27 @@ export async function GET() {
           },
         },
         { status: 403 }
-      );
-    }
+      ),
+    };
+  }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { id: true, ...userWithRolesInclude },
-    });
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, ...userWithRolesInclude },
+  });
 
-    if (!user) {
-      return NextResponse.json(
+  if (!user) {
+    return {
+      error: NextResponse.json(
         { error: { type: 'NOT_FOUND', message: 'User not found' } },
         { status: 404 }
-      );
-    }
+      ),
+    };
+  }
 
-    if (!(await isGranted(user, ROLES.ADMIN))) {
-      return NextResponse.json(
+  if (!(await isGranted(user, ROLES.ADMIN))) {
+    return {
+      error: NextResponse.json(
         {
           error: {
             type: 'AUTHORIZATION_ERROR',
@@ -59,8 +67,21 @@ export async function GET() {
           },
         },
         { status: 403 }
-      );
-    }
+      ),
+    };
+  }
+
+  return { userId: session.userId };
+}
+
+/**
+ * GET /api/admin/emails/cleanup
+ * Get email log statistics for retention monitoring.
+ */
+export async function GET() {
+  try {
+    const auth = await verifyAdminAccess();
+    if ('error' in auth) return auth.error;
 
     const stats = await getEmailLogStats();
 
@@ -82,68 +103,32 @@ export async function GET() {
 /**
  * POST /api/admin/emails/cleanup
  * Trigger email log cleanup according to retention policy.
+ *
+ * Query params:
+ * - dryRun: If "true", only preview what would be deleted without making changes
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
+    const auth = await verifyAdminAccess();
+    if ('error' in auth) return auth.error;
 
-    if (!session.isLoggedIn || !session.userId) {
-      return NextResponse.json(
-        {
-          error: { type: 'AUTHENTICATION_ERROR', message: 'Not authenticated' },
-        },
-        { status: 401 }
-      );
-    }
+    // Check for dry-run mode
+    const { searchParams } = new URL(req.url);
+    const dryRun = searchParams.get('dryRun') === 'true';
 
-    if (isImpersonating(session)) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'FORBIDDEN',
-            message: 'Cannot perform cleanup while impersonating',
-          },
-        },
-        { status: 403 }
-      );
-    }
+    // Run cleanup (or dry-run)
+    const result = await cleanupEmailLogs(dryRun);
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { id: true, ...userWithRolesInclude },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: { type: 'NOT_FOUND', message: 'User not found' } },
-        { status: 404 }
-      );
-    }
-
-    if (!(await isGranted(user, ROLES.ADMIN))) {
-      return NextResponse.json(
-        {
-          error: {
-            type: 'AUTHORIZATION_ERROR',
-            message: 'Admin access required',
-          },
-        },
-        { status: 403 }
-      );
-    }
-
-    // Run cleanup
-    const result = await cleanupEmailLogs();
-
-    // Log the action
+    // Log the action (even for dry-run, for audit purposes)
     const headersList = await headers();
     await logAuditEvent({
       action: 'ADMIN_EMAIL_CLEANUP',
       category: 'admin',
-      userId: session.userId,
+      userId: auth.userId,
       ipAddress: headersList.get('x-forwarded-for') ?? undefined,
       userAgent: headersList.get('user-agent') ?? undefined,
       metadata: {
+        dryRun,
         hardDeleted: result.hardDeleted,
         bodiesPurged: result.bodiesPurged,
         errors: result.errors,
