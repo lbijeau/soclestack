@@ -8,7 +8,7 @@ import {
   getCurrentOrganizationId,
 } from '@/lib/organization';
 import { AuthError } from '@/types/auth';
-import { sendEmail, organizationInviteTemplate } from '@/lib/email';
+import { sendEmail, organizationInviteTemplate, EmailType } from '@/lib/email';
 import { hasRole, userWithRolesInclude, ROLES } from '@/lib/security/index';
 
 export const runtime = 'nodejs';
@@ -350,7 +350,7 @@ export async function POST(req: NextRequest) {
       to: email,
       subject: emailTemplate.subject,
       html: emailTemplate.html,
-      type: 'invite',
+      type: 'invite' as EmailType,
     });
 
     return NextResponse.json(

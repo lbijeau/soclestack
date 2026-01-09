@@ -17,18 +17,47 @@ import {
 
 export { organizationInviteTemplate } from '@/lib/email/templates';
 
-const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+// Lazy initialization to support mocking in tests
+let _resend: Resend | null | undefined;
+function getResendClient(): Resend | null {
+  if (_resend === undefined) {
+    _resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+  }
+  return _resend;
+}
+
+// Reset function for testing
+export function _resetResendClient(): void {
+  _resend = undefined;
+}
+
 const EMAIL_FROM = env.EMAIL_FROM || 'noreply@soclestack.com';
 
 // Retry configuration
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [1000, 2000, 4000]; // Exponential backoff
 
+// Valid email types for validation
+export const EMAIL_TYPES = [
+  'verification',
+  'password_reset',
+  'invite',
+  'new_device_alert',
+  'account_locked',
+  'password_changed',
+  'email_changed',
+  '2fa_enabled',
+  '2fa_disabled',
+  'account_unlock',
+] as const;
+
+export type EmailType = (typeof EMAIL_TYPES)[number];
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
-  type: string; // "verification", "password_reset", "invite", etc.
+  type: EmailType;
   userId?: string; // Optional user link
 }
 
@@ -65,12 +94,13 @@ async function attemptSend(
   }
 
   // In production, use Resend
-  if (!resend) {
+  const resendClient = getResendClient();
+  if (!resendClient) {
     return { success: false, error: 'RESEND_API_KEY not configured' };
   }
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await resendClient.emails.send({
       from: EMAIL_FROM,
       to,
       subject,
@@ -91,64 +121,47 @@ async function attemptSend(
 }
 
 /**
- * Send an email with logging and retry logic.
- * 1. Creates EmailLog entry with status PENDING
- * 2. Attempts send via Resend
- * 3. On success: Updates to SENT with providerId
- * 4. On failure: Retries up to 3 times with backoff
- * 5. After 3 failures: Updates to FAILED
+ * Execute email send with retry logic.
+ * Shared implementation for sendEmail and resendEmail.
+ * Uses a transaction to ensure atomicity of status updates.
  */
-export async function sendEmail(
-  options: SendEmailOptions
+async function executeWithRetry(
+  emailLogId: string,
+  to: string,
+  subject: string,
+  html: string,
+  type: string
 ): Promise<SendEmailResult> {
-  const { to, subject, html, type, userId } = options;
-
-  // Create email log entry with PENDING status
-  const emailLog = await prisma.emailLog.create({
-    data: {
-      to,
-      subject,
-      htmlBody: html,
-      type,
-      userId: userId || null,
-      status: 'PENDING',
-      attempts: 0,
-    },
-  });
-
   let lastError: string | undefined;
 
-  // Attempt to send with retries
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    // Update attempt count
-    await prisma.emailLog.update({
-      where: { id: emailLog.id },
-      data: { attempts: attempt + 1 },
-    });
-
     const result = await attemptSend(to, subject, html);
 
     if (result.success) {
-      // Success - update log to SENT
+      // Success - update log to SENT in a single write
       await prisma.emailLog.update({
-        where: { id: emailLog.id },
+        where: { id: emailLogId },
         data: {
           status: 'SENT',
           sentAt: new Date(),
           providerId: result.providerId || null,
           lastError: null,
+          attempts: attempt + 1,
         },
       });
 
       log.email.sent(type, to);
-      return { success: true, emailLogId: emailLog.id };
+      return { success: true, emailLogId };
     }
 
-    // Failed - record error and maybe retry
+    // Failed - record error and attempt count in single write
     lastError = result.error;
     await prisma.emailLog.update({
-      where: { id: emailLog.id },
-      data: { lastError },
+      where: { id: emailLogId },
+      data: {
+        lastError,
+        attempts: attempt + 1,
+      },
     });
 
     log.email.failed(type, to, lastError || 'Unknown error');
@@ -161,86 +174,6 @@ export async function sendEmail(
 
   // All retries exhausted - mark as FAILED
   await prisma.emailLog.update({
-    where: { id: emailLog.id },
-    data: { status: 'FAILED' },
-  });
-
-  return {
-    success: false,
-    emailLogId: emailLog.id,
-    error: lastError || 'Max retries exceeded',
-  };
-}
-
-/**
- * Resend a previously failed email.
- * Resets status to PENDING and attempts to 0, then runs through send flow.
- */
-export async function resendEmail(emailLogId: string): Promise<SendEmailResult> {
-  const emailLog = await prisma.emailLog.findUnique({
-    where: { id: emailLogId },
-  });
-
-  if (!emailLog) {
-    return { success: false, error: 'Email log not found' };
-  }
-
-  // Reset status and attempts
-  await prisma.emailLog.update({
-    where: { id: emailLogId },
-    data: {
-      status: 'PENDING',
-      attempts: 0,
-      lastError: null,
-      sentAt: null,
-      providerId: null,
-    },
-  });
-
-  let lastError: string | undefined;
-
-  // Attempt to send with retries
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    await prisma.emailLog.update({
-      where: { id: emailLogId },
-      data: { attempts: attempt + 1 },
-    });
-
-    const result = await attemptSend(
-      emailLog.to,
-      emailLog.subject,
-      emailLog.htmlBody
-    );
-
-    if (result.success) {
-      await prisma.emailLog.update({
-        where: { id: emailLogId },
-        data: {
-          status: 'SENT',
-          sentAt: new Date(),
-          providerId: result.providerId || null,
-          lastError: null,
-        },
-      });
-
-      log.email.sent(emailLog.type, emailLog.to);
-      return { success: true, emailLogId };
-    }
-
-    lastError = result.error;
-    await prisma.emailLog.update({
-      where: { id: emailLogId },
-      data: { lastError },
-    });
-
-    log.email.failed(emailLog.type, emailLog.to, lastError || 'Unknown error');
-
-    if (attempt < MAX_ATTEMPTS - 1) {
-      await sleep(BACKOFF_MS[attempt]);
-    }
-  }
-
-  await prisma.emailLog.update({
     where: { id: emailLogId },
     data: { status: 'FAILED' },
   });
@@ -250,6 +183,75 @@ export async function resendEmail(emailLogId: string): Promise<SendEmailResult> 
     emailLogId,
     error: lastError || 'Max retries exceeded',
   };
+}
+
+/**
+ * Send an email with logging and retry logic.
+ * 1. Creates EmailLog entry with status PENDING (in transaction)
+ * 2. Attempts send via Resend
+ * 3. On success: Updates to SENT with providerId
+ * 4. On failure: Retries up to 3 times with backoff
+ * 5. After 3 failures: Updates to FAILED
+ */
+export async function sendEmail(
+  options: SendEmailOptions
+): Promise<SendEmailResult> {
+  const { to, subject, html, type, userId } = options;
+
+  // Create email log entry with PENDING status using transaction
+  const emailLog = await prisma.$transaction(async (tx) => {
+    return tx.emailLog.create({
+      data: {
+        to,
+        subject,
+        htmlBody: html,
+        type,
+        userId: userId || null,
+        status: 'PENDING',
+        attempts: 0,
+      },
+    });
+  });
+
+  return executeWithRetry(emailLog.id, to, subject, html, type);
+}
+
+/**
+ * Resend a previously failed email.
+ * Resets status to PENDING and attempts to 0, then runs through send flow.
+ */
+export async function resendEmail(
+  emailLogId: string
+): Promise<SendEmailResult> {
+  const emailLog = await prisma.emailLog.findUnique({
+    where: { id: emailLogId },
+  });
+
+  if (!emailLog) {
+    return { success: false, error: 'Email log not found' };
+  }
+
+  // Reset status and attempts in transaction
+  await prisma.$transaction(async (tx) => {
+    await tx.emailLog.update({
+      where: { id: emailLogId },
+      data: {
+        status: 'PENDING',
+        attempts: 0,
+        lastError: null,
+        sentAt: null,
+        providerId: null,
+      },
+    });
+  });
+
+  return executeWithRetry(
+    emailLogId,
+    emailLog.to,
+    emailLog.subject,
+    emailLog.htmlBody,
+    emailLog.type
+  );
 }
 
 // Convenience functions for specific notification types

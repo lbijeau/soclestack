@@ -258,6 +258,8 @@ enum EmailStatus {
   DELIVERED // Confirmed delivered (future: webhook)
   FAILED    // All retries exhausted
   BOUNCED   // Provider reported bounce (future: webhook)
+
+  @@map("email_status")
 }
 
 model EmailLog {
