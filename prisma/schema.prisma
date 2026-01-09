@@ -287,5 +287,6 @@ model EmailLog {
   @@index([type])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([providerId])
   @@map("email_logs")
 }

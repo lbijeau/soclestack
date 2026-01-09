@@ -167,6 +167,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, found: false });
     }
 
+    // Idempotency check: skip update if status already matches
+    if (emailLog.status === newStatus) {
+      console.log(
+        `[Resend Webhook] Email ${emailLog.id} already has status ${newStatus}, skipping`
+      );
+      return NextResponse.json({
+        received: true,
+        handled: true,
+        skipped: true,
+        reason: 'status_unchanged',
+      });
+    }
+
     // Build update data
     const updateData: { status: EmailStatus; lastError?: string } = {
       status: newStatus,
@@ -209,12 +222,11 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET /api/webhooks/resend
- * Health check endpoint for webhook configuration verification.
+ * Health check endpoint for webhook verification.
  */
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
     webhook: 'resend',
-    configured: !!env.RESEND_WEBHOOK_SECRET,
   });
 }
