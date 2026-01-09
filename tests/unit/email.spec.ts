@@ -486,6 +486,25 @@ describe('Email Service', () => {
         (sentUpdate![0] as { data: { sentAt: Date } }).data.sentAt
       ).toBeInstanceOf(Date);
     });
+
+    it('should return error if email type is invalid', async () => {
+      mockEmailLog.findUnique.mockResolvedValue({
+        id: 'log-123',
+        to: 'user@example.com',
+        subject: 'Test',
+        htmlBody: '<p>Test</p>',
+        type: 'invalid_type', // Invalid type not in EMAIL_TYPES
+        status: 'FAILED',
+        attempts: 3,
+      });
+
+      const result = await resendEmail('log-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid email type in log: invalid_type');
+      // Should not attempt to reset status or send
+      expect(mockEmailLog.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('helper functions', () => {

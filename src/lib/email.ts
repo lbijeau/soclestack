@@ -37,7 +37,19 @@ const EMAIL_FROM = env.EMAIL_FROM || 'noreply@soclestack.com';
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [1000, 2000, 4000]; // Exponential backoff
 
-// Valid email types for validation
+/**
+ * Valid email types for the system.
+ * - verification: Email address verification after registration
+ * - password_reset: Password reset request
+ * - invite: Organization membership invitation
+ * - new_device_alert: Login from unrecognized device
+ * - account_locked: Account locked due to failed attempts
+ * - password_changed: Password change confirmation
+ * - email_changed: Email address change notification
+ * - 2fa_enabled: Two-factor authentication enabled
+ * - 2fa_disabled: Two-factor authentication disabled
+ * - account_unlock: Account unlock link
+ */
 export const EMAIL_TYPES = [
   'verification',
   'password_reset',
@@ -52,6 +64,13 @@ export const EMAIL_TYPES = [
 ] as const;
 
 export type EmailType = (typeof EMAIL_TYPES)[number];
+
+/**
+ * Check if a string is a valid EmailType
+ */
+export function isValidEmailType(type: string): type is EmailType {
+  return EMAIL_TYPES.includes(type as EmailType);
+}
 
 export interface SendEmailOptions {
   to: string;
@@ -237,6 +256,14 @@ export async function resendEmail(
     };
   }
 
+  // Validate email type from database
+  if (!isValidEmailType(emailLog.type)) {
+    return {
+      success: false,
+      error: `Invalid email type in log: ${emailLog.type}`,
+    };
+  }
+
   // Reset status and attempts
   await prisma.emailLog.update({
     where: { id: emailLogId },
@@ -254,7 +281,7 @@ export async function resendEmail(
     emailLog.to,
     emailLog.subject,
     emailLog.htmlBody,
-    emailLog.type as EmailType
+    emailLog.type
   );
 }
 
