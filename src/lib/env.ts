@@ -33,6 +33,7 @@ const serverEnvSchema = z
 
     // === Optional: Email ===
     RESEND_API_KEY: z.string().optional(),
+    RESEND_WEBHOOK_SECRET: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
 
     // === Optional: OAuth Providers ===
