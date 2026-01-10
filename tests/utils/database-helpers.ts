@@ -971,24 +971,6 @@ export class DatabaseHelpers {
       backupCodes,
     };
   }
-
-  /**
-   * Create pending 2FA token for testing login flow
-   * This simulates the state after password verification but before 2FA
-   */
-  static async createPending2FAToken(userId: string): Promise<string> {
-    // In a real implementation, this would be stored in Redis or a pending_2fa table
-    // For testing, we'll create a simple JWT-like token
-    const token = Buffer.from(
-      JSON.stringify({
-        userId,
-        type: 'pending_2fa',
-        exp: Date.now() + 300000, // 5 minutes
-      })
-    ).toString('base64url');
-
-    return token;
-  }
 }
 
 // Export the prisma instance for direct use in tests if needed
