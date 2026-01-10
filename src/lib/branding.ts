@@ -1,8 +1,7 @@
 /**
  * Branding Configuration
  *
- * Reads instance-level branding from environment variables.
- * Future: Will support org-level branding from database.
+ * Reads instance-level branding and layout from environment variables.
  */
 
 export interface BrandingConfig {
@@ -15,12 +14,10 @@ export interface BrandingConfig {
 export interface LayoutConfig {
   authStyle: 'centered' | 'split' | 'fullpage';
   navStyle: 'top' | 'sidebar';
-  density: 'compact' | 'comfortable';
 }
 
 const VALID_AUTH_STYLES = ['centered', 'split', 'fullpage'] as const;
 const VALID_NAV_STYLES = ['top', 'sidebar'] as const;
-const VALID_DENSITIES = ['compact', 'comfortable'] as const;
 
 function validateAuthStyle(
   value: string | undefined
@@ -50,28 +47,10 @@ function validateNavStyle(
   return 'top';
 }
 
-function validateDensity(
-  value: string | undefined
-): LayoutConfig['density'] {
-  if (value && VALID_DENSITIES.includes(value as LayoutConfig['density'])) {
-    return value as LayoutConfig['density'];
-  }
-  if (value) {
-    console.warn(
-      `Invalid LAYOUT_DENSITY "${value}". Valid options: ${VALID_DENSITIES.join(', ')}. Using default "comfortable".`
-    );
-  }
-  return 'comfortable';
-}
-
 /**
- * Get branding configuration
- *
- * @param orgId - Future: org ID for org-specific branding
- * @returns Branding config (currently instance-level only)
+ * Get branding configuration from environment variables
  */
-export function getBranding(_orgId?: string): BrandingConfig {
-  // Future: Check DB for org-specific branding first
+export function getBranding(): BrandingConfig {
   return {
     name: process.env.BRAND_NAME ?? 'SocleStack',
     logoUrl: process.env.BRAND_LOGO_URL ?? '/logo.svg',
@@ -87,6 +66,5 @@ export function getLayout(): LayoutConfig {
   return {
     authStyle: validateAuthStyle(process.env.LAYOUT_AUTH_STYLE),
     navStyle: validateNavStyle(process.env.LAYOUT_NAV_STYLE),
-    density: validateDensity(process.env.LAYOUT_DENSITY),
   };
 }
