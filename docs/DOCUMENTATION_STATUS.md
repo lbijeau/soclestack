@@ -206,67 +206,83 @@ Tracked in [#342](https://github.com/lbijeau/soclestack/issues/342)
 
 ---
 
-## Documentation Organization Improvements
+## Documentation Organization
 
-### 📁 Proposed New Structure
+### 📁 Current Documentation Structure
+
+All documentation exists in flat structure under `/docs/`. The content is complete - this is an inventory of where things are.
 
 ```
 /
-├── README.md                           # Project overview (EXISTS ✅)
-├── CONTRIBUTING.md                     # Contribution guidelines (EXISTS ✅)
-├── SECURITY.md                         # Security policy (EXISTS ✅)
-├── TECHNICAL_ARCHITECTURE.md           # Architecture doc (EXISTS ✅)
-├── IMPLEMENTATION_PLAN.md              # Implementation plan (EXISTS ✅)
+├── README.md                           # Project overview ✅
+├── CONTRIBUTING.md                     # Contribution guidelines ✅
+├── SECURITY.md                         # Security policy ✅
+├── TECHNICAL_ARCHITECTURE.md           # Architecture doc ✅ (needs update #338)
+├── IMPLEMENTATION_PLAN.md              # Implementation plan ✅
 │
 ├── docs/
-│   ├── README.md                       # Documentation index (MISSING ❌)
-│   ├── PROGRESS.md                     # Progress tracking (EXISTS ✅)
-│   ├── DOCUMENTATION_STATUS.md         # This file (NEW ✅)
+│   ├── PROGRESS.md                     # Progress tracking ✅
+│   ├── DOCUMENTATION_STATUS.md         # This file ✅
 │   │
-│   ├── getting-started/
-│   │   ├── SETUP.md                    # Development setup (MISSING ❌)
-│   │   ├── QUICKSTART.md               # Quick start guide (MISSING ❌)
-│   │   └── ENVIRONMENT.md              # Environment variables (MISSING ❌)
-│   │
-│   ├── database/
-│   │   ├── DATABASE.md                 # Schema documentation (MISSING ❌)
-│   │   ├── MIGRATIONS.md               # Migration guide (MISSING ❌)
-│   │   └── SEEDING.md                  # Data seeding (PARTIAL ⚠️)
-│   │
-│   ├── api/
-│   │   ├── API.md                      # API reference (MISSING ❌)
-│   │   ├── AUTHENTICATION.md           # Auth endpoints (PARTIAL ⚠️)
-│   │   └── EXAMPLES.md                 # API examples (MISSING ❌)
-│   │
-│   ├── features/
-│   │   ├── 2FA.md                      # 2FA implementation (MISSING ❌)
-│   │   ├── OAUTH.md                    # OAuth implementation (MISSING ❌)
-│   │   ├── ORGANIZATIONS.md            # Organizations (MISSING ❌)
-│   │   ├── API-KEYS.md                 # API keys (MISSING ❌)
-│   │   ├── EMAIL.md                    # Email service (MISSING ❌)
-│   │   ├── AUDIT-LOGS.md               # Audit logging (PARTIAL ⚠️)
-│   │   └── SESSION-MANAGEMENT.md       # Sessions (PARTIAL ⚠️)
-│   │
-│   ├── deployment/
-│   │   ├── DEPLOYMENT.md               # Deployment guide (MISSING ❌)
-│   │   ├── INFRASTRUCTURE.md           # Infrastructure (MISSING ❌)
-│   │   └── MONITORING.md               # Monitoring (MISSING ❌)
+│   ├── ENVIRONMENT.md                  # Environment variables ✅
+│   ├── DATABASE.md                     # Schema documentation ✅
+│   ├── MIGRATIONS.md                   # Migration guide ✅
+│   ├── PERMISSIONS.md                  # Permissions system ✅
+│   ├── API_REFERENCE.md                # API reference ✅
+│   ├── SDK_RECIPES.md                  # SDK usage patterns ✅
 │   │
 │   ├── testing/
-│   │   ├── README.md                   # Testing guide (EXISTS ✅)
-│   │   └── TEST-STRATEGY.md            # Test strategy (EXISTS ✅)
+│   │   ├── README.md                   # Testing guide ✅
+│   │   └── TEST-STRATEGY.md            # Test strategy ✅
 │   │
 │   ├── components/
-│   │   └── catalog.md                  # Component catalog (EXISTS ✅)
+│   │   └── catalog.md                  # Component catalog ✅
 │   │
-│   ├── adr/                            # Architecture Decision Records
-│   │   └── (ADR files)                 # (MISSING ❌)
+│   ├── deployment/
+│   │   └── cloudflare-setup.md         # Edge rate limiting ✅
 │   │
-│   └── troubleshooting/
-│       └── TROUBLESHOOTING.md          # Common issues (MISSING ❌)
+│   ├── plans/                          # Design documents (15 files) ✅
+│   │   ├── *-api-keys-design.md
+│   │   ├── *-two-factor-auth-design.md
+│   │   ├── *-oauth-social-login-design.md
+│   │   ├── *-organizations-design.md
+│   │   ├── *-email-notifications-design.md
+│   │   ├── *-audit-log-viewer-design.md
+│   │   └── ... (9 more design docs)
+│   │
+│   └── api-generated/                  # TypeDoc output ✅
 │
-└── (existing src/ component READMEs)   # (EXISTS ✅, some need updates ⚠️)
+├── src/components/*/README.md          # Component docs (all complete) ✅
+├── src/app/api/*/README.md             # API route docs (all complete) ✅
+├── src/lib/README.md                   # Library docs ✅
+└── src/types/README.md                 # Type definitions ✅
 ```
+
+### Feature Documentation Coverage
+
+All features are documented in `TECHNICAL_ARCHITECTURE.md` sections + design plans:
+
+| Feature | Architecture Section | Design Plan | Route Docs |
+|---------|---------------------|-------------|------------|
+| **2FA** | Section 14 ✅ | `two-factor-auth-design.md` ✅ | `/api/auth/2fa/` ✅ |
+| **OAuth** | Section 12 ✅ | `oauth-social-login-design.md` ✅ | `/api/auth/oauth/` ✅ |
+| **Organizations** | Section 13 ✅ | `organizations-design.md` ✅ | `/api/organizations/` ✅ |
+| **API Keys** | Section 15 ✅ | `api-keys-design.md` ✅ | `/api/keys/` ✅ |
+| **Email** | - | `email-notifications-design.md` ✅ | `/api/admin/emails/` ✅ |
+| **Audit Logs** | Section 5 ✅ | `audit-log-viewer-design.md` ✅ | `/api/admin/audit-logs/` ✅ |
+| **Sessions** | Section 4 ✅ | - | `/api/auth/session*` ✅ |
+| **Rate Limiting** | Section 16 ✅ | `rate-limiter-evaluation.md` ✅ | - |
+
+### 🟢 Optional Nice-to-Have (Not Required)
+
+Tracked in [#342](https://github.com/lbijeau/soclestack/issues/342)
+
+| Document | Status | Notes |
+|----------|--------|-------|
+| `/docs/TROUBLESHOOTING.md` | Optional | Common issues guide |
+| `/docs/EXAMPLES.md` | Optional | Additional API examples |
+| `/docs/INFRASTRUCTURE.md` | Optional | Docker/K8s guides |
+| Architecture Decision Records | Optional | ADR format for decisions |
 
 ---
 
