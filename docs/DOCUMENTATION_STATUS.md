@@ -230,6 +230,7 @@ All documentation exists in flat structure under `/docs/`. The content is comple
 │   ├── PERMISSIONS.md                  # Permissions system ✅
 │   ├── API_REFERENCE.md                # API reference ✅
 │   ├── SDK_RECIPES.md                  # SDK usage patterns ✅
+│   ├── TROUBLESHOOTING.md              # Common issues guide ✅
 │   │
 │   ├── testing/
 │   │   ├── README.md                   # Testing guide ✅
@@ -273,13 +274,13 @@ All features are documented in `TECHNICAL_ARCHITECTURE.md` sections + design pla
 | **Sessions** | Section 4 ✅ | - | `/api/auth/session*` ✅ |
 | **Rate Limiting** | Section 16 ✅ | `rate-limiter-evaluation.md` ✅ | - |
 
-### 🟢 Optional Nice-to-Have (Not Required)
+### 🟢 Optional Nice-to-Have
 
 Tracked in [#342](https://github.com/lbijeau/soclestack/issues/342)
 
 | Document | Status | Notes |
 |----------|--------|-------|
-| `/docs/TROUBLESHOOTING.md` | Optional | Common issues guide |
+| `/docs/TROUBLESHOOTING.md` | ✅ Complete | Common issues guide |
 | `/docs/EXAMPLES.md` | Optional | Additional API examples |
 | `/docs/INFRASTRUCTURE.md` | Optional | Docker/K8s guides |
 | Architecture Decision Records | Optional | ADR format for decisions |

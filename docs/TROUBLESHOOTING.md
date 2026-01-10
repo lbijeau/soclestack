@@ -1,341 +1,356 @@
 # Troubleshooting Guide
 
-Common issues and their solutions when developing with SocleStack.
+Common issues and solutions for SocleStack development and deployment.
 
-## Table of Contents
+## Quick Diagnostics
 
-- [Environment & Configuration](#environment--configuration)
-- [Database Issues](#database-issues)
-- [Authentication Problems](#authentication-problems)
-- [OAuth Issues](#oauth-issues)
-- [Build & Development](#build--development)
-- [Testing](#testing)
+```bash
+# Check if database is running
+docker-compose ps
 
----
+# Check environment variables are loaded
+npm run dev  # Watch for Zod validation errors at startup
 
-## Environment & Configuration
+# Check database connection
+npx prisma db pull  # Should succeed without errors
 
-### Environment validation failed
-
-**Error:**
+# Regenerate Prisma client
+npx prisma generate
 ```
-Environment validation failed:
-  - JWT_SECRET: JWT_SECRET must be at least 32 characters
-```
-
-**Cause:** Required environment variables are missing or invalid.
-
-**Solution:**
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Generate secure secrets:
-   ```bash
-   # Generate a 32+ character secret
-   openssl rand -base64 32
-   ```
-3. Update `.env` with real values for:
-   - `JWT_SECRET` (min 32 chars)
-   - `JWT_REFRESH_SECRET` (min 32 chars)
-   - `SESSION_SECRET` (min 32 chars)
-   - `DATABASE_URL`
-
-### GOOGLE_CLIENT_SECRET is required when GOOGLE_CLIENT_ID is set
-
-**Cause:** OAuth provider partially configured.
-
-**Solution:** Either:
-- Set both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, OR
-- Remove both variables if not using Google OAuth
-
-Same applies for GitHub OAuth credentials.
-
-### Changes to .env not taking effect
-
-**Cause:** Next.js caches environment variables.
-
-**Solution:**
-1. Stop the dev server (Ctrl+C)
-2. Clear Next.js cache:
-   ```bash
-   rm -rf .next
-   ```
-3. Restart:
-   ```bash
-   npm run dev
-   ```
 
 ---
 
 ## Database Issues
 
-### Database connection failed
+### "Can't reach database server"
 
-**Error:**
-```
-PrismaClientInitializationError: Can't reach database server
-```
+**Symptoms:** `Error: Can't reach database server at localhost:5432`
 
-**Solution for SQLite (development):**
-1. Ensure `DATABASE_URL` is set:
-   ```env
-   DATABASE_URL="file:./dev.db"
-   ```
-2. Push the schema:
-   ```bash
-   npx prisma db push
-   ```
+**Solutions:**
+1. Start PostgreSQL: `docker-compose up -d`
+2. Wait a few seconds for container to be ready
+3. Verify it's running: `docker-compose ps` (should show "Up")
 
-**Solution for PostgreSQL (production):**
-1. Verify connection string format:
-   ```env
-   DATABASE_URL="postgresql://user:password@host:5432/dbname?sslmode=require"
-   ```
-2. Check database is accessible from your network
-3. Verify credentials are correct
+### "Database does not exist"
 
-### Prisma schema out of sync
+**Symptoms:** `error: database "soclestack" does not exist`
 
-**Error:**
-```
-The database schema is not in sync with the Prisma schema
-```
-
-**Solution:**
+**Solutions:**
 ```bash
-# Development - push changes directly
+# Create database and run migrations
 npx prisma db push
 
-# Production - create and apply migration
-npx prisma migrate dev --name your_migration_name
+# Or if using migrations
+npx prisma migrate dev
 ```
 
-### "prisma generate" needed
+### "Prisma Client not generated"
 
-**Error:**
-```
-@prisma/client did not initialize yet
-```
+**Symptoms:** `@prisma/client did not initialize yet` or import errors
 
-**Solution:**
+**Solutions:**
 ```bash
 npx prisma generate
 ```
 
+### Schema drift / migration issues
+
+**Symptoms:** `Drift detected: Your database schema is not in sync`
+
+**Solutions:**
+```bash
+# Development: Reset and resync
+npx prisma db push --force-reset
+
+# Production: Create migration
+npx prisma migrate dev --name describe_changes
+```
+
 ---
 
-## Authentication Problems
+## Environment Variable Issues
 
-### Session not persisting after login
+### "Missing required environment variable"
 
-**Possible causes:**
+**Symptoms:** Zod validation error at startup listing missing variables
 
-1. **Cookies not being set**
-   - Check browser dev tools → Application → Cookies
-   - Ensure `SESSION_SECRET` is set in `.env`
+**Solutions:**
+1. Copy example file: `cp .env.example .env.local`
+2. Fill in required values (see `docs/ENVIRONMENT.md`)
+3. Required variables:
+   - `DATABASE_URL` - PostgreSQL connection string
+   - `SESSION_SECRET` - 32+ character random string
+   - `JWT_SECRET` - 32+ character random string
 
-2. **Domain mismatch**
-   - In development, use `localhost:3000`
-   - Cookie domain must match the request origin
+### Generate secure secrets
 
-3. **HTTPS required in production**
-   - Secure cookies require HTTPS
-   - Use a reverse proxy with SSL in production
+```bash
+# Generate a secure random secret
+openssl rand -base64 32
+```
 
-### "Invalid access token" or "Invalid refresh token"
+### "Invalid DATABASE_URL format"
 
-**Cause:** Token expired or secret changed.
+**Symptoms:** Prisma connection errors
 
-**Solution:**
-1. Clear browser cookies
-2. Log out and log back in
-3. If you changed `JWT_SECRET` or `JWT_REFRESH_SECRET`, all existing tokens are invalidated - users must re-authenticate
+**Solution:** Use format: `postgresql://USER:PASSWORD@HOST:PORT/DATABASE`
 
-### Account locked after failed login attempts
+```bash
+# Local Docker
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/soclestack"
 
-**Cause:** 5 failed login attempts trigger a 15-minute lockout.
+# With connection pooling (Supabase, Neon)
+DATABASE_URL="postgresql://user:pass@host:5432/db?pgbouncer=true"
+```
 
-**Solution:**
-- Wait 15 minutes for automatic unlock, OR
-- Admin can unlock via API:
-  ```bash
-  curl -X POST http://localhost:3000/api/users/{userId}/unlock \
-    -H "Authorization: Bearer {admin_token}"
-  ```
+---
 
-### 2FA code not working
+## Authentication Issues
 
-**Possible causes:**
+### "Invalid CSRF token"
 
-1. **Time sync issue**
-   - TOTP codes are time-based
-   - Ensure device clock is accurate (within 30 seconds)
+**Symptoms:** 403 errors on form submissions
 
-2. **Wrong authenticator app**
-   - Ensure you're using the correct account in your authenticator
+**Causes & Solutions:**
+1. **Cookies blocked:** Ensure cookies are enabled, check SameSite settings
+2. **Token expired:** Refresh the page to get new token
+3. **Cross-origin request:** API must be same origin or configure CORS
 
-3. **Backup codes**
-   - Use a backup code if TOTP isn't working
-   - Each backup code can only be used once
+### "Session expired" immediately after login
+
+**Symptoms:** User logged out right after logging in
+
+**Causes & Solutions:**
+1. **Clock skew:** Ensure server and client clocks are synchronized
+2. **Cookie not set:** Check browser dev tools > Application > Cookies
+3. **HTTPS mismatch:** In production, ensure `NEXTAUTH_URL` uses HTTPS
+
+### Login works but user shows as unauthenticated
+
+**Symptoms:** Login succeeds but `/api/auth/me` returns 401
+
+**Solutions:**
+1. Check cookies are being sent (credentials: 'include')
+2. Verify SESSION_SECRET hasn't changed between requests
+3. Check for proxy stripping cookies (X-Forwarded-* headers)
 
 ---
 
 ## OAuth Issues
 
-### OAuth callback error
+### "OAuth callback error"
 
-**Error:**
-```
-OAuth callback failed: invalid_grant
-```
+**Symptoms:** Redirect to error page after OAuth provider authorization
 
 **Causes & Solutions:**
+1. **Callback URL mismatch:** Provider callback must exactly match:
+   - Google: `http://localhost:3000/api/auth/oauth/google/callback`
+   - GitHub: `http://localhost:3000/api/auth/oauth/github/callback`
+2. **Missing credentials:** Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, etc.
+3. **State token expired:** OAuth must complete within 10 minutes
 
-1. **Expired authorization code**
-   - OAuth codes expire quickly (usually 10 minutes)
-   - Try the OAuth flow again
+### "Account already linked"
 
-2. **Redirect URI mismatch**
-   - Ensure callback URL matches exactly in provider settings:
-     - Google: `http://localhost:3000/api/auth/oauth/google/callback`
-     - GitHub: `http://localhost:3000/api/auth/oauth/github/callback`
+**Symptoms:** Error when trying to link OAuth account
 
-3. **Wrong credentials**
-   - Verify `CLIENT_ID` and `CLIENT_SECRET` match provider dashboard
+**Solution:** Each OAuth account can only link to one user. Check if already linked to another account.
 
-### "User already exists" during OAuth signup
+### OAuth works locally but not in production
 
-**Cause:** Email from OAuth provider already registered with password.
-
-**Solution:**
-- Log in with existing password
-- Link OAuth account from Profile → Security
-
-### OAuth state token expired
-
-**Error:**
-```
-OAuth state token expired or invalid
-```
-
-**Cause:** Took too long to complete OAuth flow (>10 minutes).
-
-**Solution:** Start the OAuth flow again.
+**Checklist:**
+- [ ] Update callback URLs in provider console to production domain
+- [ ] Set `NEXTAUTH_URL` to production URL
+- [ ] Ensure HTTPS is configured
+- [ ] Update OAuth credentials for production
 
 ---
 
-## Build & Development
+## Two-Factor Authentication Issues
 
-### Build fails with type errors
+### "Invalid 2FA code"
 
-**Solution:**
+**Symptoms:** TOTP code rejected during login or setup
+
+**Causes & Solutions:**
+1. **Clock drift:** TOTP is time-based. Sync device clock with internet time
+2. **Code expired:** Codes are valid for 30 seconds. Enter quickly
+3. **Wrong account:** Verify authenticator app has correct account
+
+### Lost access to authenticator app
+
+**Solutions:**
+1. Use one of the 10 backup codes provided during setup
+2. Ask admin to reset 2FA: `POST /api/admin/users/[id]/reset-2fa`
+3. Each backup code works once only
+
+### QR code not scanning
+
+**Solutions:**
+1. Try manual entry - use the text code shown below QR
+2. Increase screen brightness
+3. Try different authenticator app (Google Authenticator, Authy, 1Password)
+
+---
+
+## Rate Limiting Issues
+
+### "Too many requests" (429)
+
+**Symptoms:** API returns 429 status code
+
+**Solutions:**
+1. **Wait:** Rate limits reset after the window (usually 1 minute)
+2. **Check headers:** `X-RateLimit-Reset` shows when limit resets
+3. **Development:** Reset limits via `POST /api/test/reset-rate-limits`
+
+### Rate limits too aggressive
+
+**Configuration:** Edit `src/lib/rate-limiter/index.ts` or set environment:
+```bash
+# Use Redis for distributed rate limiting
+UPSTASH_REDIS_REST_URL="https://..."
+UPSTASH_REDIS_REST_TOKEN="..."
+```
+
+---
+
+## Email Issues
+
+### Emails not sending in development
+
+**Expected behavior:** In development without `RESEND_API_KEY`, emails log to console instead of sending.
+
+**To test real emails:**
+1. Sign up at [resend.com](https://resend.com)
+2. Get API key and set `RESEND_API_KEY`
+3. Verify your sending domain
+
+### "Email delivery failed"
+
+**Check:**
+1. Email logs: `GET /api/admin/emails` (admin only)
+2. Resend dashboard for delivery status
+3. Spam folders for test emails
+
+### Email verification link expired
+
+**Solution:** Request new verification email:
+- Click "Resend verification email" on login page
+- Or call `POST /api/auth/resend-verification`
+
+---
+
+## Build & TypeScript Issues
+
+### "Type error" during build
+
+**Symptoms:** `npm run build` fails with TypeScript errors
+
+**Solutions:**
 ```bash
 # Check types without building
 npx tsc --noEmit
 
-# Fix auto-fixable issues
-npm run lint -- --fix
+# Common fix: regenerate Prisma types
+npx prisma generate
 ```
 
 ### "Module not found" errors
 
-**Solution:**
+**Solutions:**
 ```bash
-# Clear node_modules and reinstall
-rm -rf node_modules package-lock.json
-npm install
+# Clear Next.js cache
+rm -rf .next
+
+# Reinstall dependencies
+rm -rf node_modules && npm install
 
 # Regenerate Prisma client
 npx prisma generate
 ```
 
-### Hot reload not working
+### ESLint errors blocking commit
 
-**Possible causes:**
+**Solutions:**
+```bash
+# Auto-fix what's possible
+npm run lint -- --fix
 
-1. **File watcher limit reached (Linux)**
-   ```bash
-   echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
-   sudo sysctl -p
-   ```
+# Check specific file
+npx eslint src/path/to/file.ts
+```
 
-2. **Cache corruption**
-   ```bash
-   rm -rf .next
-   npm run dev
-   ```
+---
+
+## Development Server Issues
 
 ### Port 3000 already in use
 
-**Error:**
-```
-Error: listen EADDRINUSE: address already in use :::3000
-```
-
-**Solution:**
+**Solutions:**
 ```bash
-# Find process using port 3000
+# Find process using port
 lsof -i :3000
 
 # Kill it
 kill -9 <PID>
 
-# Or use a different port
+# Or use different port
 PORT=3001 npm run dev
 ```
 
+### Hot reload not working
+
+**Solutions:**
+1. Check file isn't in `.gitignore` (ignored files don't trigger reload)
+2. Restart dev server: `Ctrl+C` then `npm run dev`
+3. Clear Next.js cache: `rm -rf .next`
+
 ---
 
-## Testing
+## Production Deployment Issues
 
-### Unit tests failing after schema changes
+### "NEXTAUTH_URL must be set"
 
-**Solution:**
+**Solution:** Set to your production URL:
 ```bash
-# Regenerate Prisma client
-npx prisma generate
-
-# Run tests
-npm run test:unit
+NEXTAUTH_URL="https://your-domain.com"
 ```
 
-### E2E tests timing out
+### Database connection timeouts
 
-**Possible causes:**
+**Solutions:**
+1. Use connection pooling (PgBouncer, Supabase pooler)
+2. Add `?connection_limit=1` to DATABASE_URL for serverless
+3. Configure pool settings in Prisma schema
 
-1. **Dev server not running**
-   - E2E tests need the app running
-   - Start dev server in another terminal
+### Static assets not loading
 
-2. **Database not seeded**
-   - Ensure test data exists
-   - Check test setup scripts
-
-### Test database conflicts
-
-**Solution:** Use separate database for tests:
-```env
-# .env.test
-DATABASE_URL="file:./test.db"
-```
+**Check:**
+1. `next.config.js` basePath if using subpath
+2. CDN configuration for `/_next/static/` paths
+3. CORS headers for cross-origin asset loading
 
 ---
 
-## Still Stuck?
+## Getting Help
 
-1. **Check the logs**
-   - Browser console for client errors
-   - Terminal output for server errors
+If your issue isn't listed here:
 
-2. **Search existing issues**
-   - [GitHub Issues](https://github.com/lbijeau/soclestack/issues)
+1. **Search existing issues:** [GitHub Issues](https://github.com/lbijeau/soclestack/issues)
+2. **Check documentation:** [Full Docs](https://lbijeau.github.io/soclestack/)
+3. **Open new issue:** Include error messages, steps to reproduce, and environment details
 
-3. **Create a new issue**
-   - Include error message
-   - Steps to reproduce
-   - Environment details (OS, Node version)
+### Useful debug information to include
 
-4. **Security issues**
-   - See [SECURITY.md](../SECURITY.md)
-   - Do not post security vulnerabilities publicly
+```bash
+# System info
+node --version
+npm --version
+
+# Check dependencies
+npm ls prisma
+npm ls next
+
+# Environment (don't share secrets!)
+cat .env.local | grep -v SECRET | grep -v PASSWORD | grep -v KEY
+```

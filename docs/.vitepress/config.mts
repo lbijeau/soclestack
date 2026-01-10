@@ -38,6 +38,7 @@ export default withMermaid(
             { text: 'Progress', link: '/PROGRESS' },
             { text: 'Documentation Status', link: '/DOCUMENTATION_STATUS' },
             { text: 'Environment Variables', link: '/ENVIRONMENT' },
+            { text: 'Troubleshooting', link: '/TROUBLESHOOTING' },
           ]
         },
               {
