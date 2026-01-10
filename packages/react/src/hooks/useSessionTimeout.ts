@@ -43,6 +43,7 @@ export function useSessionTimeout({
   const [isExtending, setIsExtending] = useState(false);
 
   const warningFiredRef = useRef(false);
+  const timeoutFiredRef = useRef(false);
   const sessionStartRef = useRef<number | null>(null);
 
   // Track when session started/refreshed
@@ -58,6 +59,7 @@ export function useSessionTimeout({
       setIsWarning(false);
       setIsExpired(false);
       warningFiredRef.current = false;
+      timeoutFiredRef.current = false;
     }
   }, [state.status]);
 
@@ -91,9 +93,10 @@ export function useSessionTimeout({
 
       if (remaining === null) return;
 
-      if (remaining <= 0) {
+      if (remaining <= 0 && !timeoutFiredRef.current) {
         setIsExpired(true);
         setIsWarning(false);
+        timeoutFiredRef.current = true;
         onTimeout?.();
       } else if (remaining <= warnBefore && !warningFiredRef.current) {
         setIsWarning(true);
@@ -125,6 +128,7 @@ export function useSessionTimeout({
       setIsWarning(false);
       setIsExpired(false);
       warningFiredRef.current = false;
+      timeoutFiredRef.current = false;
       return true;
     } catch {
       return false;
