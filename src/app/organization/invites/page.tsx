@@ -224,6 +224,7 @@ export default function InvitesPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={sending}
+                data-testid="invite-email-input"
               />
             </div>
             <div className="w-32">
@@ -236,12 +237,13 @@ export default function InvitesPage() {
                 onChange={(e) => setRole(e.target.value as 'ADMIN' | 'MEMBER')}
                 disabled={sending}
                 className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="invite-role-select"
               >
                 <option value="MEMBER">Member</option>
                 <option value="ADMIN">Admin</option>
               </select>
             </div>
-            <Button type="submit" disabled={sending || !email.trim()}>
+            <Button type="submit" disabled={sending || !email.trim()} data-testid="invite-send-button">
               {sending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -274,16 +276,17 @@ export default function InvitesPage() {
               No pending invitations. Send an invite above to add team members.
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4" data-testid="pending-invites-list">
               {invites.map((invite) => (
                 <div
                   key={invite.id}
                   className={`flex items-center justify-between rounded-lg border p-4 ${
                     isExpired(invite.expiresAt) ? 'bg-gray-50 opacity-75' : ''
                   }`}
+                  data-testid="pending-invite-row"
                 >
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-gray-900" data-testid="pending-invite-email">
                       {invite.email}
                     </div>
                     <div className="text-sm text-gray-500">
@@ -302,6 +305,7 @@ export default function InvitesPage() {
                       <Badge
                         variant="outline"
                         className="border-red-200 text-red-600"
+                        data-testid="pending-invite-expired-badge"
                       >
                         Expired
                       </Badge>
@@ -319,6 +323,7 @@ export default function InvitesPage() {
                         handleCancelInvite(invite.id, invite.email)
                       }
                       disabled={cancelling === invite.id}
+                      data-testid="pending-invite-cancel-button"
                     >
                       {cancelling === invite.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
