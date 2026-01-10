@@ -15,3 +15,6 @@ export type { SocleProviderProps } from './provider';
 
 // Hooks
 export { useAuth, useUser, useOrganization, useIsAuthenticated } from './hooks';
+
+// Components
+export * from './components';
