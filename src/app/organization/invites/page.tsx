@@ -288,6 +288,7 @@ export default function InvitesPage() {
                     isExpired(invite.expiresAt) ? 'bg-gray-50 opacity-75' : ''
                   }`}
                   data-testid="pending-invite-row"
+                  data-invite-email={invite.email}
                 >
                   <div>
                     <div

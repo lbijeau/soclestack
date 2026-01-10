@@ -155,7 +155,10 @@ export default function MembersPage() {
     if (!currentUser || !canManage) return false;
     if (member.id === currentUser.id) return false; // Can't manage yourself
     if (member.organizationRole === 'ROLE_OWNER') return false; // Can't manage owner
-    if (currentUser.role === 'ROLE_ADMIN' && member.organizationRole === 'ROLE_ADMIN')
+    if (
+      currentUser.role === 'ROLE_ADMIN' &&
+      member.organizationRole === 'ROLE_ADMIN'
+    )
       return false; // Admin can't manage admin
     return true;
   };
@@ -232,6 +235,7 @@ export default function MembersPage() {
                 key={member.id}
                 className="flex items-center justify-between rounded-lg border p-4"
                 data-testid="member-row"
+                data-member-email={member.email}
               >
                 <div className="flex items-center gap-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">

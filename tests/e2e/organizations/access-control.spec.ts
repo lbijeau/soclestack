@@ -1,6 +1,7 @@
 import { test, expect, Browser } from '@playwright/test';
 import { AuthHelpers } from '../../utils/auth-helpers';
 import { DatabaseHelpers } from '../../utils/database-helpers';
+import { TEST_TIMEOUTS } from '../../utils/org-test-constants';
 
 test.describe('Organization Access Control', () => {
   let testData: Awaited<ReturnType<typeof DatabaseHelpers.setupTestOrganization>>;
@@ -20,7 +21,7 @@ test.describe('Organization Access Control', () => {
 
     await test.step('Attempt to access organization main page', async () => {
       await page.goto('/organization');
-      await page.waitForLoadState('networkidle');
+      await page.waitForURL(/\/(dashboard|login|organization)/, { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify redirect to dashboard', async () => {
@@ -29,7 +30,7 @@ test.describe('Organization Access Control', () => {
 
     await test.step('Attempt to access members page', async () => {
       await page.goto('/organization/members');
-      await page.waitForLoadState('networkidle');
+      await page.waitForURL(/\/(dashboard|login|organization)/, { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify redirect from members page', async () => {
@@ -38,7 +39,7 @@ test.describe('Organization Access Control', () => {
 
     await test.step('Attempt to access invites page', async () => {
       await page.goto('/organization/invites');
-      await page.waitForLoadState('networkidle');
+      await page.waitForURL(/\/(dashboard|login|organization)/, { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify redirect from invites page', async () => {
@@ -53,7 +54,7 @@ test.describe('Organization Access Control', () => {
 
     await test.step('Access organization main page', async () => {
       await page.goto('/organization');
-      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('h1', { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify organization page is accessible', async () => {
@@ -67,7 +68,7 @@ test.describe('Organization Access Control', () => {
 
     await test.step('Access members page', async () => {
       await page.goto('/organization/members');
-      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('[data-testid="members-list"]', { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify members page is accessible', async () => {
@@ -83,7 +84,7 @@ test.describe('Organization Access Control', () => {
 
     await test.step('Attempt to access invites page as member', async () => {
       await page.goto('/organization/invites');
-      await page.waitForLoadState('networkidle');
+      await page.waitForURL(/\/organization/, { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify member is redirected from invites page', async () => {
@@ -97,7 +98,7 @@ test.describe('Organization Access Control', () => {
 
     await test.step('Access invites page as admin', async () => {
       await page.goto('/organization/invites');
-      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('[data-testid="invite-email-input"]', { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify admin can access invites page', async () => {
@@ -112,7 +113,7 @@ test.describe('Organization Access Control', () => {
 
     await test.step('Access invites page as owner', async () => {
       await page.goto('/organization/invites');
-      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('[data-testid="invite-email-input"]', { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify owner can access invites page', async () => {
@@ -158,7 +159,7 @@ test.describe('Organization Access Control', () => {
 
       await test.step('First owner navigates to their organization', async () => {
         await page1.goto('/organization');
-        await page1.waitForLoadState('networkidle');
+        await page1.waitForSelector('[data-testid="org-name-input"]', { timeout: TEST_TIMEOUTS.pageLoad });
       });
 
       await test.step('Verify first owner sees their organization name', async () => {
@@ -168,7 +169,7 @@ test.describe('Organization Access Control', () => {
 
       await test.step('Second owner navigates to their organization', async () => {
         await page2.goto('/organization');
-        await page2.waitForLoadState('networkidle');
+        await page2.waitForSelector('[data-testid="org-name-input"]', { timeout: TEST_TIMEOUTS.pageLoad });
       });
 
       await test.step('Verify second owner sees their organization name', async () => {
@@ -222,7 +223,7 @@ test.describe('Organization Access Control', () => {
     await test.step('Login as owner and navigate to organization page', async () => {
       await AuthHelpers.loginAsOrgOwner(page);
       await page.goto('/organization');
-      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('[data-testid="org-save-button"]', { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify owner sees all controls', async () => {
@@ -235,7 +236,7 @@ test.describe('Organization Access Control', () => {
       await AuthHelpers.logout(page);
       await AuthHelpers.loginAsOrgAdmin(page);
       await page.goto('/organization');
-      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('[data-testid="org-save-button"]', { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify admin sees edit controls but not delete button', async () => {
@@ -248,7 +249,7 @@ test.describe('Organization Access Control', () => {
       await AuthHelpers.logout(page);
       await AuthHelpers.loginAsOrgMember(page);
       await page.goto('/organization');
-      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('h1', { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify member sees no edit controls', async () => {
@@ -259,7 +260,7 @@ test.describe('Organization Access Control', () => {
 
     await test.step('Navigate to members page as member', async () => {
       await page.goto('/organization/members');
-      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('[data-testid="members-list"]', { timeout: TEST_TIMEOUTS.pageLoad });
     });
 
     await test.step('Verify member sees no management controls on members page', async () => {

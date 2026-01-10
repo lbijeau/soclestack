@@ -1,6 +1,6 @@
 import { Page, BrowserContext, expect } from '@playwright/test';
 import { DatabaseHelpers } from './database-helpers';
-import { ORG_TEST_USERS } from './org-test-constants';
+import { ORG_TEST_USERS, TEST_TIMEOUTS } from './org-test-constants';
 import { TEST_USERS } from '../fixtures/test-users';
 import { ROLE_NAMES as Role } from '@/lib/constants/roles';
 
@@ -21,14 +21,14 @@ export class AuthHelpers {
   ): Promise<void> {
     try {
       await page.goto('/login');
-      await page.waitForSelector('[data-testid="login-form"]', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="login-form"]', { timeout: TEST_TIMEOUTS.pageLoad });
 
       await page.fill('[data-testid="email-input"]', email);
       await page.fill('[data-testid="password-input"]', password);
       await page.click('[data-testid="login-submit"]');
 
       // Wait for successful login
-      await page.waitForURL(/\/(dashboard|admin|profile)/, { timeout: 15000 });
+      await page.waitForURL(/\/(dashboard|admin|profile)/, { timeout: TEST_TIMEOUTS.auth });
 
       console.log(`✅ Successfully authenticated as ${email}`);
     } catch (error) {
@@ -120,7 +120,7 @@ export class AuthHelpers {
       for (const selector of logoutSelectors) {
         try {
           const element = page.locator(selector);
-          if (await element.isVisible({ timeout: 2000 })) {
+          if (await element.isVisible({ timeout: TEST_TIMEOUTS.elementVisible })) {
             await element.click();
             logoutSuccessful = true;
             break;
@@ -140,7 +140,7 @@ export class AuthHelpers {
       }
 
       // Wait for redirect to login page
-      await page.waitForURL('**/login', { timeout: 10000 });
+      await page.waitForURL('**/login', { timeout: TEST_TIMEOUTS.pageLoad });
       console.log('✅ Successfully logged out');
     } catch (error) {
       console.error('❌ Failed to logout:', error);
@@ -181,7 +181,7 @@ export class AuthHelpers {
       ];
 
       for (const selector of authenticatedSelectors) {
-        if (await page.locator(selector).isVisible({ timeout: 2000 })) {
+        if (await page.locator(selector).isVisible({ timeout: TEST_TIMEOUTS.elementVisible })) {
           return true;
         }
       }
@@ -201,15 +201,15 @@ export class AuthHelpers {
     switch (expectedRole) {
       case Role.ADMIN:
         await expect(page).toHaveURL(/.*\/admin/);
-        await expect(page.locator('[data-testid="admin-menu"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-testid="admin-menu"]')).toBeVisible({ timeout: TEST_TIMEOUTS.pageLoad });
         break;
       case Role.MODERATOR:
         // Moderators can access admin area but with limited features
-        await expect(page.locator('[data-testid="moderator-badge"], [data-testid="admin-menu"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-testid="moderator-badge"], [data-testid="admin-menu"]')).toBeVisible({ timeout: TEST_TIMEOUTS.pageLoad });
         break;
       case Role.USER:
         await expect(page).toHaveURL(/.*\/dashboard/);
-        await expect(page.locator('[data-testid="user-dashboard"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-testid="user-dashboard"]')).toBeVisible({ timeout: TEST_TIMEOUTS.pageLoad });
         break;
       default:
         throw new Error(`Unknown role: ${expectedRole}`);
@@ -229,7 +229,7 @@ export class AuthHelpers {
     for (const route of protectedRoutes) {
       try {
         await page.goto(route.path);
-        await page.waitForLoadState('networkidle', { timeout: 5000 });
+        await page.waitForLoadState('networkidle', { timeout: TEST_TIMEOUTS.elementVisible });
 
         const currentUrl = page.url();
 
@@ -268,7 +268,7 @@ export class AuthHelpers {
     await page.goto('/dashboard');
 
     // Should redirect to login
-    await page.waitForURL('**/login', { timeout: 10000 });
+    await page.waitForURL('**/login', { timeout: TEST_TIMEOUTS.pageLoad });
   }
 
   /**
@@ -308,7 +308,7 @@ export class AuthHelpers {
         if (!success) {
           try {
             const errorElement = page.locator('[data-testid="error-message"]');
-            error = await errorElement.textContent({ timeout: 2000 });
+            error = await errorElement.textContent({ timeout: TEST_TIMEOUTS.elementVisible });
           } catch {
             // No error message found
           }
@@ -390,15 +390,15 @@ export class AuthHelpers {
       let role: string | undefined;
 
       try {
-        email = await page.locator('[data-testid="user-email"]').textContent({ timeout: 2000 }) || undefined;
+        email = await page.locator('[data-testid="user-email"]').textContent({ timeout: TEST_TIMEOUTS.elementVisible }) || undefined;
       } catch {}
 
       try {
-        username = await page.locator('[data-testid="user-username"]').textContent({ timeout: 2000 }) || undefined;
+        username = await page.locator('[data-testid="user-username"]').textContent({ timeout: TEST_TIMEOUTS.elementVisible }) || undefined;
       } catch {}
 
       try {
-        role = await page.locator('[data-testid="user-role"]').textContent({ timeout: 2000 }) || undefined;
+        role = await page.locator('[data-testid="user-role"]').textContent({ timeout: TEST_TIMEOUTS.elementVisible }) || undefined;
       } catch {}
 
       return {
