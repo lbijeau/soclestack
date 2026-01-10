@@ -71,10 +71,10 @@ function verifyWebhookSignature(
   const secret = env.RESEND_WEBHOOK_SECRET;
 
   if (!secret) {
-    console.warn(
-      '[Resend Webhook] No webhook secret configured, skipping verification'
+    console.error(
+      '[Resend Webhook] RESEND_WEBHOOK_SECRET not configured - rejecting request'
     );
-    return true; // Allow in development without secret
+    return false;
   }
 
   if (
