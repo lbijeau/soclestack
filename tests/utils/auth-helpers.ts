@@ -1,6 +1,6 @@
 import { Page, BrowserContext, expect } from '@playwright/test';
 import { DatabaseHelpers } from './database-helpers';
-import { Role } from '@prisma/client';
+import { ORG_TEST_USERS } from './org-test-constants';
 
 export interface AuthenticatedState {
   user: any;
@@ -63,7 +63,8 @@ export class AuthHelpers {
    * Login as organization owner
    */
   static async loginAsOrgOwner(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'org-owner@test.com', 'OwnerTest123!');
+    const { email, password } = ORG_TEST_USERS.owner;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
   }
 
@@ -71,7 +72,8 @@ export class AuthHelpers {
    * Login as organization admin
    */
   static async loginAsOrgAdmin(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'org-admin@test.com', 'AdminTest123!');
+    const { email, password } = ORG_TEST_USERS.admin;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
   }
 
@@ -79,7 +81,8 @@ export class AuthHelpers {
    * Login as organization member
    */
   static async loginAsOrgMember(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'org-member@test.com', 'MemberTest123!');
+    const { email, password } = ORG_TEST_USERS.member;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
   }
 
@@ -87,7 +90,8 @@ export class AuthHelpers {
    * Login as non-member (user not in any org)
    */
   static async loginAsNonMember(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'non-member@test.com', 'NonMemberTest123!');
+    const { email, password } = ORG_TEST_USERS.nonMember;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
   }
 

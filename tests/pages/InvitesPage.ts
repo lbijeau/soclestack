@@ -52,8 +52,10 @@ export class InvitesPage extends BasePage {
   }
 
   async cancelInvite(email: string): Promise<void> {
-    this.page.once('dialog', dialog => dialog.accept());
+    // Set up dialog handler before triggering the action (avoids race condition)
+    const dialogPromise = this.page.waitForEvent('dialog').then(dialog => dialog.accept());
     await this.getInviteCancelButton(email).click();
+    await dialogPromise; // Wait for dialog to be handled
     await this.waitForLoadingToComplete();
   }
 

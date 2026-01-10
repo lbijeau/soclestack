@@ -4,6 +4,16 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
 import { generateTOTPSecret } from './totp-helpers';
+import {
+  ORG_TEST_USERS,
+  ORG_ROLE_TO_DB_ROLE,
+  DB_ROLE_TO_ORG_ROLE,
+  INVITE_ROLE_TO_DB_ROLE,
+  TEST_INVITE_EMAILS,
+  generateUniqueSlug,
+  type OrgRole,
+  type InviteRole,
+} from './org-test-constants';
 
 // Create a test-specific Prisma client
 // For e2e tests, we need to use the same database as the running application.
@@ -554,16 +564,10 @@ export class DatabaseHelpers {
   static async addMemberToOrganization(
     orgId: string,
     userId: string,
-    role: 'OWNER' | 'ADMIN' | 'MEMBER'
+    role: OrgRole
   ): Promise<any> {
-    // Map role parameter to actual role name
-    const roleNameMap: Record<'OWNER' | 'ADMIN' | 'MEMBER', string> = {
-      OWNER: ROLES.OWNER,
-      ADMIN: ROLES.ADMIN,
-      MEMBER: ROLES.USER, // MEMBER maps to ROLE_USER
-    };
-
-    const roleName = roleNameMap[role];
+    // Use centralized role mapping from org-test-constants
+    const roleName = ORG_ROLE_TO_DB_ROLE[role];
     const roleRecord = await this.prisma.role.findUnique({
       where: { name: roleName },
     });
@@ -620,7 +624,7 @@ export class DatabaseHelpers {
   /**
    * Get a member's role in an organization
    */
-  static async getMemberRole(orgId: string, userId: string): Promise<'OWNER' | 'ADMIN' | 'MEMBER' | null> {
+  static async getMemberRole(orgId: string, userId: string): Promise<OrgRole | null> {
     const userRole = await this.prisma.userRole.findFirst({
       where: {
         organizationId: orgId,
@@ -635,14 +639,8 @@ export class DatabaseHelpers {
       return null;
     }
 
-    // Map role name back to simplified role type
-    const roleMap: Record<string, 'OWNER' | 'ADMIN' | 'MEMBER'> = {
-      [ROLES.OWNER]: 'OWNER',
-      [ROLES.ADMIN]: 'ADMIN',
-      [ROLES.USER]: 'MEMBER',
-    };
-
-    return roleMap[userRole.role.name] || null;
+    // Use centralized role mapping from org-test-constants
+    return DB_ROLE_TO_ORG_ROLE[userRole.role.name] || null;
   }
 
   /**
@@ -651,16 +649,11 @@ export class DatabaseHelpers {
   static async createTestInvite(
     orgId: string,
     email: string,
-    role: 'ADMIN' | 'MEMBER',
+    role: InviteRole,
     options?: { expiresAt?: Date; invitedById?: string }
   ): Promise<{ invite: any; token: string }> {
-    // Map role parameter to actual role name
-    const roleNameMap: Record<'ADMIN' | 'MEMBER', string> = {
-      ADMIN: ROLES.ADMIN,
-      MEMBER: ROLES.USER,
-    };
-
-    const roleName = roleNameMap[role];
+    // Use centralized role mapping from org-test-constants
+    const roleName = INVITE_ROLE_TO_DB_ROLE[role];
     const roleRecord = await this.prisma.role.findUnique({
       where: { name: roleName },
     });
@@ -737,7 +730,8 @@ export class DatabaseHelpers {
   }
 
   /**
-   * Set up a complete test organization with various user roles and invites
+   * Set up a complete test organization with various user roles and invites.
+   * Uses centralized test credentials from org-test-constants.ts
    */
   static async setupTestOrganization(): Promise<{
     org: any;
@@ -749,57 +743,33 @@ export class DatabaseHelpers {
     expiredInvite: { invite: any; token: string };
   }> {
     // Create owner user first with known password for auth helpers
-    const ownerUser = await this.createTestUser({
-      email: 'org-owner@test.com',
-      password: 'OwnerTest123!',
-      username: 'orgowner',
-      firstName: 'Org',
-      lastName: 'Owner',
-    });
+    const ownerUser = await this.createTestUser(ORG_TEST_USERS.owner);
 
-    // Create the organization with the owner
+    // Create the organization with the owner using unique slug for test isolation
     const orgResult = await this.createTestOrganization({
       name: 'Test Organization',
-      slug: `test-org-${Date.now()}`,
-      ownerEmail: 'org-owner@test.com',
+      slug: generateUniqueSlug(),
+      ownerEmail: ORG_TEST_USERS.owner.email,
     });
 
     const org = orgResult;
     const owner = ownerUser;
 
     // Create admin user and add to organization
-    const admin = await this.createTestUser({
-      email: 'org-admin@test.com',
-      password: 'AdminTest123!',
-      username: 'orgadmin',
-      firstName: 'Org',
-      lastName: 'Admin',
-    });
+    const admin = await this.createTestUser(ORG_TEST_USERS.admin);
     await this.addMemberToOrganization(org.id, admin.id, 'ADMIN');
 
     // Create member user and add to organization
-    const member = await this.createTestUser({
-      email: 'org-member@test.com',
-      password: 'MemberTest123!',
-      username: 'orgmember',
-      firstName: 'Org',
-      lastName: 'Member',
-    });
+    const member = await this.createTestUser(ORG_TEST_USERS.member);
     await this.addMemberToOrganization(org.id, member.id, 'MEMBER');
 
     // Create non-member user (not in organization)
-    const nonMember = await this.createTestUser({
-      email: 'non-member@test.com',
-      password: 'NonMemberTest123!',
-      username: 'nonmember',
-      firstName: 'Non',
-      lastName: 'Member',
-    });
+    const nonMember = await this.createTestUser(ORG_TEST_USERS.nonMember);
 
     // Create pending invite
     const pendingInvite = await this.createTestInvite(
       org.id,
-      'pending-invite@test.com',
+      TEST_INVITE_EMAILS.pending,
       'MEMBER',
       { invitedById: owner.id }
     );
@@ -807,7 +777,7 @@ export class DatabaseHelpers {
     // Create expired invite
     const expiredInvite = await this.createTestInvite(
       org.id,
-      'expired-invite@test.com',
+      TEST_INVITE_EMAILS.expired,
       'MEMBER',
       {
         expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago

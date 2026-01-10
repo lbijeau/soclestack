@@ -53,8 +53,11 @@ export class OrganizationPage extends BasePage {
   }
 
   async deleteOrganization(): Promise<void> {
-    this.page.once('dialog', dialog => dialog.accept());
+    // Set up dialog handler before triggering the action (avoids race condition)
+    // Using waitForEvent ensures the promise resolves after dialog is handled
+    const dialogPromise = this.page.waitForEvent('dialog').then(dialog => dialog.accept());
     await this.deleteButton.click();
+    await dialogPromise; // Wait for dialog to be handled
     await this.page.waitForURL('**/dashboard');
   }
 

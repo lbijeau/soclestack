@@ -5,6 +5,7 @@ export class MembersPage extends BasePage {
   readonly membersList: Locator;
   readonly inviteButton: Locator;
   readonly membersErrorMessage: Locator;
+  readonly membersSuccessMessage: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -12,6 +13,7 @@ export class MembersPage extends BasePage {
     this.membersList = page.locator('[data-testid="members-list"]');
     this.inviteButton = page.locator('[data-testid="invite-members-button"]');
     this.membersErrorMessage = page.locator('[data-testid="members-error-message"]');
+    this.membersSuccessMessage = page.locator('[data-testid="members-success-message"]');
   }
 
   async goto(): Promise<void> {
@@ -42,8 +44,10 @@ export class MembersPage extends BasePage {
   }
 
   async removeMember(email: string): Promise<void> {
-    this.page.once('dialog', dialog => dialog.accept());
+    // Set up dialog handler before triggering the action (avoids race condition)
+    const dialogPromise = this.page.waitForEvent('dialog').then(dialog => dialog.accept());
     await this.getMemberRemoveButton(email).click();
+    await dialogPromise; // Wait for dialog to be handled
     await this.waitForLoadingToComplete();
   }
 
@@ -86,5 +90,19 @@ export class MembersPage extends BasePage {
 
   async getMemberCount(): Promise<number> {
     return await this.page.locator('[data-testid="member-row"]').count();
+  }
+
+  async assertSuccessMessageVisible(message?: string): Promise<void> {
+    await expect(this.membersSuccessMessage).toBeVisible();
+    if (message) {
+      await expect(this.membersSuccessMessage).toContainText(message);
+    }
+  }
+
+  async assertErrorMessageVisible(message?: string): Promise<void> {
+    await expect(this.membersErrorMessage).toBeVisible();
+    if (message) {
+      await expect(this.membersErrorMessage).toContainText(message);
+    }
   }
 }
