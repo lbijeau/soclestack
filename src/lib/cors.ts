@@ -14,6 +14,14 @@ export function getAllowedOrigins(): string[] {
 }
 
 /**
+ * Check if wildcard CORS is configured.
+ * Wildcard mode does not support credentials per CORS spec.
+ */
+export function isWildcardCors(): boolean {
+  return getAllowedOrigins().includes('*');
+}
+
+/**
  * Check if origin is allowed for CORS
  */
 export function isOriginAllowed(origin: string | null): boolean {
@@ -29,14 +37,27 @@ export function isOriginAllowed(origin: string | null): boolean {
 }
 
 /**
- * Add CORS headers to response
+ * Add CORS headers to response.
+ * Note: When wildcard '*' is configured, credentials are NOT allowed per CORS spec.
+ * Use explicit origins if you need credentials (cookies, Authorization header).
  */
 export function addCorsHeaders(
   response: NextResponse,
   origin: string
 ): NextResponse {
-  response.headers.set('Access-Control-Allow-Origin', origin);
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  const wildcard = isWildcardCors();
+
+  // Use '*' for wildcard mode, otherwise echo the specific origin
+  response.headers.set(
+    'Access-Control-Allow-Origin',
+    wildcard ? '*' : origin
+  );
+
+  // Credentials only allowed with explicit origins, not wildcard
+  if (!wildcard) {
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+  }
+
   response.headers.set(
     'Access-Control-Allow-Methods',
     'GET, POST, PUT, PATCH, DELETE, OPTIONS'
