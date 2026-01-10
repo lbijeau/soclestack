@@ -1,6 +1,8 @@
 import { Page, BrowserContext, expect } from '@playwright/test';
 import { DatabaseHelpers } from './database-helpers';
 import { ORG_TEST_USERS } from './org-test-constants';
+import { TEST_USERS } from '../fixtures/test-users';
+import { ROLE_NAMES as Role } from '@/lib/constants/roles';
 
 export interface AuthenticatedState {
   user: any;
@@ -39,7 +41,8 @@ export class AuthHelpers {
    * Quick login as admin user
    */
   static async loginAsAdmin(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'admin@test.com', 'AdminTest123!');
+    const { email, password } = TEST_USERS.admin;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/admin/);
   }
 
@@ -47,7 +50,8 @@ export class AuthHelpers {
    * Quick login as regular user
    */
   static async loginAsUser(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'user@test.com', 'UserTest123!');
+    const { email, password } = TEST_USERS.user;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/dashboard/);
   }
 
@@ -55,7 +59,8 @@ export class AuthHelpers {
    * Quick login as moderator
    */
   static async loginAsModerator(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'moderator@test.com', 'ModeratorTest123!');
+    const { email, password } = TEST_USERS.moderator;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
   }
 
@@ -275,9 +280,9 @@ export class AuthHelpers {
     const testCases = [
       { email: '', password: '', description: 'empty credentials' },
       { email: 'invalid@test.com', password: 'ValidPassword123!', description: 'invalid email' },
-      { email: 'user@test.com', password: 'wrongpassword', description: 'wrong password' },
-      { email: 'unverified@test.com', password: 'UnverifiedTest123!', description: 'unverified account' },
-      { email: 'inactive@test.com', password: 'InactiveTest123!', description: 'inactive account' },
+      { email: TEST_USERS.user.email, password: 'wrongpassword', description: 'wrong password' },
+      { email: TEST_USERS.unverified.email, password: TEST_USERS.unverified.password, description: 'unverified account' },
+      { email: TEST_USERS.inactive.email, password: TEST_USERS.inactive.password, description: 'inactive account' },
       { email: 'invalid-email', password: 'ValidPassword123!', description: 'malformed email' },
     ];
 
@@ -336,8 +341,8 @@ export class AuthHelpers {
     await page.goto('/login');
     await page.waitForSelector('[data-testid="login-form"]');
 
-    await page.fill('[data-testid="email-input"]', 'user@test.com');
-    await page.fill('[data-testid="password-input"]', 'UserTest123!');
+    await page.fill('[data-testid="email-input"]', TEST_USERS.user.email);
+    await page.fill('[data-testid="password-input"]', TEST_USERS.user.password);
     await page.check('[data-testid="remember-me-checkbox"]');
     await page.click('[data-testid="login-submit"]');
 

@@ -14,6 +14,7 @@ import {
   type OrgRole,
   type InviteRole,
 } from './org-test-constants';
+import { TEST_USERS, getUserData } from '../fixtures/test-users';
 
 // Create a test-specific Prisma client
 // For e2e tests, we need to use the same database as the running application.
@@ -166,7 +167,8 @@ export class DatabaseHelpers {
   }
 
   /**
-   * Create a complete test environment with predefined users
+   * Create a complete test environment with predefined users.
+   * Uses centralized test credentials from fixtures/test-users.ts
    */
   static async setupTestUsers(): Promise<{
     adminUser: any;
@@ -179,52 +181,11 @@ export class DatabaseHelpers {
     await this.cleanupDatabase();
 
     console.log('Creating admin user...');
-    const adminUser = await this.createTestUser({
-      email: 'admin@test.com',
-      password: 'AdminTest123!',
-      role: ROLES.ADMIN,
-      username: 'admin',
-      firstName: 'Admin',
-      lastName: 'User',
-    });
-
-    const moderatorUser = await this.createTestUser({
-      email: 'moderator@test.com',
-      password: 'ModeratorTest123!',
-      role: ROLES.MODERATOR,
-      username: 'moderator',
-      firstName: 'Moderator',
-      lastName: 'User',
-    });
-
-    const regularUser = await this.createTestUser({
-      email: 'user@test.com',
-      password: 'UserTest123!',
-      role: ROLES.USER,
-      username: 'testuser',
-      firstName: 'Test',
-      lastName: 'User',
-    });
-
-    const unverifiedUser = await this.createTestUser({
-      email: 'unverified@test.com',
-      password: 'UnverifiedTest123!',
-      role: ROLES.USER,
-      emailVerified: false,
-      username: 'unverified',
-      firstName: 'Unverified',
-      lastName: 'User',
-    });
-
-    const inactiveUser = await this.createTestUser({
-      email: 'inactive@test.com',
-      password: 'InactiveTest123!',
-      role: ROLES.USER,
-      isActive: false,
-      username: 'inactive',
-      firstName: 'Inactive',
-      lastName: 'User',
-    });
+    const adminUser = await this.createTestUser(getUserData('admin'));
+    const moderatorUser = await this.createTestUser(getUserData('moderator'));
+    const regularUser = await this.createTestUser(getUserData('user'));
+    const unverifiedUser = await this.createTestUser(getUserData('unverified'));
+    const inactiveUser = await this.createTestUser(getUserData('inactive'));
 
     return {
       adminUser,
