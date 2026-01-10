@@ -58,7 +58,7 @@ function UnlockAccountContent() {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8" data-testid="unlock-loading">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center justify-center py-8">
@@ -73,20 +73,20 @@ function UnlockAccountContent() {
 
   if (status === 'no-token') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8" data-testid="unlock-no-token">
         <Card className="w-full max-w-md">
           <CardHeader>
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
               <Unlock className="h-6 w-6 text-yellow-600" />
             </div>
-            <CardTitle className="mt-4 text-center">Invalid Link</CardTitle>
+            <CardTitle className="mt-4 text-center" data-testid="no-token-title">Invalid Link</CardTitle>
             <CardDescription className="text-center">
               This unlock link appears to be invalid or incomplete.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/request-unlock">
-              <Button className="w-full">Request New Unlock Link</Button>
+              <Button className="w-full" data-testid="request-new-link-button">Request New Unlock Link</Button>
             </Link>
           </CardContent>
         </Card>
@@ -96,24 +96,24 @@ function UnlockAccountContent() {
 
   if (status === 'error') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8" data-testid="unlock-error">
         <Card className="w-full max-w-md">
           <CardHeader>
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
               <XCircle className="h-6 w-6 text-red-600" />
             </div>
-            <CardTitle className="mt-4 text-center">Unlock Failed</CardTitle>
+            <CardTitle className="mt-4 text-center" data-testid="error-title">Unlock Failed</CardTitle>
           </CardHeader>
           <CardContent>
-            <Alert variant="error" className="mb-4">
+            <Alert variant="error" className="mb-4" data-testid="error-message">
               {message}
             </Alert>
             <div className="space-y-3">
               <Link href="/request-unlock">
-                <Button className="w-full">Request New Unlock Link</Button>
+                <Button className="w-full" data-testid="request-new-link-button">Request New Unlock Link</Button>
               </Link>
               <Link href="/login">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" data-testid="back-to-login-button">
                   Back to Login
                 </Button>
               </Link>
@@ -125,18 +125,18 @@ function UnlockAccountContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8" data-testid="unlock-success">
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
-          <CardTitle className="mt-4 text-center">Account Unlocked!</CardTitle>
-          <CardDescription className="text-center">{message}</CardDescription>
+          <CardTitle className="mt-4 text-center" data-testid="success-title">Account Unlocked!</CardTitle>
+          <CardDescription className="text-center" data-testid="success-message">{message}</CardDescription>
         </CardHeader>
         <CardContent>
           <Link href="/login">
-            <Button className="w-full">Sign In Now</Button>
+            <Button className="w-full" data-testid="sign-in-button">Sign In Now</Button>
           </Link>
         </CardContent>
       </Card>
