@@ -126,3 +126,86 @@ export async function waitForFreshTOTPWindow(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, timeRemainingInWindow + 1000));
   }
 }
+
+/**
+ * Result of a TOTP submission attempt
+ */
+export interface TOTPSubmitResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Options for TOTP submission with retry
+ */
+export interface TOTPRetryOptions {
+  /** Maximum number of retry attempts (default: 2) */
+  maxRetries?: number;
+  /** Function to generate the code from secret */
+  generateCode?: (secret: string) => string;
+}
+
+/**
+ * Submit TOTP code with automatic retry on timing-related failures.
+ *
+ * This handles the edge case where a code could expire between generation
+ * and submission due to network latency or slow test execution.
+ *
+ * @param page - Playwright Page object
+ * @param secret - TOTP secret to generate codes from
+ * @param submitFn - Function that fills and submits the code, returns success/error
+ * @param options - Retry options
+ * @returns Promise that resolves when submission succeeds
+ * @throws Error if all retry attempts fail
+ *
+ * @example
+ * ```typescript
+ * await submitTOTPWithRetry(page, secret, async (code) => {
+ *   await challengePage.verify(code);
+ *   // Check if we're redirected (success) or see an error
+ *   const error = await page.locator('[data-testid="error-message"]').textContent();
+ *   return { success: !error, error: error || undefined };
+ * });
+ * ```
+ */
+export async function submitTOTPWithRetry(
+  secret: string,
+  submitFn: (code: string) => Promise<TOTPSubmitResult>,
+  options: TOTPRetryOptions = {}
+): Promise<void> {
+  const { maxRetries = 2, generateCode = generateTOTPCode } = options;
+  const timingErrorPatterns = ['expired', 'invalid', 'incorrect'];
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    await waitForFreshTOTPWindow();
+    const code = generateCode(secret);
+
+    const result = await submitFn(code);
+
+    if (result.success) {
+      return;
+    }
+
+    // Check if error is timing-related (might succeed with fresh code)
+    const isTimingError =
+      result.error &&
+      timingErrorPatterns.some((pattern) =>
+        result.error!.toLowerCase().includes(pattern)
+      );
+
+    // If not a timing error, don't retry
+    if (!isTimingError) {
+      throw new Error(`TOTP submission failed: ${result.error}`);
+    }
+
+    // If this was the last attempt, throw
+    if (attempt === maxRetries) {
+      throw new Error(
+        `TOTP submission failed after ${maxRetries + 1} attempts: ${result.error}`
+      );
+    }
+
+    // Wait before retry to ensure we're in a new TOTP window
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+}
