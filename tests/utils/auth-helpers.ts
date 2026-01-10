@@ -1,13 +1,13 @@
-import { Page, BrowserContext, expect } from '@playwright/test';
-import { DatabaseHelpers } from './database-helpers';
+import { Page, BrowserContext, Cookie, expect } from '@playwright/test';
+import { DatabaseHelpers, TestUserResult } from './database-helpers';
 import { ORG_TEST_USERS, TEST_TIMEOUTS } from './org-test-constants';
 import { TEST_USERS } from '../fixtures/test-users';
 import { ROLE_NAMES as Role } from '@/lib/constants/roles';
 
 export interface AuthenticatedState {
-  user: any;
+  user: TestUserResult;
   context: BrowserContext;
-  cookies: any;
+  cookies: Cookie[];
 }
 
 export class AuthHelpers {
@@ -161,7 +161,7 @@ export class AuthHelpers {
       firstName?: string;
       lastName?: string;
     } = {}
-  ): Promise<any> {
+  ): Promise<TestUserResult> {
     const user = await DatabaseHelpers.createTestUser(userData);
     await this.authenticateUser(page, user.email, user.plainPassword);
     return user;
@@ -274,23 +274,26 @@ export class AuthHelpers {
   }
 
   /**
+   * Credential info for invalid authentication test results
+   */
+  private static readonly invalidAuthTestCases = [
+    { email: '', password: '', description: 'empty credentials' },
+    { email: 'invalid@test.com', password: 'ValidPassword123!', description: 'invalid email' },
+    { email: TEST_USERS.user.email, password: 'wrongpassword', description: 'wrong password' },
+    { email: TEST_USERS.unverified.email, password: TEST_USERS.unverified.password, description: 'unverified account' },
+    { email: TEST_USERS.inactive.email, password: TEST_USERS.inactive.password, description: 'inactive account' },
+    { email: 'invalid-email', password: 'ValidPassword123!', description: 'malformed email' },
+  ] as const;
+
+  /**
    * Test authentication with various invalid credentials
    */
   static async testInvalidAuthentication(page: Page): Promise<{
-    results: Array<{ credentials: any; success: boolean; error?: string }>;
+    results: Array<{ credentials: { email: string; description: string }; success: boolean; error?: string }>;
   }> {
-    const testCases = [
-      { email: '', password: '', description: 'empty credentials' },
-      { email: 'invalid@test.com', password: 'ValidPassword123!', description: 'invalid email' },
-      { email: TEST_USERS.user.email, password: 'wrongpassword', description: 'wrong password' },
-      { email: TEST_USERS.unverified.email, password: TEST_USERS.unverified.password, description: 'unverified account' },
-      { email: TEST_USERS.inactive.email, password: TEST_USERS.inactive.password, description: 'inactive account' },
-      { email: 'invalid-email', password: 'ValidPassword123!', description: 'malformed email' },
-    ];
+    const results: Array<{ credentials: { email: string; description: string }; success: boolean; error?: string }> = [];
 
-    const results = [];
-
-    for (const testCase of testCases) {
+    for (const testCase of this.invalidAuthTestCases) {
       try {
         await page.goto('/login');
         await page.waitForSelector('[data-testid="login-form"]');
@@ -306,11 +309,11 @@ export class AuthHelpers {
         const currentUrl = page.url();
         const success = !currentUrl.includes('/login');
 
-        let error;
+        let errorMessage: string | undefined;
         if (!success) {
           try {
             const errorElement = page.locator('[data-testid="error-message"]');
-            error = await errorElement.textContent({ timeout: TEST_TIMEOUTS.elementVisible });
+            errorMessage = await errorElement.textContent({ timeout: TEST_TIMEOUTS.elementVisible }) ?? undefined;
           } catch {
             // No error message found
           }
@@ -319,15 +322,16 @@ export class AuthHelpers {
         results.push({
           credentials: { email: testCase.email, description: testCase.description },
           success,
-          error,
+          error: errorMessage,
         });
 
         console.log(`${success ? '✅' : '❌'} ${testCase.description}: ${success ? 'succeeded' : 'failed'}`);
-      } catch (error) {
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
         results.push({
           credentials: { email: testCase.email, description: testCase.description },
           success: false,
-          error: error.message,
+          error: errorMessage,
         });
       }
     }
