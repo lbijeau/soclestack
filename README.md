@@ -7,10 +7,13 @@
 
 [![Status](https://img.shields.io/badge/status-beta-yellow)](#production-checklist)
 [![LLM-Ready](https://img.shields.io/badge/LLM--Ready-Claude%20%7C%20Cursor%20%7C%20Copilot-blue)](#llm-assisted-development)
+[![Docs](https://img.shields.io/badge/docs-VitePress-646cff)](https://lbijeau.github.io/soclestack/)
+
+**[View Full Documentation](https://lbijeau.github.io/soclestack/)**
 
 ![SocleStack Banner](./public/images/social-preview.png)
 
-A complete Next.js 14 application with enterprise-grade user management features, built with TypeScript, Prisma, and modern React components. **SocleStack** is the foundational block upon which your SaaS application is built.
+A complete Next.js 15 application with enterprise-grade user management features, built with TypeScript, Prisma, and modern React components. **SocleStack** is the foundational block upon which your SaaS application is built.
 
 ## Why SocleStack?
 
@@ -29,17 +32,34 @@ A complete Next.js 14 application with enterprise-grade user management features
 - **OAuth Integration** - Google and GitHub social login
 - **API Keys** - Token-based API authentication with scoped permissions
 - **Audit Logging** - Comprehensive security event tracking
+- **Session Management** - Timeout warnings with extend capability
+- **SDK Packages** - Headless core SDK and React components for integration
 - **Modern UI** - Responsive Tailwind CSS design with admin panel
 
 ## Tech Stack
 
-Next.js 14 (App Router) | TypeScript | PostgreSQL + Prisma | Tailwind CSS | iron-session + JWT
+Next.js 15 (App Router) | TypeScript | PostgreSQL + Prisma | Tailwind CSS | iron-session + JWT
+
+## SDK Packages
+
+Build custom frontends or integrate SocleStack auth into existing apps:
+
+| Package | Description |
+|---------|-------------|
+| [`@soclestack/core`](packages/core) | Headless SDK - framework-agnostic auth client |
+| [`@soclestack/react`](packages/react) | React hooks and components for auth flows |
+
+```bash
+npm install @soclestack/core @soclestack/react
+```
+
+See the [SDK Recipes Guide](https://lbijeau.github.io/soclestack/SDK_RECIPES) for copy-paste patterns.
 
 ## Quick Start
 
 ```bash
 # Clone and install
-git clone https://github.com/yourusername/soclestack.git
+git clone https://github.com/lbijeau/soclestack.git
 cd soclestack && npm install
 
 # Start PostgreSQL
@@ -57,14 +77,16 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ## Documentation
 
+**Full documentation: [lbijeau.github.io/soclestack](https://lbijeau.github.io/soclestack/)**
+
 | Document | Description |
 |----------|-------------|
-| [API Reference](docs/API_REFERENCE.md) | Complete API endpoint documentation |
-| [Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md) | Project structure, security, and design |
-| [Database Schema](docs/DATABASE.md) | Models, relationships, and queries |
-| [Environment Variables](docs/ENVIRONMENT.md) | Configuration reference |
-| [Migrations](docs/MIGRATIONS.md) | Database migration guide |
-| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues and solutions |
+| [API Reference](https://lbijeau.github.io/soclestack/API_REFERENCE) | Complete API endpoint documentation |
+| [Technical Architecture](https://lbijeau.github.io/soclestack/TECHNICAL_ARCHITECTURE) | Project structure, security, and design |
+| [SDK Recipes](https://lbijeau.github.io/soclestack/SDK_RECIPES) | Copy-paste patterns for auth flows |
+| [Component Catalog](https://lbijeau.github.io/soclestack/components/catalog) | UI and SDK component reference |
+| [Database Schema](https://lbijeau.github.io/soclestack/DATABASE) | Models, relationships, and queries |
+| [Environment Variables](https://lbijeau.github.io/soclestack/ENVIRONMENT) | Configuration reference |
 
 ## Production Checklist
 
@@ -85,7 +107,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 - [ ] Redis for rate limiting (`UPSTASH_REDIS_REST_URL` — optional but recommended)
 - [ ] HTTPS enabled with proper security headers
 
-See [TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md) for full security considerations.
+See [Technical Architecture](https://lbijeau.github.io/soclestack/TECHNICAL_ARCHITECTURE) for full security considerations.
 
 ## LLM-Assisted Development
 
