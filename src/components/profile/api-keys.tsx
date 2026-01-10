@@ -336,6 +336,7 @@ export function ApiKeys() {
               onClick={() => setShowCreateModal(true)}
               disabled={count >= limit}
               size="sm"
+              data-testid="create-api-key-button"
             >
               <Plus className="mr-1 h-4 w-4" />
               Create Key
@@ -347,7 +348,7 @@ export function ApiKeys() {
           {success && <Alert variant="success">{success}</Alert>}
 
           {keys.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">
+            <div className="py-8 text-center text-gray-500" data-testid="empty-keys-message">
               <Key className="mx-auto mb-3 h-12 w-12 text-gray-300" />
               <p>No API keys yet</p>
               <p className="text-sm">
@@ -355,10 +356,12 @@ export function ApiKeys() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3" data-testid="api-keys-list">
               {keys.map((key) => (
                 <div
                   key={key.id}
+                  data-testid={`api-key-item-${key.id}`}
+                  data-key-name={key.name}
                   className={`flex items-center justify-between rounded-lg border p-4 ${
                     isExpired(key.expiresAt)
                       ? 'border-red-200 bg-red-50'
@@ -369,7 +372,7 @@ export function ApiKeys() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">{key.name}</span>
+                      <span className="truncate font-medium" data-testid="api-key-name">{key.name}</span>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
                           key.permission === 'READ_WRITE'
@@ -412,6 +415,7 @@ export function ApiKeys() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEdit(key)}
+                      data-testid="edit-api-key-button"
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
@@ -421,6 +425,7 @@ export function ApiKeys() {
                       onClick={() => handleDelete(key)}
                       disabled={deletingId === key.id}
                       className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      data-testid="delete-api-key-button"
                     >
                       {deletingId === key.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -448,7 +453,7 @@ export function ApiKeys() {
 
       {/* Create Key Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="create-key-modal">
           <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6">
             <h3 className="mb-4 text-lg font-semibold">Create API Key</h3>
 
@@ -460,6 +465,7 @@ export function ApiKeys() {
                   onChange={(e) => setCreateName(e.target.value)}
                   placeholder="e.g., CI/CD Pipeline"
                   maxLength={50}
+                  data-testid="api-key-name-input"
                 />
               </div>
 
@@ -473,6 +479,7 @@ export function ApiKeys() {
                     setCreatePermission(e.target.value as ApiKeyPermission)
                   }
                   className="w-full rounded-md border px-3 py-2"
+                  data-testid="api-key-permission-select"
                 >
                   <option value="READ_ONLY">
                     Read-Only (GET requests only)
@@ -526,6 +533,7 @@ export function ApiKeys() {
                 variant="outline"
                 onClick={() => setShowCreateModal(false)}
                 className="flex-1"
+                data-testid="cancel-create-key-button"
               >
                 Cancel
               </Button>
@@ -533,6 +541,7 @@ export function ApiKeys() {
                 onClick={handleCreate}
                 disabled={creating || !createName.trim()}
                 className="flex-1"
+                data-testid="confirm-create-key-button"
               >
                 {creating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -547,7 +556,7 @@ export function ApiKeys() {
 
       {/* New Key Display Modal */}
       {newKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="new-key-modal">
           <div className="mx-4 w-full max-w-lg rounded-lg bg-white p-6">
             <h3 className="mb-2 text-lg font-semibold">Your New API Key</h3>
             <p className="mb-4 text-sm text-gray-600">
@@ -555,7 +564,7 @@ export function ApiKeys() {
               it again!
             </p>
 
-            <div className="rounded-lg bg-gray-100 p-4 font-mono text-sm break-all">
+            <div className="rounded-lg bg-gray-100 p-4 font-mono text-sm break-all" data-testid="new-api-key-value">
               {newKey}
             </div>
 
@@ -563,6 +572,7 @@ export function ApiKeys() {
               onClick={handleCopyKey}
               variant="outline"
               className="mt-3 w-full"
+              data-testid="copy-api-key-button"
             >
               {keyCopied ? (
                 <>
@@ -584,12 +594,13 @@ export function ApiKeys() {
                   checked={copyConfirmed}
                   onChange={(e) => setCopyConfirmed(e.target.checked)}
                   className="rounded"
+                  data-testid="copy-confirmed-checkbox"
                 />
                 I have copied my API key to a safe place
               </label>
             </div>
 
-            <Button onClick={handleCloseNewKeyModal} className="mt-4 w-full">
+            <Button onClick={handleCloseNewKeyModal} className="mt-4 w-full" data-testid="close-new-key-modal-button">
               Done
             </Button>
           </div>
