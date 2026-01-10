@@ -327,12 +327,21 @@ export async function authenticateUser(
 export async function createUserSession(
   user: UserWithRoles & { id: string; email: string },
   ipAddress?: string,
-  userAgent?: string
+  userAgent?: string,
+  session?: IronSession<SessionData>
 ): Promise<{
   accessToken: string;
   refreshToken: string;
   sessionToken: string;
 }> {
+  // IMPORTANT: In Next.js 15, the async context for cookies() can be lost after
+  // certain async operations like database queries. The session should be passed
+  // from the route handler where it was obtained early in the request lifecycle.
+  // If not provided, try to get it (may fail if async context is lost).
+  if (!session) {
+    session = await getSession();
+  }
+
   // Compute legacy role from userRoles
   const role = getHighestRole(user);
 
@@ -361,8 +370,7 @@ export async function createUserSession(
     },
   });
 
-  // Store session data in iron-session
-  const session = await getSession();
+  // Store session data in iron-session (session was obtained early)
   session.userId = user.id;
   session.email = user.email;
   session.role = role;

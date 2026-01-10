@@ -170,7 +170,7 @@ export class TwoFactorSetupPage extends BasePage {
 
     // Setup flow
     this.setupButton = this.page.locator(
-      '[data-testid="2fa-setup-button"], button:has-text("Set up two-factor")'
+      '[data-testid="2fa-setup-button"], button:has-text("Enable Two-Factor Authentication")'
     );
     this.qrCode = this.page.locator('[data-testid="2fa-qr-code"], img[alt*="QR"]');
     this.manualKeyDisplay = this.page.locator('[data-testid="manual-entry-key"], code');
@@ -212,11 +212,12 @@ export class TwoFactorSetupPage extends BasePage {
     // Status
     this.twoFactorStatus = this.page.locator('[data-testid="2fa-status"]');
     this.enabledBadge = this.page.locator(
-      '[data-testid="2fa-enabled-badge"], :has-text("Enabled")'
-    );
+      '[data-testid="2fa-enabled-badge"]'
+    ).or(this.page.getByText('2FA is enabled', { exact: true }));
+    // When 2FA is disabled, the UI shows the "Enable" button
     this.disabledBadge = this.page.locator(
-      '[data-testid="2fa-disabled-badge"], :has-text("Disabled")'
-    );
+      '[data-testid="2fa-disabled-badge"]'
+    ).or(this.page.locator('button:has-text("Enable Two-Factor Authentication")'));
   }
 
   /**
@@ -230,7 +231,12 @@ export class TwoFactorSetupPage extends BasePage {
    * Start 2FA setup flow
    */
   async startSetup(): Promise<void> {
+    console.log('Clicking setup button...');
     await this.setupButton.click();
+    console.log('Button clicked, waiting for QR code...');
+    // Wait a bit to see what happens to the page
+    await this.page.waitForTimeout(2000);
+    console.log('After 2s, current URL:', this.page.url());
     await expect(this.qrCode).toBeVisible({ timeout: 10000 });
   }
 
@@ -251,13 +257,29 @@ export class TwoFactorSetupPage extends BasePage {
    * Get backup codes from the display
    */
   async getBackupCodes(): Promise<string[]> {
+    // First, try the specific test ID for individual codes
+    const codeElements = this.page.locator('[data-testid="backup-code"]');
+    const count = await codeElements.count();
+
+    if (count > 0) {
+      const codes: string[] = [];
+      for (let i = 0; i < count; i++) {
+        const text = await codeElements.nth(i).textContent();
+        if (text) {
+          codes.push(text.trim());
+        }
+      }
+      return codes;
+    }
+
+    // Fallback to container-based selection
     const codesContainer = this.page.locator(
       '[data-testid="backup-codes"] div, .backup-codes div'
     );
-    const codeElements = await codesContainer.all();
+    const containerElements = await codesContainer.all();
     const codes: string[] = [];
 
-    for (const element of codeElements) {
+    for (const element of containerElements) {
       const text = await element.textContent();
       if (text && /^[A-Za-z0-9]{8}$/.test(text.trim())) {
         codes.push(text.trim());
@@ -306,16 +328,30 @@ export class TwoFactorSetupPage extends BasePage {
     const code = generateCode(secret);
     await this.completeSetup(code);
 
-    // Wait for success
-    await expect(this.successMessage).toBeVisible();
+    // Wait for success - the component shows enabled status instead of a message
+    await this.page.waitForTimeout(1000); // Wait for state transition
+    await expect(
+      this.page.getByText('2FA is enabled', { exact: true })
+    ).toBeVisible({ timeout: 10000 });
 
     return { secret, backupCodes };
   }
 
   /**
-   * Disable 2FA
+   * Disable 2FA (expects success - waits for UI to update)
    */
   async disable(code: string): Promise<void> {
+    await this.attemptDisable(code);
+    // Wait for the disable dialog to close and page to refresh
+    await expect(this.disableCodeInput).not.toBeVisible({ timeout: 10000 });
+    // Wait for the "Enable" button to appear (indicating 2FA is now disabled)
+    await expect(this.setupButton).toBeVisible({ timeout: 10000 });
+  }
+
+  /**
+   * Attempt to disable 2FA (may fail - does not wait for success)
+   */
+  async attemptDisable(code: string): Promise<void> {
     await this.disableButton.click();
     await expect(this.disableCodeInput).toBeVisible();
     await this.disableCodeInput.fill(code);

@@ -109,17 +109,20 @@ export function extractManualKey(setupResponse: {
 }
 
 /**
- * Wait for the next TOTP window to avoid timing issues
- * This ensures a fresh code that won't expire during the test
+ * Wait for a fresh TOTP window to avoid timing issues
+ * This ensures the generated code has enough time before it expires
+ *
+ * If less than 10 seconds remain in the current 30-second window,
+ * wait for the next window to start (plus a 1-second buffer).
  */
 export async function waitForFreshTOTPWindow(): Promise<void> {
   const now = Date.now();
   const currentPeriod = Math.floor(now / 30000);
   const nextPeriodStart = (currentPeriod + 1) * 30000;
-  const waitTime = nextPeriodStart - now + 1000; // Add 1 second buffer
+  const timeRemainingInWindow = nextPeriodStart - now;
 
-  if (waitTime < 5000) {
-    // If we're close to the next period, wait for it
-    await new Promise((resolve) => setTimeout(resolve, waitTime));
+  // If less than 10 seconds remain in current window, wait for next window
+  if (timeRemainingInWindow < 10000) {
+    await new Promise((resolve) => setTimeout(resolve, timeRemainingInWindow + 1000));
   }
 }

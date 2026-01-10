@@ -48,10 +48,7 @@ export function addCorsHeaders(
   const wildcard = isWildcardCors();
 
   // Use '*' for wildcard mode, otherwise echo the specific origin
-  response.headers.set(
-    'Access-Control-Allow-Origin',
-    wildcard ? '*' : origin
-  );
+  response.headers.set('Access-Control-Allow-Origin', wildcard ? '*' : origin);
 
   // Credentials only allowed with explicit origins, not wildcard
   if (!wildcard) {

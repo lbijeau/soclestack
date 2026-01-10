@@ -3,10 +3,34 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
+async function resetRateLimits(config: FullConfig) {
+  const baseURL = config.projects[0]?.use?.baseURL || 'http://localhost:3000';
+
+  try {
+    const response = await fetch(`${baseURL}/api/test/reset-rate-limits`, {
+      method: 'POST',
+    });
+
+    if (response.ok) {
+      console.log('🔄 Rate limits reset successfully');
+    } else if (response.status === 404) {
+      // Endpoint might not exist in production - that's fine
+      console.log('⚠️ Rate limit reset endpoint not available');
+    } else {
+      console.warn('⚠️ Failed to reset rate limits:', await response.text());
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not reset rate limits (server may not be running):', error.message);
+  }
+}
+
 async function globalSetup(config: FullConfig) {
   console.log('🚀 Starting global test setup...');
 
   try {
+    // Reset rate limits before running tests
+    await resetRateLimits(config);
+
     // Ensure test directories exist
     const dirs = [
       'test-results/html-report',
@@ -63,33 +87,40 @@ async function setupTestDatabase() {
 async function seedTestData() {
   console.log('🌱 Seeding test data...');
 
-  // In a real implementation, this would populate the database with:
-  // - Test users with different roles
-  // - Test data for various scenarios
-  // - Reference data needed for tests
+  // Use execSync to run the database setup via tsx
+  // This avoids ESM/CJS module compatibility issues
+  try {
+    execSync('npx tsx tests/scripts/seed-test-users.ts', {
+      stdio: 'inherit',
+      cwd: process.cwd(),
+    });
+  } catch (error) {
+    console.error('Failed to seed test data via script');
+    // Continue without failing - tests might still work if users exist
+  }
 
+  // Also write test fixture data files for reference
   const testUsers = [
     {
       email: 'admin@test.com',
       password: 'AdminTest123!',
-      role: 'admin',
+      role: 'ROLE_ADMIN',
       verified: true
     },
     {
       email: 'user@test.com',
       password: 'UserTest123!',
-      role: 'user',
+      role: 'ROLE_USER',
       verified: true
     },
     {
       email: 'unverified@test.com',
       password: 'UnverifiedTest123!',
-      role: 'user',
+      role: 'ROLE_USER',
       verified: false
     }
   ];
 
-  // Create test fixture data files
   fs.writeFileSync(
     path.join(process.cwd(), 'tests/fixtures/data/test-users.json'),
     JSON.stringify(testUsers, null, 2)

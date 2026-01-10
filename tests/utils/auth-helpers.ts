@@ -68,6 +68,7 @@ export class AuthHelpers {
       const logoutSelectors = [
         '[data-testid="logout-button"]',
         '[data-testid="user-menu-logout"]',
+        'button[aria-label="Logout"]',
         'a[href="/logout"]',
         'button:has-text("Logout")',
         'button:has-text("Sign Out")',
@@ -89,8 +90,12 @@ export class AuthHelpers {
       }
 
       if (!logoutSuccessful) {
-        // Try accessing logout endpoint directly
-        await page.goto('/api/auth/logout');
+        // Call logout API via page.evaluate (POST request)
+        await page.evaluate(async () => {
+          await fetch('/api/auth/logout', { method: 'POST' });
+        });
+        // Navigate to login page after API logout
+        await page.goto('/login');
       }
 
       // Wait for redirect to login page
