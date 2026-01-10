@@ -51,19 +51,26 @@ export function EmailVerificationBanner({
   }
 
   return (
-    <Alert variant="warning" className="mb-6">
+    <Alert variant="warning" className="mb-6" data-testid="email-verification-banner">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <Mail className="mt-0.5 h-5 w-5 flex-shrink-0" />
           <div>
-            <p className="font-medium">Verify your email address</p>
-            <p className="mt-1 text-sm">
+            <p className="font-medium" data-testid="verification-banner-title">
+              Verify your email address
+            </p>
+            <p className="mt-1 text-sm" data-testid="verification-banner-description">
               We sent a verification email to <strong>{email}</strong>. Please
               check your inbox and click the link to verify your account.
             </p>
             {message && (
               <p
                 className={`mt-2 text-sm ${message.type === 'success' ? 'text-green-700' : 'text-red-700'}`}
+                data-testid={
+                  message.type === 'success'
+                    ? 'verification-resend-success'
+                    : 'verification-resend-error'
+                }
               >
                 {message.text}
               </p>
@@ -72,6 +79,7 @@ export function EmailVerificationBanner({
               className="mt-2 text-sm text-amber-800 underline hover:text-amber-900 disabled:opacity-50"
               onClick={handleResend}
               disabled={isResending}
+              data-testid="resend-verification-button"
             >
               {isResending ? 'Sending...' : "Didn't receive the email? Resend"}
             </button>
@@ -81,6 +89,7 @@ export function EmailVerificationBanner({
           onClick={() => setIsDismissed(true)}
           className="p-1 text-amber-600 hover:text-amber-800"
           aria-label="Dismiss"
+          data-testid="dismiss-verification-banner"
         >
           <X className="h-4 w-4" />
         </button>
