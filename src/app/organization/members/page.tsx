@@ -207,7 +207,7 @@ export default function MembersPage() {
 
         {canManage && (
           <Link href="/organization/invites">
-            <Button>Invite Members</Button>
+            <Button data-testid="invite-members-button">Invite Members</Button>
           </Link>
         )}
       </div>
@@ -226,11 +226,12 @@ export default function MembersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-4" data-testid="members-list">
             {members.map((member) => (
               <div
                 key={member.id}
                 className="flex items-center justify-between rounded-lg border p-4"
+                data-testid="member-row"
               >
                 <div className="flex items-center gap-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
@@ -249,7 +250,7 @@ export default function MembersPage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-500">{member.email}</div>
+                    <div className="text-sm text-gray-500" data-testid="member-email">{member.email}</div>
                   </div>
                 </div>
 
@@ -272,6 +273,7 @@ export default function MembersPage() {
                         }
                         disabled={actionLoading === member.id}
                         className="h-10 w-32 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        data-testid="member-role-select"
                       >
                         <option value="MEMBER">Member</option>
                         {currentUser?.role === 'OWNER' && (
@@ -285,6 +287,7 @@ export default function MembersPage() {
                         className="text-red-600 hover:bg-red-50 hover:text-red-700"
                         onClick={() => handleRemove(member.id, member.email)}
                         disabled={actionLoading === member.id}
+                        data-testid="member-remove-button"
                       >
                         {actionLoading === member.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -296,6 +299,7 @@ export default function MembersPage() {
                   ) : (
                     <Badge
                       className={getRoleBadgeColor(member.organizationRole)}
+                      data-testid="member-role-badge"
                     >
                       {member.organizationRole === 'OWNER' && (
                         <Shield className="mr-1 h-3 w-3" />
