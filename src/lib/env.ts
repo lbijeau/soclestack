@@ -9,45 +9,50 @@
 import { z } from 'zod';
 
 /**
- * Server-side environment variables schema.
- * These are only available on the server and should never be exposed to the client.
+ * Base server environment schema (without refinements).
+ * Refinements are applied separately to allow .partial() for dev mode.
  */
-const serverEnvSchema = z
-  .object({
-    // === Required Security Secrets ===
-    JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-    JWT_REFRESH_SECRET: z
-      .string()
-      .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
-    SESSION_SECRET: z
-      .string()
-      .min(32, 'SESSION_SECRET must be at least 32 characters'),
+const serverEnvBaseSchema = z.object({
+  // === Required Security Secrets ===
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
+  SESSION_SECRET: z
+    .string()
+    .min(32, 'SESSION_SECRET must be at least 32 characters'),
 
-    // === Database ===
-    DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  // === Database ===
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 
-    // === Runtime ===
-    NODE_ENV: z
-      .enum(['development', 'production', 'test'])
-      .default('development'),
+  // === Runtime ===
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
 
-    // === Optional: Email ===
-    RESEND_API_KEY: z.string().optional(),
-    RESEND_WEBHOOK_SECRET: z.string().optional(),
-    EMAIL_FROM: z.string().optional(),
+  // === Optional: Email ===
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_WEBHOOK_SECRET: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
 
-    // === Optional: OAuth Providers ===
-    GOOGLE_CLIENT_ID: z.string().optional(),
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
-    GITHUB_CLIENT_ID: z.string().optional(),
-    GITHUB_CLIENT_SECRET: z.string().optional(),
+  // === Optional: OAuth Providers ===
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
 
-    // === Optional: Validation Control ===
-    VALIDATE_ENV_VARS: z.string().optional(),
+  // === Optional: Validation Control ===
+  VALIDATE_ENV_VARS: z.string().optional(),
 
-    // === Optional: SDK CORS Configuration ===
-    CORS_ORIGINS: z.string().optional(),
-  })
+  // === Optional: SDK CORS Configuration ===
+  CORS_ORIGINS: z.string().optional(),
+});
+
+/**
+ * Server-side environment variables schema with OAuth refinements.
+ * Used for production validation where all required fields must be present.
+ */
+const serverEnvSchema = serverEnvBaseSchema
   .refine((data) => !(data.GOOGLE_CLIENT_ID && !data.GOOGLE_CLIENT_SECRET), {
     message: 'GOOGLE_CLIENT_SECRET is required when GOOGLE_CLIENT_ID is set',
     path: ['GOOGLE_CLIENT_SECRET'],
@@ -107,10 +112,11 @@ function parseEnv(): Env {
   // In development/test without forced validation, also use permissive parsing
   if (isBuildPhase || (!isProduction && !forceValidation)) {
     // Parse with defaults, don't fail on missing optional values
-    const devResult = serverEnvSchema
+    // Use base schema (without refinements) since .partial() can't be used on refined schemas
+    const devResult = serverEnvBaseSchema
       .partial()
       .extend({
-        NODE_ENV: serverEnvSchema.shape.NODE_ENV,
+        NODE_ENV: serverEnvBaseSchema.shape.NODE_ENV,
       })
       .safeParse(process.env);
 
@@ -179,6 +185,7 @@ export { parseEnv as _parseEnv };
  * @internal
  */
 export {
+  serverEnvBaseSchema as _serverEnvBaseSchema,
   serverEnvSchema as _serverEnvSchema,
   clientEnvSchema as _clientEnvSchema,
 };
