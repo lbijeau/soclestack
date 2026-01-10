@@ -288,14 +288,14 @@ export function ActivityLog() {
 
   if (loading && logs.length === 0) {
     return (
-      <Card>
+      <Card data-testid="activity-log-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
             Activity Log
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex justify-center py-12">
+        <CardContent className="flex justify-center py-12" data-testid="activity-log-loading">
           <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         </CardContent>
       </Card>
@@ -303,7 +303,7 @@ export function ActivityLog() {
   }
 
   return (
-    <Card>
+    <Card data-testid="activity-log-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-5 w-5" />
@@ -315,19 +315,19 @@ export function ActivityLog() {
       </CardHeader>
       <CardContent>
         {error && (
-          <Alert variant="error" className="mb-4">
+          <Alert variant="error" className="mb-4" data-testid="activity-log-error">
             {error}
           </Alert>
         )}
 
         {logs.length === 0 ? (
-          <div className="py-12 text-center text-gray-500">
+          <div className="py-12 text-center text-gray-500" data-testid="activity-log-empty">
             <Activity className="mx-auto mb-3 h-12 w-12 text-gray-300" />
             <p>No activity yet</p>
           </div>
         ) : (
           <>
-            <div className="space-y-3">
+            <div className="space-y-3" data-testid="activity-log-list">
               {logs.map((log) => {
                 const config = ACTION_CONFIG[log.action] || {
                   label: log.action,
@@ -340,12 +340,14 @@ export function ActivityLog() {
                 return (
                   <div
                     key={log.id}
+                    data-testid={`activity-item-${log.id}`}
+                    data-activity-action={log.action}
                     className={`flex items-start gap-3 rounded-lg border p-3 ${VARIANT_STYLES[config.variant]}`}
                   >
                     <div className="mt-0.5">{config.icon}</div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{config.label}</span>
+                        <span className="font-medium" data-testid="activity-label">{config.label}</span>
                         {details && (
                           <span className="text-sm opacity-75">{details}</span>
                         )}
@@ -364,8 +366,8 @@ export function ActivityLog() {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-between border-t pt-4">
-                <span className="text-sm text-gray-500">
+              <div className="mt-6 flex items-center justify-between border-t pt-4" data-testid="activity-pagination">
+                <span className="text-sm text-gray-500" data-testid="activity-page-info">
                   Page {pagination.page} of {pagination.totalPages}
                 </span>
                 <div className="flex gap-2">
@@ -374,6 +376,7 @@ export function ActivityLog() {
                     size="sm"
                     onClick={() => fetchLogs(pagination.page - 1)}
                     disabled={pagination.page <= 1 || loading}
+                    data-testid="activity-prev-button"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Previous
@@ -385,6 +388,7 @@ export function ActivityLog() {
                     disabled={
                       pagination.page >= pagination.totalPages || loading
                     }
+                    data-testid="activity-next-button"
                   >
                     Next
                     <ChevronRight className="h-4 w-4" />
