@@ -124,23 +124,38 @@ function EmailPreviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-lg bg-white shadow-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      data-testid="email-preview-modal-overlay"
+    >
+      <div
+        className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-lg bg-white shadow-xl"
+        data-testid="email-preview-modal"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
-          <h2 className="text-lg font-semibold">Email Details</h2>
+          <h2 className="text-lg font-semibold" data-testid="email-preview-title">
+            Email Details
+          </h2>
           <button
             onClick={onClose}
             className="rounded-full p-1 hover:bg-gray-100"
+            data-testid="email-preview-close-button"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="max-h-[calc(90vh-140px)] overflow-y-auto p-4">
+        <div
+          className="max-h-[calc(90vh-140px)] overflow-y-auto p-4"
+          data-testid="email-preview-content"
+        >
           {/* Email metadata */}
-          <div className="mb-4 grid grid-cols-2 gap-4 rounded-lg bg-gray-50 p-4">
+          <div
+            className="mb-4 grid grid-cols-2 gap-4 rounded-lg bg-gray-50 p-4"
+            data-testid="email-preview-metadata"
+          >
             <div>
               <span className="text-sm font-medium text-gray-600">To:</span>
               <p className="text-sm">{email.to}</p>
@@ -215,12 +230,16 @@ function EmailPreviewModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t p-4">
+        <div
+          className="flex items-center justify-end gap-2 border-t p-4"
+          data-testid="email-preview-footer"
+        >
           {canResend && (
             <Button
               onClick={() => onResend(email.id)}
               disabled={isResending}
               variant="primary"
+              data-testid="email-preview-resend-button"
             >
               <RotateCw
                 className={`mr-2 h-4 w-4 ${isResending ? 'animate-spin' : ''}`}
@@ -228,7 +247,11 @@ function EmailPreviewModal({
               {isResending ? 'Resending...' : 'Resend Email'}
             </Button>
           )}
-          <Button variant="secondary" onClick={onClose}>
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            data-testid="email-preview-close-action"
+          >
             Close
           </Button>
         </div>
@@ -392,14 +415,15 @@ export function EmailLogViewer() {
 
   return (
     <>
-      <Card>
+      <Card data-testid="email-log-viewer">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Email Logs</CardTitle>
+          <CardTitle data-testid="email-log-title">Email Logs</CardTitle>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => fetchEmails(page)}
             disabled={loading}
+            data-testid="email-log-refresh-button"
           >
             <RefreshCw
               className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
@@ -408,10 +432,17 @@ export function EmailLogViewer() {
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {error && <Alert variant="error">{error}</Alert>}
+          {error && (
+            <Alert variant="error" data-testid="email-log-error">
+              {error}
+            </Alert>
+          )}
 
           {/* Filters */}
-          <div className="flex flex-wrap items-end gap-3 rounded-lg bg-gray-50 p-4">
+          <div
+            className="flex flex-wrap items-end gap-3 rounded-lg bg-gray-50 p-4"
+            data-testid="email-log-filters"
+          >
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-gray-600">
                 Status
@@ -420,6 +451,7 @@ export function EmailLogViewer() {
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm"
+                data-testid="email-log-status-filter"
               >
                 <option value="">All statuses</option>
                 <option value="PENDING">Pending</option>
@@ -436,6 +468,7 @@ export function EmailLogViewer() {
                 value={type}
                 onChange={(e) => setType(e.target.value)}
                 className="h-10 min-w-[180px] rounded-md border border-gray-200 bg-white px-3 text-sm"
+                data-testid="email-log-type-filter"
               >
                 <option value="">All types</option>
                 <option value="verification">Verification</option>
@@ -462,24 +495,30 @@ export function EmailLogViewer() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-56"
+                data-testid="email-log-search-filter"
               />
             </div>
 
-            <Button onClick={handleApplyFilters} disabled={loading}>
+            <Button
+              onClick={handleApplyFilters}
+              disabled={loading}
+              data-testid="email-log-apply-filters-button"
+            >
               Apply
             </Button>
             <Button
               variant="ghost"
               onClick={handleClearFilters}
               disabled={loading}
+              data-testid="email-log-clear-filters-button"
             >
               Clear
             </Button>
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto" data-testid="email-log-table-container">
+            <table className="w-full text-sm" data-testid="email-log-table">
               <thead>
                 <tr className="border-b">
                   <th className="px-4 py-3 text-left font-medium text-gray-600">
@@ -505,11 +544,11 @@ export function EmailLogViewer() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody data-testid="email-log-table-body">
                 {loading ? (
                   // Skeleton rows
                   Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-b">
+                    <tr key={i} className="border-b" data-testid="email-log-loading-row">
                       {Array.from({ length: 7 }).map((_, j) => (
                         <td key={j} className="px-4 py-3">
                           <div className="h-4 animate-pulse rounded bg-gray-200" />
@@ -518,7 +557,7 @@ export function EmailLogViewer() {
                     </tr>
                   ))
                 ) : emails.length === 0 ? (
-                  <tr>
+                  <tr data-testid="email-log-empty-state">
                     <td colSpan={7} className="py-8 text-center text-gray-500">
                       No email logs found matching your filters.
                     </td>
@@ -534,38 +573,55 @@ export function EmailLogViewer() {
                       email.status === 'FAILED' || email.status === 'BOUNCED';
 
                     return (
-                      <tr key={email.id} className="border-b hover:bg-gray-50">
-                        <td className="max-w-[200px] truncate px-4 py-3">
+                      <tr
+                        key={email.id}
+                        className="border-b hover:bg-gray-50"
+                        data-testid="email-log-row"
+                      >
+                        <td
+                          className="max-w-[200px] truncate px-4 py-3"
+                          data-testid="email-log-to"
+                        >
                           {email.to}
                         </td>
-                        <td className="max-w-[250px] truncate px-4 py-3">
+                        <td
+                          className="max-w-[250px] truncate px-4 py-3"
+                          data-testid="email-log-subject"
+                        >
                           {email.subject}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" data-testid="email-log-type">
                           <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
                             {TYPE_LABELS[email.type] || email.type}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" data-testid="email-log-status">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusConfig.bgColor} ${statusConfig.color}`}
                           >
                             {statusConfig.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td
+                          className="px-4 py-3 text-center"
+                          data-testid="email-log-attempts"
+                        >
                           {email.attempts}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td
+                          className="px-4 py-3 whitespace-nowrap"
+                          data-testid="email-log-sent"
+                        >
                           {formatDate(email.sentAt)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" data-testid="email-log-actions">
                           <div className="flex gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleViewEmail(email.id)}
                               disabled={loadingDetail}
+                              data-testid="email-log-view-button"
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -576,6 +632,7 @@ export function EmailLogViewer() {
                                 onClick={() => handleResend(email.id)}
                                 disabled={isResending}
                                 title="Resend email"
+                                data-testid="email-log-resend-button"
                               >
                                 <RotateCw className="h-4 w-4" />
                               </Button>
@@ -592,8 +649,14 @@ export function EmailLogViewer() {
 
           {/* Pagination */}
           {totalPages > 0 && (
-            <div className="flex items-center justify-between border-t pt-4">
-              <div className="text-sm text-gray-600">
+            <div
+              className="flex items-center justify-between border-t pt-4"
+              data-testid="email-log-pagination"
+            >
+              <div
+                className="text-sm text-gray-600"
+                data-testid="email-log-pagination-info"
+              >
                 Showing {(page - 1) * pageSize + 1}-
                 {Math.min(page * pageSize, total)} of {total} results
               </div>
@@ -603,6 +666,7 @@ export function EmailLogViewer() {
                   size="sm"
                   onClick={() => handlePageChange(page - 1)}
                   disabled={page === 1 || loading}
+                  data-testid="email-log-prev-page"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Prev
@@ -616,6 +680,7 @@ export function EmailLogViewer() {
                       onClick={() => handlePageChange(p)}
                       disabled={loading}
                       className="min-w-[36px]"
+                      data-testid={`email-log-page-${p}`}
                     >
                       {p}
                     </Button>
@@ -630,6 +695,7 @@ export function EmailLogViewer() {
                   size="sm"
                   onClick={() => handlePageChange(page + 1)}
                   disabled={page === totalPages || loading}
+                  data-testid="email-log-next-page"
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />

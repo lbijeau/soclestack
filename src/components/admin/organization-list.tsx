@@ -118,11 +118,19 @@ export function OrganizationList() {
   };
 
   return (
-    <div className="space-y-6">
-      {error && <Alert variant="error">{error}</Alert>}
+    <div className="space-y-6" data-testid="organization-list">
+      {error && (
+        <Alert variant="error" data-testid="organization-list-error">
+          {error}
+        </Alert>
+      )}
 
       {/* Search */}
-      <form onSubmit={handleSearch} className="flex gap-3">
+      <form
+        onSubmit={handleSearch}
+        className="flex gap-3"
+        data-testid="organization-list-search-form"
+      >
         <div className="flex-1">
           <Input
             type="text"
@@ -130,23 +138,35 @@ export function OrganizationList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full"
+            data-testid="organization-list-search-input"
           />
         </div>
-        <Button type="submit" disabled={isLoading}>
+        <Button
+          type="submit"
+          disabled={isLoading}
+          data-testid="organization-list-search-button"
+        >
           <Search size={16} className="mr-2" />
           Search
         </Button>
       </form>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border bg-white">
+      <div
+        className="overflow-hidden rounded-lg border bg-white"
+        data-testid="organization-list-table-container"
+      >
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table
+            className="min-w-full divide-y divide-gray-200"
+            data-testid="organization-list-table"
+          >
             <thead className="bg-gray-50">
               <tr>
                 <th
                   className="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100"
                   onClick={() => handleSort('name')}
+                  data-testid="organization-list-sort-name"
                 >
                   <div className="flex items-center gap-1">
                     Organization
@@ -162,6 +182,7 @@ export function OrganizationList() {
                 <th
                   className="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100"
                   onClick={() => handleSort('memberCount')}
+                  data-testid="organization-list-sort-members"
                 >
                   <div className="flex items-center gap-1">
                     Members
@@ -171,6 +192,7 @@ export function OrganizationList() {
                 <th
                   className="cursor-pointer px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100"
                   onClick={() => handleSort('createdAt')}
+                  data-testid="organization-list-sort-created"
                 >
                   <div className="flex items-center gap-1">
                     Created
@@ -182,7 +204,7 @@ export function OrganizationList() {
             <tbody className="divide-y divide-gray-200 bg-white">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
+                  <tr key={i} data-testid="organization-list-loading-row">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="h-4 animate-pulse rounded bg-gray-200" />
                     </td>
@@ -201,7 +223,7 @@ export function OrganizationList() {
                   </tr>
                 ))
               ) : organizations.length === 0 ? (
-                <tr>
+                <tr data-testid="organization-list-empty-state">
                   <td
                     colSpan={5}
                     className="px-6 py-12 text-center text-gray-500"
@@ -218,6 +240,7 @@ export function OrganizationList() {
                     onClick={() =>
                       router.push(`/admin/organizations/${org.id}`)
                     }
+                    data-testid="organization-list-row"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -251,7 +274,10 @@ export function OrganizationList() {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+          <div
+            className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6"
+            data-testid="organization-list-pagination"
+          >
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-700">
@@ -270,10 +296,14 @@ export function OrganizationList() {
                         page: prev.page - 1,
                       }))
                     }
+                    data-testid="organization-list-prev-page"
                   >
                     <ChevronLeft size={16} />
                   </Button>
-                  <span className="relative inline-flex items-center border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-500">
+                  <span
+                    className="relative inline-flex items-center border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-500"
+                    data-testid="organization-list-current-page"
+                  >
                     {pagination.page}
                   </span>
                   <Button
@@ -285,6 +315,7 @@ export function OrganizationList() {
                         page: prev.page + 1,
                       }))
                     }
+                    data-testid="organization-list-next-page"
                   >
                     <ChevronRight size={16} />
                   </Button>

@@ -110,16 +110,27 @@ export function RoleList() {
   }, []);
 
   if (error) {
-    return <Alert variant="error">{error}</Alert>;
+    return (
+      <Alert variant="error" data-testid="role-list-error">
+        {error}
+      </Alert>
+    );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-white">
+    <div
+      className="overflow-hidden rounded-lg border bg-white"
+      data-testid="role-list"
+    >
       <div className="divide-y divide-gray-200">
         {isLoading ? (
           // Loading skeleton
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex items-center px-6 py-4">
+            <div
+              key={i}
+              className="flex items-center px-6 py-4"
+              data-testid="role-list-loading-row"
+            >
               <div className="h-5 w-5 animate-pulse rounded bg-gray-200" />
               <div className="ml-3 h-4 w-32 animate-pulse rounded bg-gray-200" />
               <div className="ml-auto h-4 w-16 animate-pulse rounded bg-gray-200" />
@@ -127,7 +138,10 @@ export function RoleList() {
           ))
         ) : roles.length === 0 ? (
           // Empty state
-          <div className="px-6 py-12 text-center text-gray-500">
+          <div
+            className="px-6 py-12 text-center text-gray-500"
+            data-testid="role-list-empty-state"
+          >
             <Shield className="mx-auto mb-2 h-8 w-8 text-gray-400" />
             No roles found
           </div>
@@ -146,6 +160,7 @@ export function RoleList() {
                   router.push(`/admin/roles/${role.id}`);
                 }
               }}
+              data-testid="role-list-item"
             >
               {/* Indentation and icon */}
               <div
@@ -159,20 +174,30 @@ export function RoleList() {
               </div>
 
               {/* Role name */}
-              <span className="ml-3 font-medium text-gray-900">
+              <span
+                className="ml-3 font-medium text-gray-900"
+                data-testid="role-list-item-name"
+              >
                 {role.name}
               </span>
 
               {/* System badge */}
               {role.isSystem && (
-                <Badge variant="secondary" className="ml-2">
+                <Badge
+                  variant="secondary"
+                  className="ml-2"
+                  data-testid="role-list-item-system-badge"
+                >
                   System
                 </Badge>
               )}
 
               {/* Description (truncated) */}
               {role.description && (
-                <span className="ml-4 hidden truncate text-sm text-gray-500 md:block md:max-w-xs">
+                <span
+                  className="ml-4 hidden truncate text-sm text-gray-500 md:block md:max-w-xs"
+                  data-testid="role-list-item-description"
+                >
                   {role.description}
                 </span>
               )}
@@ -181,7 +206,10 @@ export function RoleList() {
               <div className="flex-1" />
 
               {/* User count */}
-              <div className="flex items-center text-sm text-gray-500">
+              <div
+                className="flex items-center text-sm text-gray-500"
+                data-testid="role-list-item-user-count"
+              >
                 <Users className="mr-1 h-4 w-4" />
                 {role.userCount}
               </div>

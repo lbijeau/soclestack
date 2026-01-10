@@ -333,9 +333,15 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
 
   if (error && !role && isEditMode) {
     return (
-      <Alert variant="error">
+      <Alert variant="error" data-testid="role-editor-error">
         {error}
-        <Button variant="ghost" size="sm" onClick={fetchData} className="ml-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={fetchData}
+          className="ml-2"
+          data-testid="role-editor-retry-button"
+        >
           Retry
         </Button>
       </Alert>
@@ -345,7 +351,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
   const isSystem = role?.isSystem ?? false;
 
   return (
-    <>
+    <div data-testid="role-editor">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -354,20 +360,27 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
             size="icon"
             onClick={handleNavigateBack}
             aria-label="Go back to roles list"
+            data-testid="role-editor-back-button"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1
+              className="text-2xl font-bold text-gray-900"
+              data-testid="role-editor-title"
+            >
               {isEditMode ? role?.name : 'New Role'}
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500" data-testid="role-editor-subtitle">
               {isEditMode ? 'Edit role properties' : 'Create a new role'}
             </p>
           </div>
         </div>
         {isEditMode && isSystem && (
-          <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800">
+          <span
+            className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800"
+            data-testid="role-editor-system-badge"
+          >
             <Shield className="mr-1 h-4 w-4" />
             System Role
           </span>
@@ -375,15 +388,20 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
       </div>
 
       {error && (
-        <Alert variant="error" className="mb-4" aria-live="polite">
+        <Alert
+          variant="error"
+          className="mb-4"
+          aria-live="polite"
+          data-testid="role-editor-form-error"
+        >
           {error}
         </Alert>
       )}
 
-      <Card>
+      <Card data-testid="role-editor-card">
         <CardHeader>
-          <CardTitle>Role Details</CardTitle>
-          <CardDescription>
+          <CardTitle data-testid="role-editor-card-title">Role Details</CardTitle>
+          <CardDescription data-testid="role-editor-card-description">
             {isSystem
               ? 'System roles have limited editing capabilities'
               : 'Configure the role name, description, and hierarchy'}
@@ -557,12 +575,16 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between border-t pt-6">
+          <div
+            className="flex items-center justify-between border-t pt-6"
+            data-testid="role-editor-actions"
+          >
             <div>
               {isEditMode && !isSystem && (
                 <Button
                   variant="destructive"
                   onClick={() => setShowDeleteModal(true)}
+                  data-testid="role-editor-delete-button"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Role
@@ -570,7 +592,11 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
               )}
             </div>
             <div className="flex space-x-3">
-              <Button variant="outline" onClick={handleNavigateBack}>
+              <Button
+                variant="outline"
+                onClick={handleNavigateBack}
+                data-testid="role-editor-cancel-button"
+              >
                 Cancel
               </Button>
               <Button
@@ -580,6 +606,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                   (!isEditMode && !!fieldErrors.name) ||
                   !!fieldErrors.description
                 }
+                data-testid="role-editor-save-button"
               >
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditMode ? 'Save Changes' : 'Create Role'}
@@ -600,21 +627,27 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
               setDeleteError('');
             }
           }}
+          data-testid="role-editor-delete-modal-overlay"
         >
           <div
             className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-modal-title"
+            data-testid="role-editor-delete-modal"
           >
             <div className="mb-4 flex items-center text-red-600">
               <AlertTriangle className="mr-2 h-6 w-6" />
-              <h2 id="delete-modal-title" className="text-lg font-semibold">
+              <h2
+                id="delete-modal-title"
+                className="text-lg font-semibold"
+                data-testid="role-editor-delete-modal-title"
+              >
                 Delete Role
               </h2>
             </div>
 
-            <p className="mb-4 text-gray-600">
+            <p className="mb-4 text-gray-600" data-testid="role-editor-delete-modal-description">
               This action cannot be undone. This will permanently delete the
               role <strong>{role?.name}</strong>.
             </p>
@@ -633,10 +666,16 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
               placeholder={role?.name}
               className="mb-4"
               aria-label="Type role name to confirm deletion"
+              data-testid="role-editor-delete-confirm-input"
             />
 
             {deleteError && (
-              <Alert variant="error" className="mb-4" aria-live="polite">
+              <Alert
+                variant="error"
+                className="mb-4"
+                aria-live="polite"
+                data-testid="role-editor-delete-error"
+              >
                 {deleteError}
               </Alert>
             )}
@@ -649,6 +688,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                   setDeleteConfirmName('');
                   setDeleteError('');
                 }}
+                data-testid="role-editor-delete-modal-cancel"
               >
                 Cancel
               </Button>
@@ -656,6 +696,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
                 variant="destructive"
                 onClick={handleDelete}
                 disabled={isDeleting || deleteConfirmName !== role?.name}
+                data-testid="role-editor-delete-modal-confirm"
               >
                 {isDeleting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -666,6 +707,6 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
