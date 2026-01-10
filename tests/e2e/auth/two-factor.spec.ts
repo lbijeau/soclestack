@@ -423,9 +423,17 @@ test.describe('Two-Factor Authentication', () => {
         await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
       });
 
-      await test.step('Cancel 2FA', async () => {
+      await test.step('Cancel 2FA and verify redirect', async () => {
+        // Some implementations may not have a cancel button
         if (await challengePage.cancelButton.isVisible()) {
           await challengePage.cancel();
+          await expect(page).toHaveURL(/.*\/login/);
+        } else {
+          // If no cancel button, test should be skipped or noted
+          test.info().annotations.push({
+            type: 'info',
+            description: 'Cancel button not visible - feature may not be implemented',
+          });
         }
       });
     });
