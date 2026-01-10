@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   _EmailCircuitBreaker as EmailCircuitBreaker,
   _resetCircuitBreaker,
@@ -13,6 +13,7 @@ describe('EmailCircuitBreaker', () => {
       failureThreshold: 3,
       resetTimeoutMs: 1000,
       successThreshold: 2,
+      halfOpenMaxRequests: 1,
     });
   });
 
@@ -88,25 +89,40 @@ describe('EmailCircuitBreaker', () => {
 
       // Wait for reset timeout to go to half-open
       await new Promise((r) => setTimeout(r, 1100));
-      breaker.canExecute(); // Trigger transition
+      // getState() triggers transition check without incrementing halfOpenRequests
+      breaker.getState();
     });
 
-    it('allows requests in half-open state', () => {
+    it('allows limited requests in half-open state', () => {
       expect(breaker.getState().state).toBe('HALF_OPEN');
+      // First request allowed
       expect(breaker.canExecute()).toBe(true);
+      // Second request blocked (max 1 concurrent)
+      expect(breaker.canExecute()).toBe(false);
     });
 
     it('closes circuit after success threshold', () => {
-      breaker.recordSuccess();
+      breaker.canExecute(); // Take the probe slot
+      breaker.recordSuccess(); // Release slot, increment successes
       expect(breaker.getState().state).toBe('HALF_OPEN');
 
+      breaker.canExecute(); // Take slot again
       breaker.recordSuccess(); // 2nd success = threshold
       expect(breaker.getState().state).toBe('CLOSED');
     });
 
     it('re-opens circuit on failure', () => {
+      breaker.canExecute(); // Take the probe slot
       breaker.recordFailure();
       expect(breaker.getState().state).toBe('OPEN');
+    });
+
+    it('tracks halfOpenRequests count', () => {
+      expect(breaker.getState().halfOpenRequests).toBe(0);
+      breaker.canExecute();
+      expect(breaker.getState().halfOpenRequests).toBe(1);
+      breaker.recordSuccess();
+      expect(breaker.getState().halfOpenRequests).toBe(0);
     });
   });
 

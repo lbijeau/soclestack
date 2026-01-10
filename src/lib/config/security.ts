@@ -49,8 +49,9 @@ export const SECURITY_CONFIG = {
   },
   circuitBreaker: {
     failureThreshold: 5, // Open circuit after 5 consecutive failures
-    resetTimeoutMs: 30_000, // Try recovery after 30 seconds
+    resetTimeoutMs: 60_000, // Try recovery after 60 seconds
     successThreshold: 2, // Close circuit after 2 successes in half-open
+    halfOpenMaxRequests: 1, // Only allow 1 probe request at a time in half-open
   },
 } as const;
 

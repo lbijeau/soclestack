@@ -60,7 +60,8 @@ export type AuditAction =
   | 'ADMIN_USER_ROLES_UPDATED'
   // Admin Email Management
   | 'ADMIN_EMAIL_RESEND'
-  | 'ADMIN_EMAIL_CLEANUP';
+  | 'ADMIN_EMAIL_CLEANUP'
+  | 'ADMIN_CIRCUIT_BREAKER_RESET';
 
 export type AuditCategory = 'authentication' | 'security' | 'admin';
 

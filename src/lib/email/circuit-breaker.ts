@@ -25,20 +25,24 @@ export interface CircuitBreakerConfig {
   resetTimeoutMs: number;
   /** Number of successful requests needed in HALF_OPEN to close */
   successThreshold: number;
+  /** Max concurrent requests allowed in HALF_OPEN state */
+  halfOpenMaxRequests: number;
 }
 
 export interface CircuitBreakerState {
   state: CircuitState;
   failures: number;
   successes: number;
+  halfOpenRequests: number;
   lastFailureTime: number | null;
   lastStateChange: number;
 }
 
 const DEFAULT_CONFIG: CircuitBreakerConfig = {
   failureThreshold: 5,
-  resetTimeoutMs: 30_000, // 30 seconds
+  resetTimeoutMs: 60_000, // 60 seconds - give provider time to recover
   successThreshold: 2,
+  halfOpenMaxRequests: 1, // Only allow 1 probe request at a time
 };
 
 /**
@@ -49,6 +53,7 @@ class EmailCircuitBreaker {
   private state: CircuitState = 'CLOSED';
   private failures = 0;
   private successes = 0;
+  private halfOpenRequests = 0; // Track in-flight requests in HALF_OPEN
   private lastFailureTime: number | null = null;
   private lastStateChange: number = Date.now();
   private config: CircuitBreakerConfig;
@@ -60,6 +65,7 @@ class EmailCircuitBreaker {
   /**
    * Check if a request should be allowed through.
    * Returns true if allowed, false if circuit is open.
+   * In HALF_OPEN state, limits concurrent requests to prevent flooding.
    */
   canExecute(): boolean {
     this.checkStateTransition();
@@ -69,7 +75,11 @@ class EmailCircuitBreaker {
     }
 
     if (this.state === 'HALF_OPEN') {
-      // Allow limited requests in half-open state
+      // Limit concurrent requests in half-open state
+      if (this.halfOpenRequests >= this.config.halfOpenMaxRequests) {
+        return false;
+      }
+      this.halfOpenRequests++;
       return true;
     }
 
@@ -82,11 +92,13 @@ class EmailCircuitBreaker {
    */
   recordSuccess(): void {
     if (this.state === 'HALF_OPEN') {
+      this.halfOpenRequests = Math.max(0, this.halfOpenRequests - 1);
       this.successes++;
       if (this.successes >= this.config.successThreshold) {
         this.transitionTo('CLOSED');
         this.failures = 0;
         this.successes = 0;
+        this.halfOpenRequests = 0;
         log.info('[CircuitBreaker] Circuit closed - provider recovered');
       }
     } else if (this.state === 'CLOSED') {
@@ -104,6 +116,7 @@ class EmailCircuitBreaker {
 
     if (this.state === 'HALF_OPEN') {
       // Any failure in half-open goes back to open
+      this.halfOpenRequests = 0;
       this.transitionTo('OPEN');
       this.successes = 0;
       log.warn('[CircuitBreaker] Circuit re-opened - recovery failed');
@@ -127,6 +140,7 @@ class EmailCircuitBreaker {
       state: this.state,
       failures: this.failures,
       successes: this.successes,
+      halfOpenRequests: this.halfOpenRequests,
       lastFailureTime: this.lastFailureTime,
       lastStateChange: this.lastStateChange,
     };
@@ -139,6 +153,7 @@ class EmailCircuitBreaker {
     this.state = 'CLOSED';
     this.failures = 0;
     this.successes = 0;
+    this.halfOpenRequests = 0;
     this.lastFailureTime = null;
     this.lastStateChange = Date.now();
     log.info('[CircuitBreaker] Circuit manually reset');
