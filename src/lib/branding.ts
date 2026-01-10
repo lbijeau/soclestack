@@ -33,9 +33,7 @@ function validateAuthStyle(
   return 'centered';
 }
 
-function validateNavStyle(
-  value: string | undefined
-): LayoutConfig['navStyle'] {
+function validateNavStyle(value: string | undefined): LayoutConfig['navStyle'] {
   if (value && VALID_NAV_STYLES.includes(value as LayoutConfig['navStyle'])) {
     return value as LayoutConfig['navStyle'];
   }

@@ -1,14 +1,19 @@
-import { ReactNode } from 'react';
+import { ReactNode, HTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 import { AlertCircle, CheckCircle, Info, XCircle } from 'lucide-react';
 
-interface AlertProps {
+interface AlertProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'success' | 'warning' | 'error';
   children: ReactNode;
   className?: string;
 }
 
-const Alert = ({ variant = 'default', children, className }: AlertProps) => {
+const Alert = ({
+  variant = 'default',
+  children,
+  className,
+  ...props
+}: AlertProps) => {
   const icons = {
     default: Info,
     success: CheckCircle,
@@ -28,6 +33,7 @@ const Alert = ({ variant = 'default', children, className }: AlertProps) => {
     <div
       role={role}
       aria-live={ariaLive}
+      {...props}
       className={clsx(
         'relative w-full rounded-lg border p-4',
         {

@@ -11,7 +11,10 @@ import { getBranding } from '@/lib/branding';
 
 export default function LoginPage() {
   return (
-    <AuthLayout title="Welcome back" description="Sign in to your account to continue">
+    <AuthLayout
+      title="Welcome back"
+      description="Sign in to your account to continue"
+    >
       <Suspense
         fallback={
           <Card className="mx-auto w-full max-w-md">

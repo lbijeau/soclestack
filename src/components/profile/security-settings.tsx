@@ -112,7 +112,7 @@ export function SecuritySettings({
                 <p className="text-sm">
                   Enter your current 2FA code to disable:
                 </p>
-                {error && <Alert variant="error">{error}</Alert>}
+                {error && <Alert variant="error" data-testid="error-message">{error}</Alert>}
                 <input
                   type="text"
                   inputMode="numeric"
@@ -122,6 +122,7 @@ export function SecuritySettings({
                   value={disableCode}
                   onChange={(e) => setDisableCode(e.target.value)}
                   className="w-full rounded border px-3 py-2 text-center text-xl tracking-widest"
+                  data-testid="disable-code-input"
                 />
                 <div className="flex gap-2">
                   <Button
@@ -139,6 +140,7 @@ export function SecuritySettings({
                     variant="destructive"
                     onClick={handleDisable}
                     disabled={isLoading || disableCode.length !== 6}
+                    data-testid="confirm-disable-button"
                   >
                     {isLoading ? 'Disabling...' : 'Disable 2FA'}
                   </Button>

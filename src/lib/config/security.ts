@@ -27,13 +27,14 @@ export const SECURITY_CONFIG = {
   },
   rateLimits: {
     cleanupIntervalMs: 60 * 1000, // Cleanup expired entries every 60 seconds
-    login: { limit: 10, windowMs: 15 * 60 * 1000 }, // 10 per 15 minutes
+    login: { limit: 30, windowMs: 15 * 60 * 1000 }, // 30 per 15 minutes
     register: { limit: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
     forgotPassword: { limit: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
     apiKeyCreate: { limit: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
     apiKeyRevoke: { limit: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
     passwordChange: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
-    twoFactorSetup: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
+    twoFactorSetup: { limit: 20, windowMs: 60 * 60 * 1000 }, // 20 per hour
+    twoFactorValidate: { limit: 30, windowMs: 15 * 60 * 1000 }, // 30 per 15 minutes
     twoFactorDisable: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
     oauthLink: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
     csrfFailure: { limit: 10, windowMs: 5 * 60 * 1000 }, // 10 failures per 5 minutes

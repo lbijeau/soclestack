@@ -12,11 +12,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         className={clsx(
           'inline-flex items-center justify-center rounded-md font-medium transition-colors',
-          'focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:outline-none',
+          'focus-visible:ring-brand-primary focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
           'disabled:cursor-not-allowed disabled:opacity-50',
           {
             // Variants
-            'bg-brand-primary text-white hover:bg-brand-primary-hover':
+            'bg-brand-primary hover:bg-brand-primary-hover text-white':
               variant === 'primary',
             'bg-gray-200 text-gray-900 hover:bg-gray-300':
               variant === 'secondary',

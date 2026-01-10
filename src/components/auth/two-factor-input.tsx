@@ -49,7 +49,11 @@ export function TwoFactorInput({
         </p>
       </div>
 
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && (
+        <Alert variant="error" data-testid="error-message">
+          {error}
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -65,7 +69,7 @@ export function TwoFactorInput({
             disabled={isLoading}
             className="text-center text-2xl tracking-widest"
             autoComplete="one-time-code"
-            data-testid="2fa-code-input"
+            data-testid={isBackupMode ? 'backup-code-input' : '2fa-code-input'}
           />
         </div>
 

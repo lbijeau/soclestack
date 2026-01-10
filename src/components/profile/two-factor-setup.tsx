@@ -105,8 +105,24 @@ export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
   if (step === 'loading') {
     return (
       <Card>
-        <CardContent className="p-8 text-center">
-          <p>Setting up two-factor authentication...</p>
+        <CardContent className="p-8 text-center space-y-4">
+          {error ? (
+            <>
+              <Alert variant="error" data-testid="error-message">
+                {error}
+              </Alert>
+              <div className="flex gap-2 justify-center">
+                <Button variant="secondary" onClick={onCancel}>
+                  Cancel
+                </Button>
+                <Button onClick={startSetup} disabled={isLoading}>
+                  {isLoading ? 'Retrying...' : 'Try Again'}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p>Setting up two-factor authentication...</p>
+          )}
         </CardContent>
       </Card>
     );
@@ -119,7 +135,11 @@ export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
           <CardTitle>Set Up Two-Factor Authentication</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {error && <Alert variant="error">{error}</Alert>}
+          {error && (
+            <Alert variant="error" data-testid="error-message">
+              {error}
+            </Alert>
+          )}
 
           <div className="space-y-4">
             <h3 className="font-medium">1. Scan QR Code</h3>
@@ -151,9 +171,14 @@ export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
               Save these backup codes in a safe place. You won&apos;t be able to
               see them again!
             </Alert>
-            <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-4 font-mono text-sm">
+            <div
+              data-testid="backup-codes"
+              className="grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-4 font-mono text-sm"
+            >
               {setupData.backupCodes.map((code, i) => (
-                <div key={i}>{code}</div>
+                <div key={i} data-testid="backup-code">
+                  {code}
+                </div>
               ))}
             </div>
             <div className="flex gap-2">
@@ -186,7 +211,11 @@ export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
           <CardTitle>Verify Setup</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {error && <Alert variant="error">{error}</Alert>}
+          {error && (
+            <Alert variant="error" data-testid="error-message">
+              {error}
+            </Alert>
+          )}
 
           <p className="text-sm text-gray-600">
             Enter a code from your authenticator app to complete setup.

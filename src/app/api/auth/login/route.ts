@@ -4,7 +4,7 @@ import { login } from '@/services/auth.service';
 import { getRequestContext, handleServiceError } from '@/lib/api-utils';
 import { REMEMBER_ME_COOKIE_NAME } from '@/lib/auth/remember-me';
 import { CSRF_CONFIG } from '@/lib/csrf';
-import { getClientIP, getRateLimitInfo } from '@/lib/auth';
+import { getClientIP, getRateLimitInfo, getSession } from '@/lib/auth';
 import { setRateLimitHeaders } from '@/lib/rate-limit-headers';
 import { SECURITY_CONFIG } from '@/lib/config/security';
 
@@ -14,6 +14,12 @@ const { limit: LOGIN_LIMIT, windowMs: LOGIN_WINDOW_MS } =
   SECURITY_CONFIG.rateLimits.login;
 
 export async function POST(req: NextRequest) {
+  // IMPORTANT: Get session at the very start of the route handler.
+  // In Next.js 15, the async context for cookies() can be lost after
+  // certain async operations. By obtaining the session early, we ensure
+  // the cookies context is captured before any database queries.
+  const session = await getSession();
+
   // Get rate limit key upfront for use in both success and error paths
   const clientIP = getClientIP(req);
   const rateLimitKey = `login:${clientIP}`;
@@ -22,7 +28,7 @@ export async function POST(req: NextRequest) {
     const context = getRequestContext(req);
     const body = await req.json();
 
-    const result = await login(body, context);
+    const result = await login(body, context, session);
 
     // Get rate limit info AFTER service call to reflect accurate remaining count
     const rateLimitInfo = getRateLimitInfo(

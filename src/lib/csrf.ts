@@ -181,6 +181,7 @@ export const CSRF_EXCLUDED_ROUTES = [
   '/api/auth/oauth/',
   '/api/invites/',
   '/api/webhooks/', // Webhooks use signature verification instead of CSRF
+  '/api/test/', // Test endpoints (only available in dev/test environments)
 ];
 
 /**

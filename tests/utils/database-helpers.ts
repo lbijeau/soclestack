@@ -5,10 +5,14 @@ import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
 import { generateTOTPSecret } from './totp-helpers';
 
 // Create a test-specific Prisma client
+// For e2e tests, we need to use the same database as the running application.
+// The app uses DATABASE_URL, so tests should too. TEST_DATABASE_URL is for
+// isolated unit/integration tests that don't interact with the running app.
 const testPrisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
+      // Use DATABASE_URL for e2e tests since we need to match the running app's database
+      url: process.env.DATABASE_URL,
     },
   },
 });
@@ -24,7 +28,18 @@ export class DatabaseHelpers {
       // Clean up in order to respect foreign key constraints
       await this.prisma.userSession.deleteMany({});
 
-      // Delete UserRole records for test users first
+      // Delete backup codes for test users first (foreign key constraint)
+      await this.prisma.backupCode.deleteMany({
+        where: {
+          user: {
+            email: {
+              endsWith: '@test.com',
+            },
+          },
+        },
+      });
+
+      // Delete UserRole records for test users
       await this.prisma.userRole.deleteMany({
         where: {
           user: {
@@ -67,6 +82,10 @@ export class DatabaseHelpers {
           lastName: user.lastName,
           isActive: user.isActive,
           emailVerified: user.emailVerified,
+          // Reset 2FA state to ensure clean state for tests
+          twoFactorEnabled: false,
+          twoFactorSecret: null,
+          twoFactorVerified: false,
         },
         create: {
           email: user.email,
@@ -77,6 +96,11 @@ export class DatabaseHelpers {
           isActive: user.isActive,
           emailVerified: user.emailVerified,
         },
+      });
+
+      // Delete any existing backup codes to ensure clean 2FA state
+      await this.prisma.backupCode.deleteMany({
+        where: { userId: createdUser.id },
       });
 
       // Assign role if provided (using unified role architecture)
@@ -93,7 +117,20 @@ export class DatabaseHelpers {
         ...createdUser,
         plainPassword: user.password,
       };
-    } catch (error) {
+    } catch (error: any) {
+      // Handle unique constraint error on username (P2002) from parallel test execution
+      // Another worker may have created the user first - fetch and return existing record
+      if (error.code === 'P2002') {
+        const existingUser = await this.prisma.user.findUnique({
+          where: { email: user.email },
+        });
+        if (existingUser) {
+          return {
+            ...existingUser,
+            plainPassword: user.password,
+          };
+        }
+      }
       console.error('Failed to create test user:', error);
       throw error;
     }
@@ -127,6 +164,7 @@ export class DatabaseHelpers {
     // Clean up existing test users first
     await this.cleanupDatabase();
 
+    console.log('Creating admin user...');
     const adminUser = await this.createTestUser({
       email: 'admin@test.com',
       password: 'AdminTest123!',

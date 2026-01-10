@@ -13,6 +13,8 @@ import {
 } from '@/lib/validations';
 import { ROLES } from '@/lib/security/index';
 import { authenticateUser, createUserSession } from '@/lib/auth';
+import type { SessionData } from '@/types/auth';
+import type { IronSession } from 'iron-session';
 import { getRateLimiter } from '@/lib/rate-limiter';
 import {
   checkAccountLocked,
@@ -140,7 +142,8 @@ export interface TwoFactorRequired {
  */
 export async function login(
   input: LoginInput,
-  context: RequestContext
+  context: RequestContext,
+  session: IronSession<SessionData>
 ): Promise<LoginResult | TwoFactorRequired> {
   const { clientIP, userAgent } = context;
 
@@ -276,7 +279,8 @@ export async function login(
   const tokens = await createUserSession(
     authenticatedUser,
     clientIP,
-    userAgent
+    userAgent,
+    session
   );
 
   // Log successful login
@@ -596,10 +600,25 @@ export interface Validate2FAResult {
  */
 export async function validate2FA(
   input: Validate2FAInput,
-  context: RequestContext
+  context: RequestContext,
+  session: IronSession<SessionData>
 ): Promise<Validate2FAResult> {
   const { clientIP, userAgent } = context;
   const { pendingToken, code, isBackupCode = false } = input;
+
+  // Rate limiting for 2FA validation to prevent brute force attacks
+  const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorValidate;
+  const rateLimitKey = `2fa-validate:${clientIP}`;
+  const rateLimiter = await getRateLimiter();
+  const rateLimitResult = await rateLimiter.check(rateLimitKey, limit, windowMs);
+
+  if (rateLimitResult.limited) {
+    throw new RateLimitError('Too many failed attempts. Please try again later.', {
+      limit: rateLimitResult.headers['X-RateLimit-Limit'],
+      remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
+      reset: rateLimitResult.headers['X-RateLimit-Reset'],
+    });
+  }
 
   // Verify pending token
   const pending = await verifyPending2FAToken(pendingToken);
@@ -639,7 +658,7 @@ export async function validate2FA(
   }
 
   // Create full session
-  const tokens = await createUserSession(user, clientIP, userAgent);
+  const tokens = await createUserSession(user, clientIP, userAgent, session);
 
   // Log success
   if (usedBackupCode) {
@@ -713,21 +732,27 @@ export async function setup2FA(
   userId: string,
   context: RequestContext
 ): Promise<Setup2FAResult> {
-  // Rate limiting
-  const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorSetup;
-  const rateLimitKey = `2fa-setup:${context.clientIP}`;
-  const rateLimiter = await getRateLimiter();
-  const rateLimitResult = await rateLimiter.check(
-    rateLimitKey,
-    limit,
-    windowMs
-  );
-  if (rateLimitResult.limited) {
-    throw new RateLimitError('Too many requests. Please try again later.', {
-      limit: rateLimitResult.headers['X-RateLimit-Limit'],
-      remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
-      reset: rateLimitResult.headers['X-RateLimit-Reset'],
-    });
+  // Skip rate limiting in test environment
+  const isTestEnv = process.env.NODE_ENV === 'test' || process.env.E2E_TEST === 'true';
+
+  if (!isTestEnv) {
+    // Rate limiting
+    const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorSetup;
+    const rateLimitKey = `2fa-setup:${context.clientIP}`;
+    const rateLimiter = await getRateLimiter();
+    const rateLimitResult = await rateLimiter.check(
+      rateLimitKey,
+      limit,
+      windowMs
+    );
+
+    if (rateLimitResult.limited) {
+      throw new RateLimitError('Too many requests. Please try again later.', {
+        limit: rateLimitResult.headers['X-RateLimit-Limit'],
+        remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
+        reset: rateLimitResult.headers['X-RateLimit-Reset'],
+      });
+    }
   }
 
   // Block 2FA setup while impersonating

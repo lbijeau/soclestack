@@ -64,7 +64,9 @@ export function darken(hex: string, percent: number): string {
   const rgb = hexToRgb(hex);
   if (!rgb) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn(`darken(): Invalid hex color "${hex}". Returning original value.`);
+      console.warn(
+        `darken(): Invalid hex color "${hex}". Returning original value.`
+      );
     }
     return hex;
   }
@@ -84,7 +86,9 @@ export function lighten(hex: string, percent: number): string {
   const rgb = hexToRgb(hex);
   if (!rgb) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn(`lighten(): Invalid hex color "${hex}". Returning original value.`);
+      console.warn(
+        `lighten(): Invalid hex color "${hex}". Returning original value.`
+      );
     }
     return hex;
   }
