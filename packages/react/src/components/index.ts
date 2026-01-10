@@ -15,3 +15,6 @@ export type { LoadingSpinnerProps } from './LoadingSpinner';
 
 export { AccessDenied } from './AccessDenied';
 export type { AccessDeniedProps } from './AccessDenied';
+
+export { OrganizationSwitcher } from './OrganizationSwitcher';
+export type { OrganizationSwitcherProps } from './OrganizationSwitcher';

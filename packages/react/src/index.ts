@@ -19,6 +19,7 @@ export { usePermissions } from './hooks/usePermissions';
 export type { CanOptions } from './hooks/usePermissions';
 export { useAuthRedirect } from './hooks/useAuthRedirect';
 export type { UseAuthRedirectOptions } from './hooks/useAuthRedirect';
+export { useOrganizations } from './hooks/useOrganizations';
 
 // Components
 export * from './components';
