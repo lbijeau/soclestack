@@ -281,7 +281,8 @@ export class TwoFactorSetupPage extends BasePage {
 
     for (const element of containerElements) {
       const text = await element.textContent();
-      if (text && /^[A-Za-z0-9]{8}$/.test(text.trim())) {
+      // Match exact backup code format: uppercase A-Z (excluding I,O) + digits 2-9 (excluding 0,1)
+      if (text && /^[A-HJ-NP-Z2-9]{8}$/.test(text.trim())) {
         codes.push(text.trim());
       }
     }
