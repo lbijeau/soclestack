@@ -56,24 +56,38 @@ function VerifyEmailContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div
+      className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8"
+      data-testid={
+        isVerifying
+          ? 'verify-email-loading'
+          : isVerified
+            ? 'verify-email-success'
+            : error
+              ? 'verify-email-error'
+              : 'verify-email-page'
+      }
+    >
       <div className="w-full max-w-md space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2
+            className="mt-6 text-center text-3xl font-extrabold text-gray-900"
+            data-testid="verify-email-heading"
+          >
             Email Verification
           </h2>
         </div>
 
-        <Card>
+        <Card data-testid="verify-email-card">
           <CardHeader>
-            <CardTitle>
+            <CardTitle data-testid="verify-email-title">
               {isVerifying
                 ? 'Verifying...'
                 : isVerified
                   ? 'Email Verified!'
                   : 'Verification Required'}
             </CardTitle>
-            <CardDescription>
+            <CardDescription data-testid="verify-email-description">
               {isVerifying
                 ? 'Please wait while we verify your email address.'
                 : isVerified
@@ -83,30 +97,34 @@ function VerifyEmailContent() {
           </CardHeader>
           <CardContent>
             {error && (
-              <Alert variant="error" className="mb-4">
+              <Alert variant="error" className="mb-4" data-testid="verify-email-error-message">
                 {error}
               </Alert>
             )}
 
             {isVerified && (
-              <div className="space-y-4">
-                <Alert variant="success">
+              <div className="space-y-4" data-testid="verify-email-success-content">
+                <Alert variant="success" data-testid="verify-email-success-message">
                   Your email has been verified successfully! You can now log in
                   to your account.
                 </Alert>
                 <Link href="/login">
-                  <Button className="w-full">Continue to Login</Button>
+                  <Button className="w-full" data-testid="continue-to-login-button">
+                    Continue to Login
+                  </Button>
                 </Link>
               </div>
             )}
 
             {!token && !isVerifying && (
-              <div className="text-center">
+              <div className="text-center" data-testid="verify-email-no-token">
                 <p className="mb-4 text-sm text-gray-600">
                   Please check your email for a verification link.
                 </p>
                 <Link href="/login">
-                  <Button variant="secondary">Back to Login</Button>
+                  <Button variant="secondary" data-testid="back-to-login-button">
+                    Back to Login
+                  </Button>
                 </Link>
               </div>
             )}
@@ -114,7 +132,9 @@ function VerifyEmailContent() {
             {error && (
               <div className="mt-4 text-center">
                 <Link href="/login">
-                  <Button variant="secondary">Back to Login</Button>
+                  <Button variant="secondary" data-testid="error-back-to-login-button">
+                    Back to Login
+                  </Button>
                 </Link>
               </div>
             )}
