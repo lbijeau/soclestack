@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { getBranding } from '@/lib/branding';
@@ -111,20 +112,24 @@ export function NavSidebar({ children }: NavSidebarProps) {
         <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
           {!collapsed && (
             <Link href="/dashboard" className="flex items-center space-x-2">
-              <img
+              <Image
                 src={branding.logoUrl}
                 alt={branding.name}
-                className="h-8 w-8"
+                width={32}
+                height={32}
+                unoptimized
               />
               <span className="font-semibold">{branding.name}</span>
             </Link>
           )}
           {collapsed && (
             <Link href="/dashboard" className="mx-auto">
-              <img
+              <Image
                 src={branding.logoUrl}
                 alt={branding.name}
-                className="h-8 w-8"
+                width={32}
+                height={32}
+                unoptimized
               />
             </Link>
           )}

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { getBranding } from '@/lib/branding';
 
 interface AuthFullpageProps {
@@ -16,10 +17,12 @@ export function AuthFullpage({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b bg-white px-4 py-4">
-        <img
+        <Image
           src={branding.logoUrl}
           alt={branding.name}
-          className="h-8 w-auto"
+          width={32}
+          height={32}
+          unoptimized
         />
       </header>
       <main className="flex flex-1 items-center justify-center bg-gray-50 p-4">

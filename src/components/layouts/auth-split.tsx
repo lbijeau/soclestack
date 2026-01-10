@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { getBranding } from '@/lib/branding';
 
 interface AuthSplitProps {
@@ -15,10 +16,12 @@ export function AuthSplit({ children, title, description }: AuthSplitProps) {
       <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="mx-auto w-full max-w-sm lg:w-96">
           <div>
-            <img
+            <Image
               src={branding.logoUrl}
               alt={branding.name}
-              className="h-10 w-auto"
+              width={40}
+              height={40}
+              unoptimized
             />
             {title && (
               <h1 className="mt-6 text-2xl font-bold text-gray-900">{title}</h1>

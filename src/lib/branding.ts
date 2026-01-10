@@ -18,6 +18,52 @@ export interface LayoutConfig {
   density: 'compact' | 'comfortable';
 }
 
+const VALID_AUTH_STYLES = ['centered', 'split', 'fullpage'] as const;
+const VALID_NAV_STYLES = ['top', 'sidebar'] as const;
+const VALID_DENSITIES = ['compact', 'comfortable'] as const;
+
+function validateAuthStyle(
+  value: string | undefined
+): LayoutConfig['authStyle'] {
+  if (value && VALID_AUTH_STYLES.includes(value as LayoutConfig['authStyle'])) {
+    return value as LayoutConfig['authStyle'];
+  }
+  if (value) {
+    console.warn(
+      `Invalid LAYOUT_AUTH_STYLE "${value}". Valid options: ${VALID_AUTH_STYLES.join(', ')}. Using default "centered".`
+    );
+  }
+  return 'centered';
+}
+
+function validateNavStyle(
+  value: string | undefined
+): LayoutConfig['navStyle'] {
+  if (value && VALID_NAV_STYLES.includes(value as LayoutConfig['navStyle'])) {
+    return value as LayoutConfig['navStyle'];
+  }
+  if (value) {
+    console.warn(
+      `Invalid LAYOUT_NAV_STYLE "${value}". Valid options: ${VALID_NAV_STYLES.join(', ')}. Using default "top".`
+    );
+  }
+  return 'top';
+}
+
+function validateDensity(
+  value: string | undefined
+): LayoutConfig['density'] {
+  if (value && VALID_DENSITIES.includes(value as LayoutConfig['density'])) {
+    return value as LayoutConfig['density'];
+  }
+  if (value) {
+    console.warn(
+      `Invalid LAYOUT_DENSITY "${value}". Valid options: ${VALID_DENSITIES.join(', ')}. Using default "comfortable".`
+    );
+  }
+  return 'comfortable';
+}
+
 /**
  * Get branding configuration
  *
@@ -39,12 +85,8 @@ export function getBranding(_orgId?: string): BrandingConfig {
  */
 export function getLayout(): LayoutConfig {
   return {
-    authStyle:
-      (process.env.LAYOUT_AUTH_STYLE as LayoutConfig['authStyle']) ??
-      'centered',
-    navStyle:
-      (process.env.LAYOUT_NAV_STYLE as LayoutConfig['navStyle']) ?? 'top',
-    density:
-      (process.env.LAYOUT_DENSITY as LayoutConfig['density']) ?? 'comfortable',
+    authStyle: validateAuthStyle(process.env.LAYOUT_AUTH_STYLE),
+    navStyle: validateNavStyle(process.env.LAYOUT_NAV_STYLE),
+    density: validateDensity(process.env.LAYOUT_DENSITY),
   };
 }

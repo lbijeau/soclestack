@@ -16,17 +16,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Density modes */
-[data-density='compact'] {
-  --spacing-base: 0.75rem;
-  --text-size-base: 0.875rem;
-}
-
-[data-density='comfortable'] {
-  --spacing-base: 1rem;
-  --text-size-base: 1rem;
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

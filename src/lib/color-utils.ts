@@ -62,7 +62,12 @@ function rgbToHex(r: number, g: number, b: number): string {
  */
 export function darken(hex: string, percent: number): string {
   const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
+  if (!rgb) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`darken(): Invalid hex color "${hex}". Returning original value.`);
+    }
+    return hex;
+  }
 
   const factor = 1 - percent / 100;
   return rgbToHex(rgb.r * factor, rgb.g * factor, rgb.b * factor);
@@ -77,7 +82,12 @@ export function darken(hex: string, percent: number): string {
  */
 export function lighten(hex: string, percent: number): string {
   const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
+  if (!rgb) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`lighten(): Invalid hex color "${hex}". Returning original value.`);
+    }
+    return hex;
+  }
 
   const factor = percent / 100;
   return rgbToHex(
