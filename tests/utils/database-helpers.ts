@@ -16,6 +16,92 @@ import {
 } from './org-test-constants';
 import { TEST_USERS, getUserData } from '../fixtures/test-users';
 
+// ===========================================
+// Type Definitions for Test Helpers
+// ===========================================
+
+/**
+ * User object returned from test helpers with plain password for auth
+ */
+export interface TestUserResult {
+  id: string;
+  email: string;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  isActive: boolean;
+  emailVerified: boolean;
+  plainPassword: string;
+}
+
+/**
+ * Organization object returned from test helpers
+ */
+export interface TestOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: Date;
+  updatedAt: Date;
+  owner: TestUserResult;
+}
+
+/**
+ * Organization invite object returned from test helpers
+ */
+export interface TestInvite {
+  id: string;
+  email: string;
+  token: string;
+  expiresAt: Date;
+  organizationId: string;
+  invitedById: string;
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  invitedBy: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+  };
+}
+
+/**
+ * Result from createTestInvite
+ */
+export interface TestInviteResult {
+  invite: TestInvite;
+  token: string;
+}
+
+/**
+ * Result from setupTestOrganization
+ */
+export interface SetupTestOrganizationResult {
+  org: TestOrganization;
+  owner: TestUserResult;
+  admin: TestUserResult;
+  member: TestUserResult;
+  nonMember: TestUserResult;
+  pendingInvite: TestInviteResult;
+  expiredInvite: TestInviteResult;
+}
+
+/**
+ * Organization membership record
+ */
+export interface TestMembership {
+  userId: string;
+  roleId: string;
+  organizationId: string;
+  user: TestUserResult;
+  role: { id: string; name: string };
+  organization: TestOrganization;
+}
+
 // Create a test-specific Prisma client
 // For e2e tests, we need to use the same database as the running application.
 // The app uses DATABASE_URL, so tests should too. TEST_DATABASE_URL is for
@@ -83,7 +169,7 @@ export class DatabaseHelpers {
   /**
    * Create a test user in the database
    */
-  static async createTestUser(userData: Partial<TestUser> = {}): Promise<any> {
+  static async createTestUser(userData: Partial<TestUser> = {}): Promise<TestUserResult> {
     const user = TestDataFactory.createUser(userData);
     const hashedPassword = await bcrypt.hash(user.password, 12);
 
@@ -435,7 +521,7 @@ export class DatabaseHelpers {
     name: string;
     slug?: string;
     ownerEmail: string;
-  }): Promise<any> {
+  }): Promise<TestOrganization> {
     // Generate slug from name if not provided
     const slug = data.slug || data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
@@ -551,7 +637,7 @@ export class DatabaseHelpers {
     orgId: string,
     userId: string,
     role: OrgRole
-  ): Promise<any> {
+  ): Promise<TestMembership | null> {
     // Use centralized role mapping from org-test-constants
     const roleName = ORG_ROLE_TO_DB_ROLE[role];
     const roleRecord = await this.prisma.role.findUnique({
@@ -637,7 +723,7 @@ export class DatabaseHelpers {
     email: string,
     role: InviteRole,
     options?: { expiresAt?: Date; invitedById?: string }
-  ): Promise<{ invite: any; token: string }> {
+  ): Promise<TestInviteResult> {
     // Use centralized role mapping from org-test-constants
     const roleName = INVITE_ROLE_TO_DB_ROLE[role];
     const roleRecord = await this.prisma.role.findUnique({
@@ -693,7 +779,7 @@ export class DatabaseHelpers {
   /**
    * Get an invite by its token
    */
-  static async getInviteByToken(token: string): Promise<any> {
+  static async getInviteByToken(token: string): Promise<TestInvite | null> {
     return await this.prisma.organizationInvite.findUnique({
       where: { token },
       include: {
@@ -719,15 +805,7 @@ export class DatabaseHelpers {
    * Set up a complete test organization with various user roles and invites.
    * Uses centralized test credentials from org-test-constants.ts
    */
-  static async setupTestOrganization(): Promise<{
-    org: any;
-    owner: any;
-    admin: any;
-    member: any;
-    nonMember: any;
-    pendingInvite: { invite: any; token: string };
-    expiredInvite: { invite: any; token: string };
-  }> {
+  static async setupTestOrganization(): Promise<SetupTestOrganizationResult> {
     // Create owner user first with known password for auth helpers
     const ownerUser = await this.createTestUser(ORG_TEST_USERS.owner);
 

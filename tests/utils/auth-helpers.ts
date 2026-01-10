@@ -229,7 +229,9 @@ export class AuthHelpers {
     for (const route of protectedRoutes) {
       try {
         await page.goto(route.path);
-        await page.waitForLoadState('networkidle', { timeout: TEST_TIMEOUTS.elementVisible });
+        // Wait for URL to settle - either stays on route or redirects to auth/error pages
+        await page.waitForURL(/./, { timeout: TEST_TIMEOUTS.elementVisible });
+        await page.waitForLoadState('domcontentloaded', { timeout: TEST_TIMEOUTS.elementVisible });
 
         const currentUrl = page.url();
 
