@@ -65,6 +65,12 @@ export default withMermaid(
                       ]
                     },
                     {
+                      text: 'SDK',
+                      items: [
+                        { text: 'Recipes', link: '/SDK_RECIPES' },
+                      ]
+                    },
+                    {
                       text: 'Components',
                       items: [
                         { text: 'UI Catalog', link: '/components/catalog' },

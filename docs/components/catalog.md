@@ -6,6 +6,8 @@ Source: [`src/components/ui/`](https://github.com/lbijeau/soclestack/tree/master
 
 ## Quick Reference
 
+### UI Components
+
 | Component | Variants | Sizes | Use Case |
 |-----------|----------|-------|----------|
 | [Button](#button) | primary, secondary, destructive, ghost, outline | sm, md, lg, icon | Actions and navigation |
@@ -15,6 +17,18 @@ Source: [`src/components/ui/`](https://github.com/lbijeau/soclestack/tree/master
 | [Badge](#badge) | default, secondary, destructive, outline | - | Status labels |
 | [PasswordStrengthMeter](#passwordstrengthmeter) | - | - | Password validation |
 | [FieldError](#fielderror) | - | - | Form validation errors |
+
+### SDK Components
+
+| Component | Use Case | Package |
+|-----------|----------|---------|
+| [ProtectedRoute](#protectedroute) | Protect pages from unauthenticated users | `@soclestack/react` |
+| [Can](#can) | Role-based UI visibility | `@soclestack/react` |
+| [OrganizationSwitcher](#organizationswitcher) | Multi-tenant org switching | `@soclestack/react` |
+| [InviteAccept](#inviteaccept) | Handle invite tokens | `@soclestack/react` |
+| [SessionTimeoutWarning](#sessiontimeoutwarning) | Warn before session expires | `@soclestack/react` |
+| [LoadingSpinner](#loadingspinner) | Loading indicator | `@soclestack/react` |
+| [AccessDenied](#accessdenied) | Access denied page | `@soclestack/react` |
 
 ---
 
@@ -379,8 +393,217 @@ All components use `rounded-md` (0.375rem / 6px) for consistency. Badges use `ro
 
 ---
 
+---
+
+## SDK Components
+
+Components from `@soclestack/react` for common authentication patterns.
+
+### ProtectedRoute
+
+Protects routes from unauthenticated users with optional role requirements.
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | required | Content to protect |
+| `roles` | `string[]` | - | Required roles (any match) |
+| `fallback` | `ReactNode` | `<LoadingSpinner />` | Loading state |
+| `accessDeniedFallback` | `ReactNode` | `<AccessDenied />` | Role check failed |
+
+```tsx
+import { ProtectedRoute } from '@soclestack/react';
+
+// Basic protection
+<ProtectedRoute>
+  <Dashboard />
+</ProtectedRoute>
+
+// With role requirement
+<ProtectedRoute roles={['ROLE_ADMIN']}>
+  <AdminPanel />
+</ProtectedRoute>
+```
+
+---
+
+### Can
+
+Conditionally renders children based on user roles or organization permissions.
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | required | Content to show if authorized |
+| `roles` | `string[]` | - | Global user roles |
+| `orgRoles` | `string[]` | - | Organization roles |
+| `fallback` | `ReactNode` | `null` | Content if unauthorized |
+
+```tsx
+import { Can } from '@soclestack/react';
+
+// Show only to admins
+<Can roles={['ROLE_ADMIN']}>
+  <DeleteButton />
+</Can>
+
+// With fallback
+<Can roles={['ROLE_ADMIN']} fallback={<UpgradePrompt />}>
+  <PremiumFeature />
+</Can>
+
+// Organization roles
+<Can orgRoles={['ROLE_OWNER', 'ROLE_ADMIN']}>
+  <TeamSettings />
+</Can>
+```
+
+---
+
+### OrganizationSwitcher
+
+Dropdown for switching between organizations in multi-tenant apps.
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `trigger` | `ReactNode` | Default button | Custom trigger element |
+| `onSwitch` | `(org: Organization) => void` | - | Called after switching |
+| `showCreateLink` | `boolean` | `false` | Show create org link |
+| `createOrgUrl` | `string` | `/organizations/new` | URL for create link |
+
+```tsx
+import { OrganizationSwitcher } from '@soclestack/react';
+
+// Basic usage
+<OrganizationSwitcher />
+
+// With callback
+<OrganizationSwitcher
+  onSwitch={(org) => router.push(`/org/${org.slug}`)}
+  showCreateLink
+/>
+```
+
+---
+
+### InviteAccept
+
+Handles organization invite token validation and acceptance.
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `token` | `string` | required | Invite token from URL |
+| `onAccepted` | `(org: Organization) => void` | - | Called after accepting |
+| `onError` | `(error: Error) => void` | - | Called on error |
+| `loginUrl` | `string` | `/login` | Login page URL |
+| `returnUrl` | `string` | - | Post-login redirect |
+
+**States:**
+
+| Status | Visual |
+|--------|--------|
+| `loading` | Spinner |
+| `valid` | Invite details + Accept button |
+| `expired` | Error message |
+| `invalid` | Error message |
+
+```tsx
+import { InviteAccept } from '@soclestack/react';
+
+<InviteAccept
+  token={params.token}
+  onAccepted={(org) => router.push(`/org/${org.slug}`)}
+  onError={(error) => toast.error(error.message)}
+/>
+```
+
+---
+
+### SessionTimeoutWarning
+
+Modal that warns users before their session expires.
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `warnBefore` | `number` | `300` | Seconds before expiry to warn |
+| `checkInterval` | `number` | `30` | Check frequency (seconds) |
+| `onWarning` | `() => void` | - | Called when warning shown |
+| `onTimeout` | `() => void` | - | Called when session expires |
+| `onExtend` | `() => void` | - | Called after extend success |
+| `onLogout` | `() => void` | - | Called on logout click |
+| `title` | `string` | `"Session Expiring"` | Modal title |
+| `extendLabel` | `string` | `"Stay Signed In"` | Extend button text |
+| `logoutLabel` | `string` | `"Log Out"` | Logout button text |
+
+```tsx
+import { SessionTimeoutWarning } from '@soclestack/react';
+
+// Basic - add to root layout
+<SessionTimeoutWarning />
+
+// With callbacks
+<SessionTimeoutWarning
+  warnBefore={300}
+  onTimeout={() => router.push('/login?expired=true')}
+  onExtend={() => toast.success('Session extended')}
+/>
+```
+
+---
+
+### LoadingSpinner
+
+Default loading indicator used by SDK components.
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `size` | `number` | `24` | Size in pixels |
+| `className` | `string` | - | Additional CSS |
+
+```tsx
+import { LoadingSpinner } from '@soclestack/react';
+
+<LoadingSpinner />
+<LoadingSpinner size={32} className="text-blue-500" />
+```
+
+---
+
+### AccessDenied
+
+Default access denied page shown by ProtectedRoute.
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | `"Access Denied"` | Heading |
+| `message` | `string` | (default) | Description text |
+
+```tsx
+import { AccessDenied } from '@soclestack/react';
+
+<AccessDenied
+  title="Permission Required"
+  message="You need admin access to view this page."
+/>
+```
+
+---
+
 ## Related Documentation
 
+- [SDK Recipes Guide](../SDK_RECIPES.md)
 - [UI Components Source](https://github.com/lbijeau/soclestack/blob/master/src/components/ui/README.md)
 - [Auth Components](https://github.com/lbijeau/soclestack/blob/master/src/components/auth/README.md)
 - [Profile Components](https://github.com/lbijeau/soclestack/blob/master/src/components/profile/README.md)
