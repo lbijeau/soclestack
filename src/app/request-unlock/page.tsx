@@ -58,14 +58,14 @@ function RequestUnlockForm() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8" data-testid="request-unlock-success">
         <Card className="w-full max-w-md">
           <CardHeader>
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
               <Unlock className="h-6 w-6 text-green-600" />
             </div>
-            <CardTitle className="mt-4 text-center">Check Your Email</CardTitle>
-            <CardDescription className="text-center">
+            <CardTitle className="mt-4 text-center" data-testid="success-title">Check Your Email</CardTitle>
+            <CardDescription className="text-center" data-testid="success-description">
               If your account is locked, we&apos;ve sent you an email with
               instructions to unlock it.
             </CardDescription>
@@ -76,7 +76,7 @@ function RequestUnlockForm() {
               email, check your spam folder.
             </p>
             <Link href="/login">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" data-testid="back-to-login-button">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Login
               </Button>
@@ -88,7 +88,7 @@ function RequestUnlockForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8" data-testid="request-unlock-page">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Unlock Your Account</CardTitle>
@@ -99,12 +99,12 @@ function RequestUnlockForm() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="error" className="mb-4">
+            <Alert variant="error" className="mb-4" data-testid="error-message">
               {error}
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" data-testid="request-unlock-form">
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
                 Email Address
@@ -119,10 +119,11 @@ function RequestUnlockForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
                 placeholder="you@example.com"
+                data-testid="email-input"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading} data-testid="submit-button">
               <Unlock className="mr-2 h-4 w-4" />
               {isLoading ? 'Sending...' : 'Send Unlock Link'}
             </Button>
@@ -131,6 +132,7 @@ function RequestUnlockForm() {
               <Link
                 href="/login"
                 className="text-sm text-gray-600 hover:text-gray-900"
+                data-testid="back-to-login-link"
               >
                 <ArrowLeft className="mr-1 inline h-3 w-3" />
                 Back to Login
