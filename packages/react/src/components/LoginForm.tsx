@@ -44,7 +44,7 @@ export function LoginForm({
         onSuccess?.(result.user);
       } else if ('requires2FA' in result && result.requires2FA) {
         onRequires2FA?.(result.tempToken);
-      } else {
+      } else if ('error' in result) {
         const errorMessage = result.error;
         setError(errorMessage);
         onError?.(errorMessage);

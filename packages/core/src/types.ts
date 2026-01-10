@@ -9,6 +9,8 @@ export interface User {
   lastName?: string;
   emailVerified: boolean;
   createdAt: string;
+  /** Global roles assigned to the user */
+  roles?: string[];
 }
 
 /**
@@ -18,6 +20,8 @@ export interface Organization {
   id: string;
   name: string;
   slug: string;
+  /** User's role within this organization */
+  role?: 'ROLE_OWNER' | 'ROLE_ADMIN' | 'ROLE_MEMBER';
 }
 
 /**
