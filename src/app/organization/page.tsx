@@ -166,7 +166,10 @@ export default function OrganizationPage() {
                 <Users className="h-8 w-8 text-blue-600" />
                 <div className="ml-4">
                   <div className="font-medium text-gray-900">Members</div>
-                  <div className="text-sm text-gray-500">
+                  <div
+                    data-testid="org-member-count"
+                    className="text-sm text-gray-500"
+                  >
                     {organization.memberCount} members
                   </div>
                 </div>
@@ -197,7 +200,12 @@ export default function OrganizationPage() {
               <Building2 className="h-8 w-8 text-purple-600" />
               <div className="ml-4">
                 <div className="font-medium text-gray-900">Your Role</div>
-                <div className="text-sm text-gray-500">{organization.role}</div>
+                <div
+                  data-testid="org-role-display"
+                  className="text-sm text-gray-500"
+                >
+                  {organization.role}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -217,12 +225,18 @@ export default function OrganizationPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div
+              data-testid="org-error-message"
+              className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            >
               {error}
             </div>
           )}
           {success && (
-            <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+            <div
+              data-testid="org-success-message"
+              className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700"
+            >
               {success}
             </div>
           )}
@@ -237,6 +251,7 @@ export default function OrganizationPage() {
               </label>
               <Input
                 id="name"
+                data-testid="org-name-input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={!canEdit || saving}
@@ -253,6 +268,7 @@ export default function OrganizationPage() {
               </label>
               <Input
                 id="slug"
+                data-testid="org-slug-display"
                 value={organization.slug}
                 disabled
                 className="mt-1 bg-gray-50"
@@ -281,6 +297,7 @@ export default function OrganizationPage() {
               <div className="pt-4">
                 <Button
                   type="submit"
+                  data-testid="org-save-button"
                   disabled={saving || name === organization.name}
                 >
                   {saving ? (
@@ -320,6 +337,7 @@ export default function OrganizationPage() {
               </div>
               <Button
                 variant="destructive"
+                data-testid="org-delete-button"
                 onClick={handleDelete}
                 disabled={deleting}
               >
