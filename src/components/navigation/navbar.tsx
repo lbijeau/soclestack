@@ -19,6 +19,7 @@ function Logo() {
       height={32}
       className="rounded"
       priority
+      data-testid="nav-logo"
     />
   );
 }
@@ -127,16 +128,17 @@ export function Navbar() {
 
   if (!user) {
     return (
-      <nav className="border-b bg-white">
+      <nav className="border-b bg-white" data-testid="navbar">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
             <div className="flex items-center">
               <Link
                 href="/"
                 className="flex items-center space-x-2 text-xl font-bold text-gray-900"
+                data-testid="nav-brand-link"
               >
                 <Logo />
-                <span>SocleStack</span>
+                <span data-testid="nav-brand-name">SocleStack</span>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -168,16 +170,17 @@ export function Navbar() {
           minutesRemaining={impersonation.minutesRemaining}
         />
       )}
-      <nav className="border-b bg-white">
+      <nav className="border-b bg-white" data-testid="navbar">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
             <div className="flex items-center space-x-8">
               <Link
                 href="/dashboard"
                 className="flex items-center space-x-2 text-xl font-bold text-gray-900"
+                data-testid="nav-brand-link"
               >
                 <Logo />
-                <span>SocleStack</span>
+                <span data-testid="nav-brand-name">SocleStack</span>
               </Link>
 
               <div className="hidden items-center space-x-1 md:flex">
