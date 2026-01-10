@@ -248,12 +248,14 @@ export function UserRoleSelect({
       aria-modal="true"
       aria-labelledby="role-select-title"
       aria-describedby={isEditingSelf ? 'self-edit-warning' : undefined}
+      data-testid="user-role-select-overlay"
     >
       <div
         ref={modalRef}
         tabIndex={-1}
         className="mx-4 w-full max-w-lg rounded-lg bg-white shadow-xl outline-none"
         onClick={(e) => e.stopPropagation()}
+        data-testid="user-role-select-modal"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4">
@@ -261,15 +263,22 @@ export function UserRoleSelect({
             <h2
               id="role-select-title"
               className="text-lg font-semibold text-gray-900"
+              data-testid="user-role-select-title"
             >
               Manage Roles
             </h2>
-            <p className="mt-1 text-sm text-gray-500">{userEmail}</p>
+            <p
+              className="mt-1 text-sm text-gray-500"
+              data-testid="user-role-select-email"
+            >
+              {userEmail}
+            </p>
           </div>
           <button
             onClick={handleClose}
             className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
             aria-label="Close"
+            data-testid="user-role-select-close-button"
           >
             <X size={20} />
           </button>
@@ -278,17 +287,20 @@ export function UserRoleSelect({
         {/* Content */}
         <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div
+              className="flex items-center justify-center py-8"
+              data-testid="user-role-select-loading"
+            >
               <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             </div>
           ) : error ? (
-            <Alert variant="error" aria-live="polite">
+            <Alert variant="error" aria-live="polite" data-testid="user-role-select-error">
               {error}
             </Alert>
           ) : (
             <div className="space-y-4">
               {isEditingSelf && (
-                <div id="self-edit-warning">
+                <div id="self-edit-warning" data-testid="user-role-select-self-warning">
                   <Alert variant="warning">
                     <Info size={16} className="mr-2 inline" />
                     You are editing your own roles. Be careful not to lock
@@ -298,7 +310,7 @@ export function UserRoleSelect({
               )}
 
               {/* Roles list */}
-              <fieldset>
+              <fieldset data-testid="user-role-select-roles-list">
                 <legend className="mb-3 text-sm font-medium text-gray-700">
                   Direct Roles
                 </legend>
@@ -327,6 +339,7 @@ export function UserRoleSelect({
                               ? 'border-blue-500 bg-blue-50'
                               : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
+                        data-testid="user-role-select-role-item"
                       >
                         <input
                           type="checkbox"
@@ -334,6 +347,7 @@ export function UserRoleSelect({
                           onChange={() => handleRoleToggle(role.id)}
                           disabled={isInherited || isDisabledByProtection}
                           className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                          data-testid="user-role-select-role-checkbox"
                         />
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -390,7 +404,12 @@ export function UserRoleSelect({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
-          <Button variant="ghost" onClick={handleClose} disabled={isSaving}>
+          <Button
+            variant="ghost"
+            onClick={handleClose}
+            disabled={isSaving}
+            data-testid="user-role-select-cancel-button"
+          >
             Cancel
           </Button>
           <Button
@@ -402,6 +421,7 @@ export function UserRoleSelect({
               directRoleIds.size === 0 ||
               isRemovingOwnAdminRole
             }
+            data-testid="user-role-select-save-button"
           >
             {isSaving ? (
               <>

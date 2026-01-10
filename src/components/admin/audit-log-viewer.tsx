@@ -307,15 +307,16 @@ export function AuditLogViewer() {
   };
 
   return (
-    <Card>
+    <Card data-testid="audit-log-viewer">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Audit Logs</CardTitle>
+        <CardTitle data-testid="audit-log-title">Audit Logs</CardTitle>
         <div className="flex gap-2">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => fetchLogs(page)}
             disabled={loading}
+            data-testid="audit-log-refresh-button"
           >
             <RefreshCw
               className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
@@ -327,6 +328,7 @@ export function AuditLogViewer() {
             size="sm"
             onClick={() => handleExport('csv')}
             disabled={exporting || loading}
+            data-testid="audit-log-export-csv-button"
           >
             <Download className="mr-1 h-4 w-4" />
             {exporting ? 'Exporting...' : 'CSV'}
@@ -336,6 +338,7 @@ export function AuditLogViewer() {
             size="sm"
             onClick={() => handleExport('json')}
             disabled={exporting || loading}
+            data-testid="audit-log-export-json-button"
           >
             <Download className="mr-1 h-4 w-4" />
             JSON
@@ -343,10 +346,17 @@ export function AuditLogViewer() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && <Alert variant="error">{error}</Alert>}
+        {error && (
+          <Alert variant="error" data-testid="audit-log-error">
+            {error}
+          </Alert>
+        )}
 
         {/* Filters */}
-        <div className="flex flex-wrap items-end gap-3 rounded-lg bg-gray-50 p-4">
+        <div
+          className="flex flex-wrap items-end gap-3 rounded-lg bg-gray-50 p-4"
+          data-testid="audit-log-filters"
+        >
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-600">
               Category
@@ -358,6 +368,7 @@ export function AuditLogViewer() {
                 setAction(''); // Reset action when category changes
               }}
               className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm"
+              data-testid="audit-log-category-filter"
             >
               <option value="">All categories</option>
               <option value="authentication">Authentication</option>
@@ -372,6 +383,7 @@ export function AuditLogViewer() {
               value={action}
               onChange={(e) => setAction(e.target.value)}
               className="h-10 min-w-[180px] rounded-md border border-gray-200 bg-white px-3 text-sm"
+              data-testid="audit-log-action-filter"
             >
               <option value="">All actions</option>
               {availableActions.map((a) => (
@@ -392,6 +404,7 @@ export function AuditLogViewer() {
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
               className="w-48"
+              data-testid="audit-log-email-filter"
             />
           </div>
 
@@ -402,6 +415,7 @@ export function AuditLogViewer() {
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               className="w-40"
+              data-testid="audit-log-from-date-filter"
             />
           </div>
 
@@ -412,24 +426,30 @@ export function AuditLogViewer() {
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
               className="w-40"
+              data-testid="audit-log-to-date-filter"
             />
           </div>
 
-          <Button onClick={handleApplyFilters} disabled={loading}>
+          <Button
+            onClick={handleApplyFilters}
+            disabled={loading}
+            data-testid="audit-log-apply-filters-button"
+          >
             Apply
           </Button>
           <Button
             variant="ghost"
             onClick={handleClearFilters}
             disabled={loading}
+            data-testid="audit-log-clear-filters-button"
           >
             Clear
           </Button>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto" data-testid="audit-log-table-container">
+          <table className="w-full text-sm" data-testid="audit-log-table">
             <thead>
               <tr className="border-b">
                 <th className="px-4 py-3 text-left font-medium text-gray-600">
@@ -452,11 +472,11 @@ export function AuditLogViewer() {
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody data-testid="audit-log-table-body">
               {loading ? (
                 // Skeleton rows
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b">
+                  <tr key={i} className="border-b" data-testid="audit-log-loading-row">
                     {Array.from({ length: 6 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 animate-pulse rounded bg-gray-200" />
@@ -465,7 +485,7 @@ export function AuditLogViewer() {
                   </tr>
                 ))
               ) : logs.length === 0 ? (
-                <tr>
+                <tr data-testid="audit-log-empty-state">
                   <td colSpan={6} className="py-8 text-center text-gray-500">
                     No audit logs found matching your filters.
                   </td>
@@ -473,16 +493,22 @@ export function AuditLogViewer() {
               ) : (
                 logs.map((log) => (
                   <Fragment key={log.id}>
-                    <tr className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap">
+                    <tr
+                      className="border-b hover:bg-gray-50"
+                      data-testid="audit-log-row"
+                    >
+                      <td
+                        className="px-4 py-3 whitespace-nowrap"
+                        data-testid="audit-log-timestamp"
+                      >
                         {formatDate(log.createdAt)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" data-testid="audit-log-user">
                         {log.userEmail || (
                           <span className="text-gray-400">System</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" data-testid="audit-log-action">
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             ACTION_COLORS[log.action] ||
@@ -492,19 +518,25 @@ export function AuditLogViewer() {
                           {ACTION_LABELS[log.action] || log.action}
                         </span>
                       </td>
-                      <td className="px-4 py-3 capitalize">{log.category}</td>
-                      <td className="px-4 py-3">
+                      <td
+                        className="px-4 py-3 capitalize"
+                        data-testid="audit-log-category"
+                      >
+                        {log.category}
+                      </td>
+                      <td className="px-4 py-3" data-testid="audit-log-ip">
                         {log.ipAddress || (
                           <span className="text-gray-400">&mdash;</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" data-testid="audit-log-details">
                         {log.metadata ? (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleRowExpanded(log.id)}
                             className="text-xs"
+                            data-testid="audit-log-details-toggle"
                           >
                             {expandedRows.has(log.id) ? 'Hide' : 'Show'}
                           </Button>
@@ -514,9 +546,16 @@ export function AuditLogViewer() {
                       </td>
                     </tr>
                     {expandedRows.has(log.id) && log.metadata && (
-                      <tr key={`${log.id}-metadata`} className="bg-gray-50">
+                      <tr
+                        key={`${log.id}-metadata`}
+                        className="bg-gray-50"
+                        data-testid="audit-log-metadata-row"
+                      >
                         <td colSpan={6} className="px-4 py-3">
-                          <pre className="overflow-x-auto rounded bg-gray-100 p-3 text-xs">
+                          <pre
+                            className="overflow-x-auto rounded bg-gray-100 p-3 text-xs"
+                            data-testid="audit-log-metadata-content"
+                          >
                             {JSON.stringify(log.metadata, null, 2)}
                           </pre>
                         </td>
@@ -531,8 +570,11 @@ export function AuditLogViewer() {
 
         {/* Pagination */}
         {totalPages > 0 && (
-          <div className="flex items-center justify-between border-t pt-4">
-            <div className="text-sm text-gray-600">
+          <div
+            className="flex items-center justify-between border-t pt-4"
+            data-testid="audit-log-pagination"
+          >
+            <div className="text-sm text-gray-600" data-testid="audit-log-pagination-info">
               Showing {(page - 1) * 50 + 1}-{Math.min(page * 50, total)} of{' '}
               {total} results
             </div>
@@ -542,6 +584,7 @@ export function AuditLogViewer() {
                 size="sm"
                 onClick={() => handlePageChange(page - 1)}
                 disabled={page === 1 || loading}
+                data-testid="audit-log-prev-page"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Prev
@@ -555,6 +598,7 @@ export function AuditLogViewer() {
                     onClick={() => handlePageChange(p)}
                     disabled={loading}
                     className="min-w-[36px]"
+                    data-testid={`audit-log-page-${p}`}
                   >
                     {p}
                   </Button>
@@ -569,6 +613,7 @@ export function AuditLogViewer() {
                 size="sm"
                 onClick={() => handlePageChange(page + 1)}
                 disabled={page === totalPages || loading}
+                data-testid="audit-log-next-page"
               >
                 Next
                 <ChevronRight className="h-4 w-4" />

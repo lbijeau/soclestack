@@ -225,7 +225,10 @@ export function OrganizationDetail({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div
+        className="flex items-center justify-center py-12"
+        data-testid="organization-detail-loading"
+      >
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
@@ -241,23 +244,35 @@ export function OrganizationDetail({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="organization-detail">
       {/* Back Link */}
       <Button
         variant="ghost"
         onClick={() => router.push('/admin/organizations')}
+        data-testid="organization-detail-back-button"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Organizations
       </Button>
 
-      {error && <Alert variant="error">{error}</Alert>}
-      {success && <Alert variant="success">{success}</Alert>}
+      {error && (
+        <Alert variant="error" data-testid="organization-detail-error">
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert variant="success" data-testid="organization-detail-success">
+          {success}
+        </Alert>
+      )}
 
       {/* Organization Info */}
-      <Card>
+      <Card data-testid="organization-detail-info-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle
+            className="flex items-center gap-2"
+            data-testid="organization-detail-name"
+          >
             <Building2 className="h-5 w-5" />
             {organization.name}
           </CardTitle>
@@ -293,7 +308,7 @@ export function OrganizationDetail({
       </Card>
 
       {/* Members */}
-      <Card>
+      <Card data-testid="organization-detail-members-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -303,7 +318,10 @@ export function OrganizationDetail({
         </CardHeader>
         <CardContent>
           <div className="overflow-hidden rounded-lg border">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table
+              className="min-w-full divide-y divide-gray-200"
+              data-testid="organization-detail-members-table"
+            >
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
@@ -322,7 +340,7 @@ export function OrganizationDetail({
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {organization.members.map((member) => (
-                  <tr key={member.userId}>
+                  <tr key={member.userId} data-testid="organization-detail-member-row">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="font-medium text-gray-900">
@@ -351,6 +369,7 @@ export function OrganizationDetail({
                           size="sm"
                           onClick={() => setMemberToRemove(member)}
                           disabled={removingMemberId === member.userId}
+                          data-testid="organization-detail-remove-member-button"
                         >
                           {removingMemberId === member.userId ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -369,7 +388,7 @@ export function OrganizationDetail({
       </Card>
 
       {/* Transfer Ownership */}
-      <Card>
+      <Card data-testid="organization-detail-transfer-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />
@@ -387,6 +406,7 @@ export function OrganizationDetail({
               onChange={(e) => setTransferTarget(e.target.value)}
               className="flex-1 rounded-md border border-gray-300 px-3 py-2"
               disabled={isTransferring || nonOwnerMembers.length === 0}
+              data-testid="organization-detail-transfer-select"
             >
               <option value="">Select new owner...</option>
               {nonOwnerMembers.map((member) => (
@@ -398,6 +418,7 @@ export function OrganizationDetail({
             <Button
               onClick={handleTransferOwnership}
               disabled={!transferTarget || isTransferring}
+              data-testid="organization-detail-transfer-button"
             >
               {isTransferring ? (
                 <>
@@ -418,7 +439,7 @@ export function OrganizationDetail({
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200">
+      <Card className="border-red-200" data-testid="organization-detail-danger-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-red-600">
             <AlertTriangle className="h-5 w-5" />
@@ -441,11 +462,13 @@ export function OrganizationDetail({
                 placeholder={`Type "${organization.name}" to confirm`}
                 className="flex-1"
                 disabled={isDeleting}
+                data-testid="organization-detail-delete-confirm-input"
               />
               <Button
                 variant="destructive"
                 onClick={handleDeleteOrganization}
                 disabled={deleteConfirm !== organization.name || isDeleting}
+                data-testid="organization-detail-delete-button"
               >
                 {isDeleting ? (
                   <>
@@ -466,8 +489,14 @@ export function OrganizationDetail({
 
       {/* Remove Member Confirmation Modal */}
       {memberToRemove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          data-testid="organization-detail-remove-modal-overlay"
+        >
+          <div
+            className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+            data-testid="organization-detail-remove-modal"
+          >
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
                 Remove Member
@@ -475,6 +504,7 @@ export function OrganizationDetail({
               <button
                 onClick={() => setMemberToRemove(null)}
                 className="text-gray-400 hover:text-gray-600"
+                data-testid="organization-detail-remove-modal-close"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -485,10 +515,18 @@ export function OrganizationDetail({
               organization? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setMemberToRemove(null)}>
+              <Button
+                variant="ghost"
+                onClick={() => setMemberToRemove(null)}
+                data-testid="organization-detail-remove-modal-cancel"
+              >
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleRemoveMember}>
+              <Button
+                variant="destructive"
+                onClick={handleRemoveMember}
+                data-testid="organization-detail-remove-modal-confirm"
+              >
                 Remove Member
               </Button>
             </div>

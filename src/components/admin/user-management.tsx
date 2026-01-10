@@ -281,13 +281,25 @@ export function UserManagement({ currentUser }: UserManagementProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {error && <Alert variant="error">{error}</Alert>}
+    <div className="space-y-6" data-testid="user-management">
+      {error && (
+        <Alert variant="error" data-testid="user-management-error">
+          {error}
+        </Alert>
+      )}
 
-      {success && <Alert variant="success">{success}</Alert>}
+      {success && (
+        <Alert variant="success" data-testid="user-management-success">
+          {success}
+        </Alert>
+      )}
 
       {/* Search & Filters */}
-      <form onSubmit={handleSearch} className="space-y-3">
+      <form
+        onSubmit={handleSearch}
+        className="space-y-3"
+        data-testid="user-management-filters"
+      >
         <div className="flex gap-3">
           <div className="flex-1">
             <Input
@@ -296,9 +308,14 @@ export function UserManagement({ currentUser }: UserManagementProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full"
+              data-testid="user-management-search-input"
             />
           </div>
-          <Button type="submit" disabled={isLoading}>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            data-testid="user-management-search-button"
+          >
             <Search size={16} className="mr-2" />
             Search
           </Button>
@@ -309,6 +326,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
             className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm"
+            data-testid="user-management-role-filter"
           >
             <option value="">All roles</option>
             <option value="USER">User</option>
@@ -319,6 +337,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm"
+            data-testid="user-management-status-filter"
           >
             <option value="">All statuses</option>
             <option value="active">Active</option>
@@ -332,6 +351,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
               size="sm"
               onClick={handleClearFilters}
               className="text-gray-500"
+              data-testid="user-management-clear-filters-button"
             >
               <X size={14} className="mr-1" />
               Clear
@@ -343,10 +363,16 @@ export function UserManagement({ currentUser }: UserManagementProps) {
       {/* Bulk Actions Bar */}
       {hasMinimumRole(currentUser.role, ROLES.ADMIN) &&
         selectedUsers.size > 0 && (
-          <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <div
+            className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3"
+            data-testid="user-management-bulk-actions"
+          >
             <div className="flex items-center gap-2">
               <CheckSquare size={16} className="text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">
+              <span
+                className="text-sm font-medium text-blue-900"
+                data-testid="user-management-selected-count"
+              >
                 {selectedUsers.size} user{selectedUsers.size > 1 ? 's' : ''}{' '}
                 selected
               </span>
@@ -357,6 +383,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                 variant="outline"
                 onClick={() => handleBulkAction('activate')}
                 disabled={isBulkActionLoading}
+                data-testid="user-management-bulk-activate"
               >
                 <UserCheck size={14} className="mr-1" />
                 Activate
@@ -366,6 +393,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                 variant="outline"
                 onClick={() => handleBulkAction('deactivate')}
                 disabled={isBulkActionLoading}
+                data-testid="user-management-bulk-deactivate"
               >
                 <UserX size={14} className="mr-1" />
                 Deactivate
@@ -375,6 +403,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                 variant="destructive"
                 onClick={() => handleBulkAction('delete')}
                 disabled={isBulkActionLoading}
+                data-testid="user-management-bulk-delete"
               >
                 <Trash2 size={14} className="mr-1" />
                 Delete
@@ -384,6 +413,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                 variant="ghost"
                 onClick={() => setSelectedUsers(new Set())}
                 disabled={isBulkActionLoading}
+                data-testid="user-management-bulk-clear"
               >
                 Clear
               </Button>
@@ -392,9 +422,15 @@ export function UserManagement({ currentUser }: UserManagementProps) {
         )}
 
       {/* Users Table */}
-      <div className="overflow-hidden rounded-lg border bg-white">
+      <div
+        className="overflow-hidden rounded-lg border bg-white"
+        data-testid="user-management-table-container"
+      >
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table
+            className="min-w-full divide-y divide-gray-200"
+            data-testid="user-management-table"
+          >
             <thead className="bg-gray-50">
               <tr>
                 {hasMinimumRole(currentUser.role, ROLES.ADMIN) && (
@@ -461,7 +497,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                   </tr>
                 ))
               ) : users.length === 0 ? (
-                <tr>
+                <tr data-testid="user-management-empty-state">
                   <td
                     colSpan={
                       hasMinimumRole(currentUser.role, ROLES.ADMIN) ? 7 : 6
@@ -479,6 +515,7 @@ export function UserManagement({ currentUser }: UserManagementProps) {
                     <tr
                       key={user.id}
                       className={`${user.id === currentUser.id ? 'bg-blue-50' : ''} ${selectedUsers.has(user.id) ? 'bg-blue-50' : ''}`}
+                      data-testid="user-management-row"
                     >
                       {hasMinimumRole(currentUser.role, ROLES.ADMIN) && (
                         <td className="px-4 py-4 whitespace-nowrap">
