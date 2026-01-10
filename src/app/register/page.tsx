@@ -1,44 +1,44 @@
 import { Suspense } from 'react';
 import { RegisterForm } from '@/components/auth/register-form';
+import { AuthLayout } from '@/components/layouts/auth-layout';
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { getBranding } from '@/lib/branding';
 
 export default function RegisterPage() {
+  const branding = getBranding();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Join SocleStack to get started
-          </p>
-        </div>
-        <Suspense
-          fallback={
-            <Card className="mx-auto w-full max-w-md">
-              <CardHeader>
-                <CardTitle>Loading...</CardTitle>
-                <CardDescription>
-                  Please wait while we load the registration form.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          }
-        >
-          <RegisterForm />
-        </Suspense>
-      </div>
-    </div>
+    <AuthLayout
+      title="Create your account"
+      description={`Join ${branding.name} to get started`}
+    >
+      <Suspense
+        fallback={
+          <Card className="mx-auto w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Loading...</CardTitle>
+              <CardDescription>
+                Please wait while we load the registration form.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        }
+      >
+        <RegisterForm />
+      </Suspense>
+    </AuthLayout>
   );
 }
 
-export const metadata = {
-  title: 'Sign Up - SocleStack',
-  description: 'Create a new SocleStack account',
-};
+export async function generateMetadata() {
+  const branding = getBranding();
+  return {
+    title: `Sign Up - ${branding.name}`,
+    description: `Create a new ${branding.name} account`,
+  };
+}
