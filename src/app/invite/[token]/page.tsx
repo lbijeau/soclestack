@@ -164,12 +164,18 @@ export default function InvitePage() {
         <CardContent className="space-y-6">
           {/* Organization Info */}
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2
+              className="text-2xl font-bold text-gray-900"
+              data-testid="invite-org-name"
+            >
               {invite.organization.name}
             </h2>
             <div className="mt-2 flex items-center justify-center gap-2">
               <span className="text-gray-500">You will join as</span>
-              <Badge className={getRoleBadgeColor(invite.role)}>
+              <Badge
+                className={getRoleBadgeColor(invite.role)}
+                data-testid="invite-role-badge"
+              >
                 {invite.role}
               </Badge>
             </div>
@@ -178,11 +184,16 @@ export default function InvitePage() {
           {/* Invite Email */}
           <div className="rounded-lg bg-gray-50 p-4 text-center">
             <p className="text-sm text-gray-500">Invite sent to</p>
-            <p className="font-medium">{invite.email}</p>
+            <p className="font-medium" data-testid="invite-email-display">
+              {invite.email}
+            </p>
           </div>
 
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div
+              className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              data-testid="invite-error-message"
+            >
               {error}
             </div>
           )}
@@ -191,7 +202,10 @@ export default function InvitePage() {
           {isLoggedIn ? (
             emailMismatch ? (
               <div className="space-y-4">
-                <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+                <div
+                  className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800"
+                  data-testid="invite-email-mismatch-warning"
+                >
                   You are logged in as <strong>{userEmail}</strong>, but this
                   invite was sent to <strong>{invite.email}</strong>. Please log
                   in with the correct account.
@@ -200,7 +214,11 @@ export default function InvitePage() {
                   href={`/login?returnUrl=/invite/${token}`}
                   className="block"
                 >
-                  <Button variant="outline" className="w-full">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    data-testid="invite-login-button-mismatch"
+                  >
                     <LogIn className="mr-2 h-4 w-4" />
                     Log in with different account
                   </Button>
@@ -211,6 +229,7 @@ export default function InvitePage() {
                 onClick={handleAccept}
                 disabled={accepting}
                 className="w-full"
+                data-testid="invite-accept-button"
               >
                 {accepting ? (
                   <>
@@ -228,7 +247,10 @@ export default function InvitePage() {
           ) : (
             <div className="space-y-3">
               <Link href={`/register?invite=${token}`} className="block">
-                <Button className="w-full">
+                <Button
+                  className="w-full"
+                  data-testid="invite-create-account-button"
+                >
                   <UserPlus className="mr-2 h-4 w-4" />
                   Create Account & Join
                 </Button>
@@ -237,7 +259,11 @@ export default function InvitePage() {
                 href={`/login?returnUrl=/invite/${token}`}
                 className="block"
               >
-                <Button variant="outline" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  data-testid="invite-login-button"
+                >
                   <LogIn className="mr-2 h-4 w-4" />
                   Already have an account? Log in
                 </Button>

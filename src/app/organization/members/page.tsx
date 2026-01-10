@@ -20,14 +20,14 @@ interface Member {
   username: string | null;
   firstName: string | null;
   lastName: string | null;
-  organizationRole: 'OWNER' | 'ADMIN' | 'MEMBER';
+  organizationRole: 'ROLE_OWNER' | 'ROLE_ADMIN' | 'ROLE_MEMBER';
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
 }
 
 interface CurrentUser {
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  role: 'ROLE_OWNER' | 'ROLE_ADMIN' | 'ROLE_MEMBER';
   id: string;
 }
 
@@ -149,22 +149,25 @@ export default function MembersPage() {
   };
 
   const canManage =
-    currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
+    currentUser?.role === 'ROLE_OWNER' || currentUser?.role === 'ROLE_ADMIN';
 
   const canManageMember = (member: Member) => {
     if (!currentUser || !canManage) return false;
     if (member.id === currentUser.id) return false; // Can't manage yourself
-    if (member.organizationRole === 'OWNER') return false; // Can't manage owner
-    if (currentUser.role === 'ADMIN' && member.organizationRole === 'ADMIN')
+    if (member.organizationRole === 'ROLE_OWNER') return false; // Can't manage owner
+    if (
+      currentUser.role === 'ROLE_ADMIN' &&
+      member.organizationRole === 'ROLE_ADMIN'
+    )
       return false; // Admin can't manage admin
     return true;
   };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'OWNER':
+      case 'ROLE_OWNER':
         return 'bg-purple-100 text-purple-800';
-      case 'ADMIN':
+      case 'ROLE_ADMIN':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -207,7 +210,7 @@ export default function MembersPage() {
 
         {canManage && (
           <Link href="/organization/invites">
-            <Button>Invite Members</Button>
+            <Button data-testid="invite-members-button">Invite Members</Button>
           </Link>
         )}
       </div>
@@ -226,11 +229,13 @@ export default function MembersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-4" data-testid="members-list">
             {members.map((member) => (
               <div
                 key={member.id}
                 className="flex items-center justify-between rounded-lg border p-4"
+                data-testid="member-row"
+                data-member-email={member.email}
               >
                 <div className="flex items-center gap-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
@@ -249,7 +254,12 @@ export default function MembersPage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-500">{member.email}</div>
+                    <div
+                      className="text-sm text-gray-500"
+                      data-testid="member-email"
+                    >
+                      {member.email}
+                    </div>
                   </div>
                 </div>
 
@@ -272,9 +282,10 @@ export default function MembersPage() {
                         }
                         disabled={actionLoading === member.id}
                         className="h-10 w-32 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        data-testid="member-role-select"
                       >
                         <option value="MEMBER">Member</option>
-                        {currentUser?.role === 'OWNER' && (
+                        {currentUser?.role === 'ROLE_OWNER' && (
                           <option value="ADMIN">Admin</option>
                         )}
                       </select>
@@ -285,6 +296,7 @@ export default function MembersPage() {
                         className="text-red-600 hover:bg-red-50 hover:text-red-700"
                         onClick={() => handleRemove(member.id, member.email)}
                         disabled={actionLoading === member.id}
+                        data-testid="member-remove-button"
                       >
                         {actionLoading === member.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -296,8 +308,9 @@ export default function MembersPage() {
                   ) : (
                     <Badge
                       className={getRoleBadgeColor(member.organizationRole)}
+                      data-testid="member-role-badge"
                     >
-                      {member.organizationRole === 'OWNER' && (
+                      {member.organizationRole === 'ROLE_OWNER' && (
                         <Shield className="mr-1 h-3 w-3" />
                       )}
                       {member.organizationRole}

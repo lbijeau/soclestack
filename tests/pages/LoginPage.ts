@@ -1,5 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { TEST_USERS } from '../fixtures/test-users';
 
 export class LoginPage extends BasePage {
   readonly emailInput: Locator;
@@ -169,12 +170,12 @@ export class LoginPage extends BasePage {
 
   // Test helper methods
   async loginAsValidUser(): Promise<void> {
-    await this.login('user@test.com', 'UserTest123!');
+    await this.login(TEST_USERS.user.email, TEST_USERS.user.password);
     await this.page.waitForURL('**/dashboard');
   }
 
   async loginAsAdmin(): Promise<void> {
-    await this.login('admin@test.com', 'AdminTest123!');
+    await this.login(TEST_USERS.admin.email, TEST_USERS.admin.password);
     await this.page.waitForURL('**/admin');
   }
 
@@ -218,8 +219,8 @@ export class LoginPage extends BasePage {
   }
 
   async testFormSubmissionWithEnter(): Promise<void> {
-    await this.fillEmail('user@test.com');
-    await this.fillPassword('UserTest123!');
+    await this.fillEmail(TEST_USERS.user.email);
+    await this.fillPassword(TEST_USERS.user.password);
     await this.page.keyboard.press('Enter');
     await this.page.waitForURL('**/dashboard');
   }
@@ -236,7 +237,7 @@ export class LoginPage extends BasePage {
     const formLoadTime = Date.now() - startTime;
 
     const loginStartTime = Date.now();
-    await this.login('user@test.com', 'UserTest123!');
+    await this.login(TEST_USERS.user.email, TEST_USERS.user.password);
     await this.page.waitForURL('**/dashboard');
     const loginSubmissionTime = Date.now() - loginStartTime;
 

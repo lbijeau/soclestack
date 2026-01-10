@@ -1,6 +1,8 @@
 import { Page, BrowserContext, expect } from '@playwright/test';
 import { DatabaseHelpers } from './database-helpers';
-import { Role } from '@prisma/client';
+import { ORG_TEST_USERS, TEST_TIMEOUTS } from './org-test-constants';
+import { TEST_USERS } from '../fixtures/test-users';
+import { ROLE_NAMES as Role } from '@/lib/constants/roles';
 
 export interface AuthenticatedState {
   user: any;
@@ -19,14 +21,14 @@ export class AuthHelpers {
   ): Promise<void> {
     try {
       await page.goto('/login');
-      await page.waitForSelector('[data-testid="login-form"]', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="login-form"]', { timeout: TEST_TIMEOUTS.pageLoad });
 
       await page.fill('[data-testid="email-input"]', email);
       await page.fill('[data-testid="password-input"]', password);
       await page.click('[data-testid="login-submit"]');
 
       // Wait for successful login
-      await page.waitForURL(/\/(dashboard|admin|profile)/, { timeout: 15000 });
+      await page.waitForURL(/\/(dashboard|admin|profile)/, { timeout: TEST_TIMEOUTS.auth });
 
       console.log(`✅ Successfully authenticated as ${email}`);
     } catch (error) {
@@ -39,7 +41,8 @@ export class AuthHelpers {
    * Quick login as admin user
    */
   static async loginAsAdmin(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'admin@test.com', 'AdminTest123!');
+    const { email, password } = TEST_USERS.admin;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/admin/);
   }
 
@@ -47,7 +50,8 @@ export class AuthHelpers {
    * Quick login as regular user
    */
   static async loginAsUser(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'user@test.com', 'UserTest123!');
+    const { email, password } = TEST_USERS.user;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/dashboard/);
   }
 
@@ -55,7 +59,44 @@ export class AuthHelpers {
    * Quick login as moderator
    */
   static async loginAsModerator(page: Page): Promise<void> {
-    await this.authenticateUser(page, 'moderator@test.com', 'ModeratorTest123!');
+    const { email, password } = TEST_USERS.moderator;
+    await this.authenticateUser(page, email, password);
+    await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
+  }
+
+  /**
+   * Login as organization owner
+   */
+  static async loginAsOrgOwner(page: Page): Promise<void> {
+    const { email, password } = ORG_TEST_USERS.owner;
+    await this.authenticateUser(page, email, password);
+    await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
+  }
+
+  /**
+   * Login as organization admin
+   */
+  static async loginAsOrgAdmin(page: Page): Promise<void> {
+    const { email, password } = ORG_TEST_USERS.admin;
+    await this.authenticateUser(page, email, password);
+    await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
+  }
+
+  /**
+   * Login as organization member
+   */
+  static async loginAsOrgMember(page: Page): Promise<void> {
+    const { email, password } = ORG_TEST_USERS.member;
+    await this.authenticateUser(page, email, password);
+    await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
+  }
+
+  /**
+   * Login as non-member (user not in any org)
+   */
+  static async loginAsNonMember(page: Page): Promise<void> {
+    const { email, password } = ORG_TEST_USERS.nonMember;
+    await this.authenticateUser(page, email, password);
     await expect(page).toHaveURL(/.*\/(dashboard|admin)/);
   }
 
@@ -79,7 +120,7 @@ export class AuthHelpers {
       for (const selector of logoutSelectors) {
         try {
           const element = page.locator(selector);
-          if (await element.isVisible({ timeout: 2000 })) {
+          if (await element.isVisible({ timeout: TEST_TIMEOUTS.elementVisible })) {
             await element.click();
             logoutSuccessful = true;
             break;
@@ -99,7 +140,7 @@ export class AuthHelpers {
       }
 
       // Wait for redirect to login page
-      await page.waitForURL('**/login', { timeout: 10000 });
+      await page.waitForURL('**/login', { timeout: TEST_TIMEOUTS.pageLoad });
       console.log('✅ Successfully logged out');
     } catch (error) {
       console.error('❌ Failed to logout:', error);
@@ -140,7 +181,7 @@ export class AuthHelpers {
       ];
 
       for (const selector of authenticatedSelectors) {
-        if (await page.locator(selector).isVisible({ timeout: 2000 })) {
+        if (await page.locator(selector).isVisible({ timeout: TEST_TIMEOUTS.elementVisible })) {
           return true;
         }
       }
@@ -160,15 +201,15 @@ export class AuthHelpers {
     switch (expectedRole) {
       case Role.ADMIN:
         await expect(page).toHaveURL(/.*\/admin/);
-        await expect(page.locator('[data-testid="admin-menu"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-testid="admin-menu"]')).toBeVisible({ timeout: TEST_TIMEOUTS.pageLoad });
         break;
       case Role.MODERATOR:
         // Moderators can access admin area but with limited features
-        await expect(page.locator('[data-testid="moderator-badge"], [data-testid="admin-menu"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-testid="moderator-badge"], [data-testid="admin-menu"]')).toBeVisible({ timeout: TEST_TIMEOUTS.pageLoad });
         break;
       case Role.USER:
         await expect(page).toHaveURL(/.*\/dashboard/);
-        await expect(page.locator('[data-testid="user-dashboard"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-testid="user-dashboard"]')).toBeVisible({ timeout: TEST_TIMEOUTS.pageLoad });
         break;
       default:
         throw new Error(`Unknown role: ${expectedRole}`);
@@ -188,7 +229,9 @@ export class AuthHelpers {
     for (const route of protectedRoutes) {
       try {
         await page.goto(route.path);
-        await page.waitForLoadState('networkidle', { timeout: 5000 });
+        // Wait for URL to settle - either stays on route or redirects to auth/error pages
+        await page.waitForURL(/./, { timeout: TEST_TIMEOUTS.elementVisible });
+        await page.waitForLoadState('domcontentloaded', { timeout: TEST_TIMEOUTS.elementVisible });
 
         const currentUrl = page.url();
 
@@ -227,7 +270,7 @@ export class AuthHelpers {
     await page.goto('/dashboard');
 
     // Should redirect to login
-    await page.waitForURL('**/login', { timeout: 10000 });
+    await page.waitForURL('**/login', { timeout: TEST_TIMEOUTS.pageLoad });
   }
 
   /**
@@ -239,9 +282,9 @@ export class AuthHelpers {
     const testCases = [
       { email: '', password: '', description: 'empty credentials' },
       { email: 'invalid@test.com', password: 'ValidPassword123!', description: 'invalid email' },
-      { email: 'user@test.com', password: 'wrongpassword', description: 'wrong password' },
-      { email: 'unverified@test.com', password: 'UnverifiedTest123!', description: 'unverified account' },
-      { email: 'inactive@test.com', password: 'InactiveTest123!', description: 'inactive account' },
+      { email: TEST_USERS.user.email, password: 'wrongpassword', description: 'wrong password' },
+      { email: TEST_USERS.unverified.email, password: TEST_USERS.unverified.password, description: 'unverified account' },
+      { email: TEST_USERS.inactive.email, password: TEST_USERS.inactive.password, description: 'inactive account' },
       { email: 'invalid-email', password: 'ValidPassword123!', description: 'malformed email' },
     ];
 
@@ -267,7 +310,7 @@ export class AuthHelpers {
         if (!success) {
           try {
             const errorElement = page.locator('[data-testid="error-message"]');
-            error = await errorElement.textContent({ timeout: 2000 });
+            error = await errorElement.textContent({ timeout: TEST_TIMEOUTS.elementVisible });
           } catch {
             // No error message found
           }
@@ -300,8 +343,8 @@ export class AuthHelpers {
     await page.goto('/login');
     await page.waitForSelector('[data-testid="login-form"]');
 
-    await page.fill('[data-testid="email-input"]', 'user@test.com');
-    await page.fill('[data-testid="password-input"]', 'UserTest123!');
+    await page.fill('[data-testid="email-input"]', TEST_USERS.user.email);
+    await page.fill('[data-testid="password-input"]', TEST_USERS.user.password);
     await page.check('[data-testid="remember-me-checkbox"]');
     await page.click('[data-testid="login-submit"]');
 
@@ -349,15 +392,15 @@ export class AuthHelpers {
       let role: string | undefined;
 
       try {
-        email = await page.locator('[data-testid="user-email"]').textContent({ timeout: 2000 }) || undefined;
+        email = await page.locator('[data-testid="user-email"]').textContent({ timeout: TEST_TIMEOUTS.elementVisible }) || undefined;
       } catch {}
 
       try {
-        username = await page.locator('[data-testid="user-username"]').textContent({ timeout: 2000 }) || undefined;
+        username = await page.locator('[data-testid="user-username"]').textContent({ timeout: TEST_TIMEOUTS.elementVisible }) || undefined;
       } catch {}
 
       try {
-        role = await page.locator('[data-testid="user-role"]').textContent({ timeout: 2000 }) || undefined;
+        role = await page.locator('[data-testid="user-role"]').textContent({ timeout: TEST_TIMEOUTS.elementVisible }) || undefined;
       } catch {}
 
       return {

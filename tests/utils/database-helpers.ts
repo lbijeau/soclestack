@@ -1,8 +1,106 @@
 import { PrismaClient } from '@prisma/client';
 import { TestUser, TestDataFactory } from './test-data-factory';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
 import { generateTOTPSecret } from './totp-helpers';
+import {
+  ORG_TEST_USERS,
+  ORG_ROLE_TO_DB_ROLE,
+  DB_ROLE_TO_ORG_ROLE,
+  INVITE_ROLE_TO_DB_ROLE,
+  TEST_INVITE_EMAILS,
+  generateUniqueSlug,
+  type OrgRole,
+  type InviteRole,
+} from './org-test-constants';
+import { TEST_USERS, getUserData } from '../fixtures/test-users';
+
+// ===========================================
+// Type Definitions for Test Helpers
+// ===========================================
+
+/**
+ * User object returned from test helpers with plain password for auth
+ */
+export interface TestUserResult {
+  id: string;
+  email: string;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  isActive: boolean;
+  emailVerified: boolean;
+  plainPassword: string;
+}
+
+/**
+ * Organization object returned from test helpers
+ */
+export interface TestOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: Date;
+  updatedAt: Date;
+  owner: TestUserResult;
+}
+
+/**
+ * Organization invite object returned from test helpers
+ */
+export interface TestInvite {
+  id: string;
+  email: string;
+  token: string;
+  expiresAt: Date;
+  organizationId: string;
+  invitedById: string;
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  invitedBy: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+  };
+}
+
+/**
+ * Result from createTestInvite
+ */
+export interface TestInviteResult {
+  invite: TestInvite;
+  token: string;
+}
+
+/**
+ * Result from setupTestOrganization
+ */
+export interface SetupTestOrganizationResult {
+  org: TestOrganization;
+  owner: TestUserResult;
+  admin: TestUserResult;
+  member: TestUserResult;
+  nonMember: TestUserResult;
+  pendingInvite: TestInviteResult;
+  expiredInvite: TestInviteResult;
+}
+
+/**
+ * Organization membership record
+ */
+export interface TestMembership {
+  userId: string;
+  roleId: string;
+  organizationId: string;
+  user: TestUserResult;
+  role: { id: string; name: string };
+  organization: TestOrganization;
+}
 
 // Create a test-specific Prisma client
 // For e2e tests, we need to use the same database as the running application.
@@ -39,7 +137,10 @@ export class DatabaseHelpers {
         },
       });
 
-      // Delete UserRole records for test users
+      // Clean up test organizations (invites, memberships, orgs) before deleting users
+      await this.cleanupTestOrganizations();
+
+      // Delete UserRole records for test users (platform-wide roles)
       await this.prisma.userRole.deleteMany({
         where: {
           user: {
@@ -68,7 +169,7 @@ export class DatabaseHelpers {
   /**
    * Create a test user in the database
    */
-  static async createTestUser(userData: Partial<TestUser> = {}): Promise<any> {
+  static async createTestUser(userData: Partial<TestUser> = {}): Promise<TestUserResult> {
     const user = TestDataFactory.createUser(userData);
     const hashedPassword = await bcrypt.hash(user.password, 12);
 
@@ -152,7 +253,8 @@ export class DatabaseHelpers {
   }
 
   /**
-   * Create a complete test environment with predefined users
+   * Create a complete test environment with predefined users.
+   * Uses centralized test credentials from fixtures/test-users.ts
    */
   static async setupTestUsers(): Promise<{
     adminUser: any;
@@ -165,52 +267,11 @@ export class DatabaseHelpers {
     await this.cleanupDatabase();
 
     console.log('Creating admin user...');
-    const adminUser = await this.createTestUser({
-      email: 'admin@test.com',
-      password: 'AdminTest123!',
-      role: ROLES.ADMIN,
-      username: 'admin',
-      firstName: 'Admin',
-      lastName: 'User',
-    });
-
-    const moderatorUser = await this.createTestUser({
-      email: 'moderator@test.com',
-      password: 'ModeratorTest123!',
-      role: ROLES.MODERATOR,
-      username: 'moderator',
-      firstName: 'Moderator',
-      lastName: 'User',
-    });
-
-    const regularUser = await this.createTestUser({
-      email: 'user@test.com',
-      password: 'UserTest123!',
-      role: ROLES.USER,
-      username: 'testuser',
-      firstName: 'Test',
-      lastName: 'User',
-    });
-
-    const unverifiedUser = await this.createTestUser({
-      email: 'unverified@test.com',
-      password: 'UnverifiedTest123!',
-      role: ROLES.USER,
-      emailVerified: false,
-      username: 'unverified',
-      firstName: 'Unverified',
-      lastName: 'User',
-    });
-
-    const inactiveUser = await this.createTestUser({
-      email: 'inactive@test.com',
-      password: 'InactiveTest123!',
-      role: ROLES.USER,
-      isActive: false,
-      username: 'inactive',
-      firstName: 'Inactive',
-      lastName: 'User',
-    });
+    const adminUser = await this.createTestUser(getUserData('admin'));
+    const moderatorUser = await this.createTestUser(getUserData('moderator'));
+    const regularUser = await this.createTestUser(getUserData('user'));
+    const unverifiedUser = await this.createTestUser(getUserData('unverified'));
+    const inactiveUser = await this.createTestUser(getUserData('inactive'));
 
     return {
       adminUser,
@@ -447,6 +508,356 @@ export class DatabaseHelpers {
    */
   static async disconnect(): Promise<void> {
     await this.prisma.$disconnect();
+  }
+
+  // ===========================================
+  // Organization Management Methods
+  // ===========================================
+
+  /**
+   * Create a test organization with an owner
+   */
+  static async createTestOrganization(data: {
+    name: string;
+    slug?: string;
+    ownerEmail: string;
+  }): Promise<TestOrganization> {
+    // Generate slug from name if not provided
+    const slug = data.slug || data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    // Find or create the owner user
+    let owner = await this.prisma.user.findUnique({
+      where: { email: data.ownerEmail },
+    });
+
+    if (!owner) {
+      owner = await this.createTestUser({ email: data.ownerEmail });
+    }
+
+    // Create the organization
+    const organization = await this.prisma.organization.create({
+      data: {
+        name: data.name,
+        slug,
+      },
+    });
+
+    // Add owner as ROLE_OWNER in the organization
+    await this.addMemberToOrganization(organization.id, owner.id, 'OWNER');
+
+    return {
+      ...organization,
+      owner,
+    };
+  }
+
+  /**
+   * Delete a test organization and all related data
+   */
+  static async deleteTestOrganization(orgId: string): Promise<void> {
+    // Delete invites first
+    await this.prisma.organizationInvite.deleteMany({
+      where: { organizationId: orgId },
+    });
+
+    // Delete UserRole records for this organization
+    await this.prisma.userRole.deleteMany({
+      where: { organizationId: orgId },
+    });
+
+    // Delete the organization
+    await this.prisma.organization.delete({
+      where: { id: orgId },
+    });
+  }
+
+  /**
+   * Delete a specific test user by ID
+   */
+  static async deleteTestUser(userId: string): Promise<void> {
+    // Delete backup codes for this user (foreign key constraint)
+    await this.prisma.backupCode.deleteMany({
+      where: { userId },
+    });
+
+    // Delete UserRole records for this user
+    await this.prisma.userRole.deleteMany({
+      where: { userId },
+    });
+
+    // Delete user sessions
+    await this.prisma.userSession.deleteMany({
+      where: { userId },
+    });
+
+    // Delete the user
+    await this.prisma.user.delete({
+      where: { id: userId },
+    });
+  }
+
+  /**
+   * Clean up all test organizations (orgs owned by @test.com users)
+   */
+  static async cleanupTestOrganizations(): Promise<void> {
+    // Find all orgs owned by test users
+    const testOrgs = await this.prisma.organization.findMany({
+      where: {
+        userRoles: {
+          some: {
+            user: {
+              email: {
+                endsWith: '@test.com',
+              },
+            },
+            role: {
+              name: ROLES.OWNER,
+            },
+          },
+        },
+      },
+    });
+
+    // Use Promise.allSettled to continue even if some deletions fail
+    const results = await Promise.allSettled(
+      testOrgs.map(org => this.deleteTestOrganization(org.id))
+    );
+
+    // Log any failures for debugging
+    const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failures.length > 0) {
+      console.warn(`Failed to cleanup ${failures.length} organizations:`, failures.map(f => f.reason));
+    }
+  }
+
+  /**
+   * Add a member to an organization with a specific role
+   */
+  static async addMemberToOrganization(
+    orgId: string,
+    userId: string,
+    role: OrgRole
+  ): Promise<TestMembership | null> {
+    // Use centralized role mapping from org-test-constants
+    const roleName = ORG_ROLE_TO_DB_ROLE[role];
+    const roleRecord = await this.prisma.role.findUnique({
+      where: { name: roleName },
+    });
+
+    if (!roleRecord) {
+      throw new Error(`Role ${roleName} not found`);
+    }
+
+    try {
+      return await this.prisma.userRole.create({
+        data: {
+          userId,
+          roleId: roleRecord.id,
+          organizationId: orgId,
+        },
+        include: {
+          user: true,
+          role: true,
+          organization: true,
+        },
+      });
+    } catch (error: any) {
+      // Handle unique constraint error (P2002) from parallel test execution
+      if (error.code === 'P2002') {
+        return await this.prisma.userRole.findFirst({
+          where: {
+            userId,
+            roleId: roleRecord.id,
+            organizationId: orgId,
+          },
+          include: {
+            user: true,
+            role: true,
+            organization: true,
+          },
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Remove a member from an organization
+   */
+  static async removeMemberFromOrganization(orgId: string, userId: string): Promise<void> {
+    await this.prisma.userRole.deleteMany({
+      where: {
+        organizationId: orgId,
+        userId,
+      },
+    });
+  }
+
+  /**
+   * Get a member's role in an organization
+   */
+  static async getMemberRole(orgId: string, userId: string): Promise<OrgRole | null> {
+    const userRole = await this.prisma.userRole.findFirst({
+      where: {
+        organizationId: orgId,
+        userId,
+      },
+      include: {
+        role: true,
+      },
+    });
+
+    if (!userRole) {
+      return null;
+    }
+
+    // Use centralized role mapping from org-test-constants
+    return DB_ROLE_TO_ORG_ROLE[userRole.role.name] || null;
+  }
+
+  /**
+   * Create a test invite for an organization
+   */
+  static async createTestInvite(
+    orgId: string,
+    email: string,
+    role: InviteRole,
+    options?: { expiresAt?: Date; invitedById?: string }
+  ): Promise<TestInviteResult> {
+    // Use centralized role mapping from org-test-constants
+    const roleName = INVITE_ROLE_TO_DB_ROLE[role];
+    const roleRecord = await this.prisma.role.findUnique({
+      where: { name: roleName },
+    });
+
+    if (!roleRecord) {
+      throw new Error(`Role ${roleName} not found`);
+    }
+
+    // Generate a secure token
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // Default expiry: 7 days from now
+    const expiresAt = options?.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    // Get invitedById - use provided or find org owner
+    let invitedById = options?.invitedById;
+    if (!invitedById) {
+      const ownerRole = await this.prisma.userRole.findFirst({
+        where: {
+          organizationId: orgId,
+          role: {
+            name: ROLES.OWNER,
+          },
+        },
+      });
+      invitedById = ownerRole?.userId;
+    }
+
+    if (!invitedById) {
+      throw new Error('No invitedById provided and no owner found for organization');
+    }
+
+    const invite = await this.prisma.organizationInvite.create({
+      data: {
+        email,
+        roleId: roleRecord.id,
+        token,
+        expiresAt,
+        organizationId: orgId,
+        invitedById,
+      },
+      include: {
+        organization: true,
+        invitedBy: true,
+      },
+    });
+
+    return { invite, token };
+  }
+
+  /**
+   * Get an invite by its token
+   */
+  static async getInviteByToken(token: string): Promise<TestInvite | null> {
+    return await this.prisma.organizationInvite.findUnique({
+      where: { token },
+      include: {
+        organization: true,
+        invitedBy: true,
+      },
+    });
+  }
+
+  /**
+   * Expire an invite by setting its expiresAt to the past
+   */
+  static async expireInvite(inviteId: string): Promise<void> {
+    await this.prisma.organizationInvite.update({
+      where: { id: inviteId },
+      data: {
+        expiresAt: new Date(Date.now() - 1000), // 1 second in the past
+      },
+    });
+  }
+
+  /**
+   * Set up a complete test organization with various user roles and invites.
+   * Uses centralized test credentials from org-test-constants.ts
+   */
+  static async setupTestOrganization(): Promise<SetupTestOrganizationResult> {
+    // Create owner user first with known password for auth helpers
+    const ownerUser = await this.createTestUser(ORG_TEST_USERS.owner);
+
+    // Create the organization with the owner using unique slug for test isolation
+    const orgResult = await this.createTestOrganization({
+      name: 'Test Organization',
+      slug: generateUniqueSlug(),
+      ownerEmail: ORG_TEST_USERS.owner.email,
+    });
+
+    const org = orgResult;
+    const owner = ownerUser;
+
+    // Create admin user and add to organization
+    const admin = await this.createTestUser(ORG_TEST_USERS.admin);
+    await this.addMemberToOrganization(org.id, admin.id, 'ADMIN');
+
+    // Create member user and add to organization
+    const member = await this.createTestUser(ORG_TEST_USERS.member);
+    await this.addMemberToOrganization(org.id, member.id, 'MEMBER');
+
+    // Create non-member user (not in organization)
+    const nonMember = await this.createTestUser(ORG_TEST_USERS.nonMember);
+
+    // Create pending invite
+    const pendingInvite = await this.createTestInvite(
+      org.id,
+      TEST_INVITE_EMAILS.pending,
+      'MEMBER',
+      { invitedById: owner.id }
+    );
+
+    // Create expired invite
+    const expiredInvite = await this.createTestInvite(
+      org.id,
+      TEST_INVITE_EMAILS.expired,
+      'MEMBER',
+      {
+        expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+        invitedById: owner.id,
+      }
+    );
+
+    return {
+      org,
+      owner,
+      admin,
+      member,
+      nonMember,
+      pendingInvite,
+      expiredInvite,
+    };
   }
 
   /**
