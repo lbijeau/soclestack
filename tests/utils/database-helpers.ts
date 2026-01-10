@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { TestUser, TestDataFactory } from './test-data-factory';
 import bcrypt from 'bcryptjs';
 import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
+import { generateTOTPSecret } from './totp-helpers';
 
 // Create a test-specific Prisma client
 const testPrisma = new PrismaClient({
@@ -408,6 +409,136 @@ export class DatabaseHelpers {
    */
   static async disconnect(): Promise<void> {
     await this.prisma.$disconnect();
+  }
+
+  /**
+   * Enable 2FA for a user (for testing 2FA login flows)
+   */
+  static async enable2FA(
+    email: string,
+    options: { secret?: string; backupCodes?: string[] } = {}
+  ): Promise<{ secret: string; backupCodes: string[] }> {
+    const secret = options.secret || generateTOTPSecret();
+    const backupCodes = options.backupCodes || [
+      'ABCD1234',
+      'EFGH5678',
+      'IJKL9012',
+      'MNOP3456',
+      'QRST7890',
+      'UVWX1234',
+      'YZAB5678',
+      'CDEF9012',
+    ];
+
+    const user = await this.prisma.user.update({
+      where: { email },
+      data: {
+        twoFactorSecret: secret,
+        twoFactorEnabled: true,
+        twoFactorVerified: true,
+      },
+    });
+
+    // Create backup codes
+    for (const code of backupCodes) {
+      const codeHash = await bcrypt.hash(code, 10);
+      await this.prisma.backupCode.create({
+        data: {
+          userId: user.id,
+          codeHash,
+        },
+      });
+    }
+
+    return { secret, backupCodes };
+  }
+
+  /**
+   * Disable 2FA for a user
+   */
+  static async disable2FA(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) return;
+
+    // Delete backup codes
+    await this.prisma.backupCode.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Reset 2FA fields
+    await this.prisma.user.update({
+      where: { email },
+      data: {
+        twoFactorSecret: null,
+        twoFactorEnabled: false,
+        twoFactorVerified: false,
+      },
+    });
+  }
+
+  /**
+   * Check if user has 2FA enabled
+   */
+  static async has2FAEnabled(email: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { twoFactorEnabled: true },
+    });
+
+    return user?.twoFactorEnabled || false;
+  }
+
+  /**
+   * Get 2FA secret for a user (for generating test codes)
+   */
+  static async get2FASecret(email: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { twoFactorSecret: true },
+    });
+
+    return user?.twoFactorSecret || null;
+  }
+
+  /**
+   * Create a user with 2FA already enabled
+   */
+  static async createUserWith2FA(
+    userData: Partial<TestUser> = {}
+  ): Promise<{
+    user: any;
+    secret: string;
+    backupCodes: string[];
+  }> {
+    const user = await this.createTestUser(userData);
+    const { secret, backupCodes } = await this.enable2FA(user.email);
+
+    return {
+      user: { ...user, twoFactorEnabled: true },
+      secret,
+      backupCodes,
+    };
+  }
+
+  /**
+   * Create pending 2FA token for testing login flow
+   * This simulates the state after password verification but before 2FA
+   */
+  static async createPending2FAToken(userId: string): Promise<string> {
+    // In a real implementation, this would be stored in Redis or a pending_2fa table
+    // For testing, we'll create a simple JWT-like token
+    const token = Buffer.from(
+      JSON.stringify({
+        userId,
+        type: 'pending_2fa',
+        exp: Date.now() + 300000, // 5 minutes
+      })
+    ).toString('base64url');
+
+    return token;
   }
 }
 
