@@ -70,19 +70,22 @@ export function DeleteAccount({
   };
 
   return (
-    <Card className="border-red-200">
+    <Card className="border-red-200" data-testid="delete-account-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-red-700">
+        <CardTitle
+          className="flex items-center gap-2 text-red-700"
+          data-testid="delete-account-title"
+        >
           <Trash2 className="h-5 w-5" />
           Delete Account
         </CardTitle>
-        <CardDescription>
+        <CardDescription data-testid="delete-account-description">
           Permanently delete your account and all associated data.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {!canDelete ? (
-          <Alert variant="warning" className="mb-4">
+          <Alert variant="warning" className="mb-4" data-testid="delete-account-blocked">
             {isAdmin &&
               'System administrators cannot delete their own account. Contact another admin.'}
             {isOrgOwner &&
@@ -91,7 +94,7 @@ export function DeleteAccount({
               'OAuth-only accounts cannot be deleted this way. Please contact support.'}
           </Alert>
         ) : !showConfirmation ? (
-          <div className="space-y-4">
+          <div className="space-y-4" data-testid="delete-account-warning">
             <div className="rounded-md border border-red-200 bg-red-50 p-4">
               <div className="flex gap-3">
                 <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
@@ -100,7 +103,7 @@ export function DeleteAccount({
                     This action is permanent and cannot be undone.
                   </p>
                   <p>All your data will be permanently deleted, including:</p>
-                  <ul className="mt-2 ml-4 list-disc space-y-1">
+                  <ul className="mt-2 ml-4 list-disc space-y-1" data-testid="delete-account-data-list">
                     <li>Your profile and account information</li>
                     <li>All active sessions and devices</li>
                     <li>API keys and OAuth connections</li>
@@ -113,13 +116,22 @@ export function DeleteAccount({
               variant="outline"
               className="border-red-300 text-red-600 hover:bg-red-50"
               onClick={() => setShowConfirmation(true)}
+              data-testid="delete-account-understand-button"
             >
               I understand, delete my account
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleDelete} className="space-y-4">
-            {error && <Alert variant="error">{error}</Alert>}
+          <form
+            onSubmit={handleDelete}
+            className="space-y-4"
+            data-testid="delete-account-form"
+          >
+            {error && (
+              <Alert variant="error" data-testid="delete-account-error">
+                {error}
+              </Alert>
+            )}
 
             <div className="space-y-2">
               <label
@@ -136,6 +148,7 @@ export function DeleteAccount({
                 placeholder="Your password"
                 required
                 disabled={isLoading}
+                data-testid="delete-account-password"
               />
             </div>
 
@@ -158,6 +171,7 @@ export function DeleteAccount({
                 placeholder="DELETE MY ACCOUNT"
                 required
                 disabled={isLoading}
+                data-testid="delete-account-confirmation"
               />
             </div>
 
@@ -167,6 +181,7 @@ export function DeleteAccount({
                 variant="outline"
                 onClick={handleCancel}
                 disabled={isLoading}
+                data-testid="delete-account-cancel-button"
               >
                 Cancel
               </Button>
@@ -174,6 +189,7 @@ export function DeleteAccount({
                 type="submit"
                 variant="destructive"
                 disabled={isLoading || confirmation !== 'DELETE MY ACCOUNT'}
+                data-testid="delete-account-submit-button"
               >
                 {isLoading ? 'Deleting...' : 'Delete my account permanently'}
               </Button>

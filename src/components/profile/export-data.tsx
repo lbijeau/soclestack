@@ -51,19 +51,27 @@ export function ExportData() {
   };
 
   return (
-    <Card>
+    <Card data-testid="export-data-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2" data-testid="export-data-title">
           <FileJson className="h-5 w-5" />
           Export Your Data
         </CardTitle>
-        <CardDescription>
+        <CardDescription data-testid="export-data-description">
           Download a copy of all your personal data stored in SocleStack
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && <Alert variant="error">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
+        {error && (
+          <Alert variant="error" data-testid="export-error">
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert variant="success" data-testid="export-success">
+            {success}
+          </Alert>
+        )}
 
         <div className="space-y-2 text-sm text-gray-600">
           <p>Your export will include:</p>
@@ -85,6 +93,7 @@ export function ExportData() {
           onClick={handleExport}
           disabled={isExporting}
           className="w-full sm:w-auto"
+          data-testid="export-data-button"
         >
           <Download className="mr-2 h-4 w-4" />
           {isExporting ? 'Exporting...' : 'Download My Data'}
