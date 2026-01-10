@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
+import { env } from '@/lib/env';
 
 /**
  * Allowed origins for SDK cross-origin requests.
  * Configure via CORS_ORIGINS environment variable (comma-separated).
  */
 export function getAllowedOrigins(): string[] {
-  const origins = process.env.CORS_ORIGINS;
+  const origins = env.CORS_ORIGINS;
   if (!origins) {
     return [];
   }
@@ -30,7 +31,10 @@ export function isOriginAllowed(origin: string | null): boolean {
 /**
  * Add CORS headers to response
  */
-export function addCorsHeaders(response: NextResponse, origin: string): NextResponse {
+export function addCorsHeaders(
+  response: NextResponse,
+  origin: string
+): NextResponse {
   response.headers.set('Access-Control-Allow-Origin', origin);
   response.headers.set('Access-Control-Allow-Credentials', 'true');
   response.headers.set(

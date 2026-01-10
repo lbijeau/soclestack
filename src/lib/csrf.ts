@@ -168,7 +168,7 @@ export const CSRF_CONFIG = {
 // Methods that require CSRF validation
 export const CSRF_PROTECTED_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
 
-// Routes excluded from CSRF validation (pre-auth or token-based)
+// Routes excluded from CSRF validation (pre-auth, token-based, or signature-verified)
 export const CSRF_EXCLUDED_ROUTES = [
   '/api/auth/login',
   '/api/auth/register',
@@ -180,6 +180,7 @@ export const CSRF_EXCLUDED_ROUTES = [
   '/api/auth/resend-verification',
   '/api/auth/oauth/',
   '/api/invites/',
+  '/api/webhooks/', // Webhooks use signature verification instead of CSRF
 ];
 
 /**
