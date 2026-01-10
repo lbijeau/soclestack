@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../../pages/LoginPage';
-import { TwoFactorSetupPage } from '../../pages/TwoFactorPage';
+import { TwoFactorPage, TwoFactorSetupPage } from '../../pages/TwoFactorPage';
 import { AuthHelpers } from '../../utils/auth-helpers';
 import { DatabaseHelpers } from '../../utils/database-helpers';
 import {
@@ -167,6 +167,7 @@ test.describe('Two-Factor Authentication', () => {
     }) => {
       // Enable 2FA for user
       const { secret } = await DatabaseHelpers.enable2FA('user@test.com');
+      const challengePage = new TwoFactorPage(page);
 
       await test.step('Login with password', async () => {
         await loginPage.goto();
@@ -177,36 +178,25 @@ test.describe('Two-Factor Authentication', () => {
 
       await test.step('Verify 2FA challenge is shown', async () => {
         // The login form shows 2FA input inline
-        await expect(
-          page.locator(
-            '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-          )
-        ).toBeVisible({ timeout: 10000 });
+        await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
       });
     });
 
     test('should complete login with valid TOTP code', async ({ page }) => {
       const { secret } = await DatabaseHelpers.enable2FA('user@test.com');
+      const challengePage = new TwoFactorPage(page);
 
       await test.step('Login and enter 2FA code', async () => {
         await loginPage.goto();
         await loginPage.login('user@test.com', 'UserTest123!');
 
         // Wait for 2FA input to appear
-        const codeInput = page.locator(
-          '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-        );
-        await expect(codeInput).toBeVisible({ timeout: 10000 });
+        await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
 
         // Generate and enter valid code
         await waitForFreshTOTPWindow();
         const code = generateTOTPCode(secret);
-        await codeInput.fill(code);
-
-        // Submit
-        await page
-          .locator('[data-testid="2fa-submit"], button:has-text("Verify")')
-          .click();
+        await challengePage.verify(code);
       });
 
       await test.step('Verify login successful', async () => {
@@ -216,20 +206,14 @@ test.describe('Two-Factor Authentication', () => {
 
     test('should reject invalid TOTP code during login', async ({ page }) => {
       await DatabaseHelpers.enable2FA('user@test.com');
+      const challengePage = new TwoFactorPage(page);
 
       await test.step('Login and enter invalid 2FA code', async () => {
         await loginPage.goto();
         await loginPage.login('user@test.com', 'UserTest123!');
 
-        const codeInput = page.locator(
-          '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-        );
-        await expect(codeInput).toBeVisible({ timeout: 10000 });
-
-        await codeInput.fill(generateInvalidTOTPCode());
-        await page
-          .locator('[data-testid="2fa-submit"], button:has-text("Verify")')
-          .click();
+        await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
+        await challengePage.verify(generateInvalidTOTPCode());
       });
 
       await test.step('Verify error message is shown', async () => {
@@ -246,34 +230,20 @@ test.describe('Two-Factor Authentication', () => {
     test('should allow login with backup code', async ({ page }) => {
       const { backupCodes } = await DatabaseHelpers.enable2FA('user@test.com');
       const backupCode = backupCodes[0];
+      const challengePage = new TwoFactorPage(page);
 
       await test.step('Login and switch to backup code', async () => {
         await loginPage.goto();
         await loginPage.login('user@test.com', 'UserTest123!');
 
-        const codeInput = page.locator(
-          '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-        );
-        await expect(codeInput).toBeVisible({ timeout: 10000 });
-
-        // Click "Use backup code" link
-        await page
-          .locator(
-            '[data-testid="use-backup-code"], button:has-text("backup code")'
-          )
-          .click();
+        await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
+        await challengePage.switchToBackupCode();
       });
 
       await test.step('Enter backup code', async () => {
-        const backupInput = page.locator(
-          '[data-testid="backup-code-input"], input[placeholder*="backup"]'
-        );
-        await expect(backupInput).toBeVisible();
-        await backupInput.fill(backupCode);
-
-        await page
-          .locator('[data-testid="2fa-submit"], button:has-text("Verify")')
-          .click();
+        await expect(challengePage.backupCodeInput).toBeVisible();
+        await challengePage.backupCodeInput.fill(backupCode);
+        await challengePage.submit();
       });
 
       await test.step('Verify login successful', async () => {
@@ -288,6 +258,7 @@ test.describe('Two-Factor Authentication', () => {
       page,
     }) => {
       await DatabaseHelpers.enable2FA('user@test.com');
+      const challengePage = new TwoFactorPage(page);
       // Rate limit is 30 attempts in E2E, so we'd need 31 to trigger it
       const maxAttempts = 6;
 
@@ -295,27 +266,17 @@ test.describe('Two-Factor Authentication', () => {
         await loginPage.goto();
         await loginPage.login('user@test.com', 'UserTest123!');
 
-        const codeInput = page.locator(
-          '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-        );
-        await expect(codeInput).toBeVisible({ timeout: 10000 });
+        await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
 
         for (let i = 0; i < maxAttempts; i++) {
-          await codeInput.clear();
-          await codeInput.fill(generateInvalidTOTPCode());
-          await page
-            .locator('[data-testid="2fa-submit"], button:has-text("Verify")')
-            .click();
+          await challengePage.codeInput.clear();
+          await challengePage.verify(generateInvalidTOTPCode());
           await page.waitForTimeout(500);
         }
       });
 
       await test.step('Verify rate limiting or lockout', async () => {
-        // Either rate limit message or locked out
-        const rateLimitOrLockout = page.locator(
-          '[data-testid="rate-limit-error"], [data-testid="error-message"]:has-text("too many"), [data-testid="error-message"]:has-text("locked")'
-        );
-        await expect(rateLimitOrLockout).toBeVisible({ timeout: 10000 });
+        await challengePage.assertRateLimitError();
       });
     });
   });
@@ -324,20 +285,15 @@ test.describe('Two-Factor Authentication', () => {
     test('should disable 2FA with valid TOTP code', async ({ page }) => {
       // Setup user with 2FA
       const { secret } = await DatabaseHelpers.enable2FA('user@test.com');
+      const challengePage = new TwoFactorPage(page);
 
       // Login (need to complete 2FA to get to profile)
       await loginPage.goto();
       await loginPage.login('user@test.com', 'UserTest123!');
 
-      const codeInput = page.locator(
-        '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-      );
-      await expect(codeInput).toBeVisible({ timeout: 10000 });
+      await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
       await waitForFreshTOTPWindow();
-      await codeInput.fill(generateTOTPCode(secret));
-      await page
-        .locator('[data-testid="2fa-submit"], button:has-text("Verify")')
-        .click();
+      await challengePage.verify(generateTOTPCode(secret));
 
       await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
 
@@ -362,19 +318,14 @@ test.describe('Two-Factor Authentication', () => {
 
     test('should reject invalid code when disabling 2FA', async ({ page }) => {
       const { secret } = await DatabaseHelpers.enable2FA('user@test.com');
+      const challengePage = new TwoFactorPage(page);
 
       // Login with 2FA
       await loginPage.goto();
       await loginPage.login('user@test.com', 'UserTest123!');
-      const codeInput = page.locator(
-        '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-      );
-      await expect(codeInput).toBeVisible({ timeout: 10000 });
+      await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
       await waitForFreshTOTPWindow();
-      await codeInput.fill(generateTOTPCode(secret));
-      await page
-        .locator('[data-testid="2fa-submit"], button:has-text("Verify")')
-        .click();
+      await challengePage.verify(generateTOTPCode(secret));
       await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
 
       const setupPage = new TwoFactorSetupPage(page);
@@ -396,19 +347,14 @@ test.describe('Two-Factor Authentication', () => {
 
     test('should skip 2FA challenge after disabling', async ({ page }) => {
       const { secret } = await DatabaseHelpers.enable2FA('user@test.com');
+      const challengePage = new TwoFactorPage(page);
 
       // Login with 2FA
       await loginPage.goto();
       await loginPage.login('user@test.com', 'UserTest123!');
-      const codeInput = page.locator(
-        '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-      );
-      await expect(codeInput).toBeVisible({ timeout: 10000 });
+      await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
       await waitForFreshTOTPWindow();
-      await codeInput.fill(generateTOTPCode(secret));
-      await page
-        .locator('[data-testid="2fa-submit"], button:has-text("Verify")')
-        .click();
+      await challengePage.verify(generateTOTPCode(secret));
       await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
 
       // Disable 2FA
@@ -429,9 +375,7 @@ test.describe('Two-Factor Authentication', () => {
       await test.step('Verify direct redirect to dashboard (no 2FA)', async () => {
         await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
         // Should NOT see 2FA input
-        await expect(
-          page.locator('[data-testid="2fa-code-input"]')
-        ).not.toBeVisible({ timeout: 3000 });
+        await expect(challengePage.codeInput).not.toBeVisible({ timeout: 3000 });
       });
     });
   });
@@ -439,14 +383,12 @@ test.describe('Two-Factor Authentication', () => {
   test.describe('2FA Edge Cases', () => {
     test('should handle session expiry during 2FA', async ({ page }) => {
       await DatabaseHelpers.enable2FA('user@test.com');
+      const challengePage = new TwoFactorPage(page);
 
       await test.step('Start login and get to 2FA', async () => {
         await loginPage.goto();
         await loginPage.login('user@test.com', 'UserTest123!');
-        const codeInput = page.locator(
-          '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-        );
-        await expect(codeInput).toBeVisible({ timeout: 10000 });
+        await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
       });
 
       await test.step('Clear cookies to simulate expiry', async () => {
@@ -454,13 +396,7 @@ test.describe('Two-Factor Authentication', () => {
       });
 
       await test.step('Submit code and verify redirect to login', async () => {
-        const codeInput = page.locator(
-          '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-        );
-        await codeInput.fill('123456');
-        await page
-          .locator('[data-testid="2fa-submit"], button:has-text("Verify")')
-          .click();
+        await challengePage.verify('123456');
 
         // Should show error or redirect to login
         const errorOrLogin = await Promise.race([
@@ -479,23 +415,25 @@ test.describe('Two-Factor Authentication', () => {
       page,
     }) => {
       await DatabaseHelpers.enable2FA('user@test.com');
+      const challengePage = new TwoFactorPage(page);
 
       await test.step('Start login and get to 2FA', async () => {
         await loginPage.goto();
         await loginPage.login('user@test.com', 'UserTest123!');
-        const codeInput = page.locator(
-          '[data-testid="2fa-code-input"], input[inputmode="numeric"]'
-        );
-        await expect(codeInput).toBeVisible({ timeout: 10000 });
+        await expect(challengePage.codeInput).toBeVisible({ timeout: 10000 });
       });
 
-      await test.step('Cancel 2FA', async () => {
-        const cancelButton = page.locator(
-          '[data-testid="2fa-cancel"], button:has-text("Cancel")'
-        );
-        if (await cancelButton.isVisible()) {
-          await cancelButton.click();
+      await test.step('Cancel 2FA and verify redirect', async () => {
+        // Some implementations may not have a cancel button
+        if (await challengePage.cancelButton.isVisible()) {
+          await challengePage.cancel();
           await expect(page).toHaveURL(/.*\/login/);
+        } else {
+          // If no cancel button, test should be skipped or noted
+          test.info().annotations.push({
+            type: 'info',
+            description: 'Cancel button not visible - feature may not be implemented',
+          });
         }
       });
     });
