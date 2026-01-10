@@ -23,14 +23,15 @@ graph TD
 ```
 
 ### 2. Technology Stack
-- **Frontend Framework**: Next.js 14+ with App Router
+- **Frontend Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
 - **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: Custom JWT implementation with NextAuth.js fallback
+- **Authentication**: iron-session for session management, JWT for tokens
 - **Styling**: Tailwind CSS
 - **Validation**: Zod
-- **State Management**: React Context + useReducer for user state
-- **Security**: bcrypt for password hashing, iron-session for session management
+- **State Management**: Server-first architecture (no client contexts)
+- **Security**: bcrypt for password hashing, CSRF double-submit cookies
+- **Rate Limiting**: In-memory or Redis (Upstash) backend
 
 ### 3. Project Structure
 ```
@@ -87,35 +88,93 @@ soclestack/
 
 ### 4. Database Schema Design
 
-#### Users Table
-```sql
-CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  username VARCHAR(100) UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  first_name VARCHAR(100),
-  last_name VARCHAR(100),
-  role VARCHAR(50) DEFAULT 'user',
-  is_active BOOLEAN DEFAULT true,
-  email_verified_at TIMESTAMP NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_login_at TIMESTAMP NULL
-);
+See `prisma/schema.prisma` for full schema. Key models:
+
+#### User Model
+```prisma
+model User {
+  id                       String    @id @default(cuid())
+  email                    String    @unique
+  username                 String?   @unique
+  password                 String?   // Nullable for OAuth-only users
+  firstName                String?   @map("first_name")
+  lastName                 String?   @map("last_name")
+  isActive                 Boolean   @default(true) @map("is_active")
+  emailVerified            Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt          DateTime? @map("email_verified_at")
+  lastLoginAt              DateTime? @map("last_login_at")
+
+  // Account lockout
+  failedLoginAttempts      Int       @default(0) @map("failed_login_attempts")
+  lockedUntil              DateTime? @map("locked_until")
+
+  // Two-factor authentication
+  twoFactorSecret          String?   @map("two_factor_secret")
+  twoFactorEnabled         Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorVerified        Boolean   @default(false) @map("two_factor_verified")
+
+  // Relations
+  sessions                 UserSession[]
+  passwordHistory          PasswordHistory[]
+  auditLogs                AuditLog[]
+  backupCodes              BackupCode[]
+  oauthAccounts            OAuthAccount[]
+  apiKeys                  ApiKey[]
+  userRoles                UserRole[]
+
+  @@map("users")
+}
 ```
 
-#### User Sessions Table
-```sql
-CREATE TABLE user_sessions (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  token_hash VARCHAR(255) NOT NULL,
-  expires_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  ip_address INET,
-  user_agent TEXT
-);
+#### UserSession Model
+```prisma
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  isActive  Boolean  @default(true) @map("is_active")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+```
+
+#### Role Model (Hierarchical RBAC)
+```prisma
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique  // "ROLE_USER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN"
+  description String?
+  parentId    String?  @map("parent_id")  // Role hierarchy
+  isSystem    Boolean  @default(false) @map("is_system")
+
+  parent    Role?      @relation("RoleHierarchy", fields: [parentId], references: [id])
+  children  Role[]     @relation("RoleHierarchy")
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  roleId         String    @map("role_id")
+  organizationId String?   @map("organization_id")  // NULL = platform-wide role
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         Role          @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, organizationId])
+  @@map("user_roles")
+}
 ```
 
 ### 5. Authentication Strategy
@@ -243,21 +302,25 @@ interface ApiError {
 - **Google**: OAuth 2.0 with OpenID Connect
 - **GitHub**: OAuth 2.0 authorization code flow
 
-#### OAuth Database Schema
-```sql
-CREATE TABLE oauth_accounts (
-  id TEXT PRIMARY KEY,
-  user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
-  provider TEXT NOT NULL, -- 'google' | 'github'
-  provider_account_id TEXT NOT NULL,
-  email TEXT,
-  access_token TEXT,
-  refresh_token TEXT,
-  token_expires_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(provider, provider_account_id)
-);
+#### OAuthAccount Model
+```prisma
+model OAuthAccount {
+  id                String    @id @default(cuid())
+  userId            String    @map("user_id")
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String    // "google" | "github"
+  providerAccountId String    @map("provider_account_id")
+  email             String?   // Email from OAuth provider
+  accessToken       String?   @map("access_token")
+  refreshToken      String?   @map("refresh_token")
+  tokenExpiresAt    DateTime? @map("token_expires_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
 ```
 
 #### OAuth Flow Architecture
@@ -314,78 +377,139 @@ src/lib/auth/oauth/
 
 ### 13. Organizations (Multi-Tenancy)
 
-#### Organization Database Schema
-```sql
-CREATE TABLE organizations (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  owner_id TEXT REFERENCES users(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+#### Organization Models
+```prisma
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-CREATE TABLE organization_members (
-  id TEXT PRIMARY KEY,
-  organization_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
-  user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL, -- 'owner' | 'admin' | 'member'
-  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(organization_id, user_id)
-);
+  userRoles UserRole[]
+  invites   OrganizationInvite[]
 
-CREATE TABLE organization_invites (
-  id TEXT PRIMARY KEY,
-  organization_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  role TEXT NOT NULL,
-  token TEXT UNIQUE NOT NULL,
-  invited_by_id TEXT REFERENCES users(id),
-  expires_at TIMESTAMP NOT NULL,
-  accepted_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+  @@map("organizations")
+}
+
+model OrganizationInvite {
+  id             String   @id @default(cuid())
+  email          String
+  roleId         String   @map("role_id")  // Role to assign when accepted
+  token          String   @unique
+  expiresAt      DateTime @map("expires_at")
+  organizationId String   @map("organization_id")
+  invitedById    String   @map("invited_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation(fields: [invitedById], references: [id])
+
+  @@index([email])
+  @@index([organizationId])
+  @@map("organization_invites")
+}
 ```
 
 #### Organization Features
-- Users must belong to at least one organization
+- Users belong to organizations via `UserRole` (see Section 4)
+- Organization roles assigned through role system: ROLE_ORG_OWNER, ROLE_ORG_ADMIN, ROLE_ORG_MEMBER
 - New users create organization during registration or accept invite
-- Organization roles: owner, admin, member
-- Invite system with email and token-based acceptance
-- Organization switching (for users in multiple orgs)
+- Invite system with email and token-based acceptance (7-day expiry)
+- Organization switching stored in session for users in multiple orgs
+- Hierarchical role permissions within organization context
+
+#### Organization Endpoints
+- `GET /api/organizations` - List user's organizations
+- `POST /api/organizations` - Create new organization
+- `GET /api/organizations/current` - Get current organization
+- `GET /api/organizations/current/members` - List organization members
+- `POST /api/organizations/current/invites` - Create invite
+- `DELETE /api/organizations/current/invites/[id]` - Cancel invite
+- `GET /api/invites/[token]` - Get invite details
+- `POST /api/invites/[token]/accept` - Accept invite
 
 ### 14. Two-Factor Authentication (2FA)
 
+#### BackupCode Model
+```prisma
+model BackupCode {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String    @map("code_hash")  // SHA-256 hash
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("backup_codes")
+}
+```
+
 #### 2FA Implementation
-- TOTP-based 2FA using authenticator apps
-- QR code generation for easy setup
-- 10 backup codes for recovery
-- Admin can reset user's 2FA
-- Required for ADMIN role, optional for others
+- **TOTP-based**: Uses `otpauth` library for RFC 6238 compliant TOTP
+- **QR Code**: Generated via `qrcode` library for authenticator app scanning
+- **Secret Storage**: Encrypted TOTP secret stored in `User.twoFactorSecret`
+- **Backup Codes**: 10 single-use recovery codes (8 chars each, SHA-256 hashed)
+- **Pending 2FA Token**: JWT containing user ID, expires in 5 minutes during login flow
+
+#### 2FA User Fields
+```prisma
+// On User model
+twoFactorSecret   String? @map("two_factor_secret")   // Encrypted TOTP secret
+twoFactorEnabled  Boolean @default(false)             // 2FA is active
+twoFactorVerified Boolean @default(false)             // Initial setup verified
+```
+
+#### 2FA Flow
+1. **Setup**: User requests setup → Generate secret + QR code
+2. **Verify**: User enters TOTP code → Validate and enable 2FA, generate backup codes
+3. **Login**: Password valid + 2FA enabled → Return pending token → User enters TOTP → Complete login
+4. **Recovery**: User can use backup code instead of TOTP (single-use)
 
 #### 2FA Endpoints
 - `POST /api/auth/2fa/setup` - Generate TOTP secret and QR code
-- `POST /api/auth/2fa/verify` - Verify TOTP and enable 2FA
-- `POST /api/auth/2fa/validate` - Validate 2FA during login
-- `POST /api/auth/2fa/disable` - Disable 2FA (requires verification)
+- `POST /api/auth/2fa/verify` - Verify TOTP, enable 2FA, return backup codes
+- `POST /api/auth/2fa/validate` - Validate TOTP or backup code during login
+- `POST /api/auth/2fa/disable` - Disable 2FA (requires current TOTP)
 - `POST /api/admin/users/[id]/reset-2fa` - Admin reset user's 2FA
+
+#### 2FA Libraries
+```
+src/lib/auth/
+├── totp.ts        - TOTP generation/verification (otpauth)
+├── backup-codes.ts - Backup code generation/verification
+└── pending-2fa.ts  - Pending 2FA JWT tokens (jose)
+```
 
 ### 15. API Keys
 
-#### API Key Database Schema
-```sql
-CREATE TABLE api_keys (
-  id TEXT PRIMARY KEY,
-  user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  key_hash TEXT NOT NULL,
-  key_prefix TEXT NOT NULL,
-  permission TEXT NOT NULL, -- 'READ_ONLY' | 'READ_WRITE'
-  expires_at TIMESTAMP,
-  last_used_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  revoked_at TIMESTAMP -- Soft delete
-);
+#### ApiKey Model
+```prisma
+model ApiKey {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String   // User-friendly label
+  keyHash    String   @map("key_hash")    // SHA-256 hash of the key
+  keyPrefix  String   @map("key_prefix")  // First 8 chars for identification
+
+  permission ApiKeyPermission @default(READ_ONLY)
+  expiresAt  DateTime?        @map("expires_at")
+  lastUsedAt DateTime?        @map("last_used_at")
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  revokedAt  DateTime? @map("revoked_at")  // Soft delete
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+enum ApiKeyPermission {
+  READ_ONLY
+  READ_WRITE
+}
 ```
 
 #### API Key Features
