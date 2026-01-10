@@ -22,6 +22,7 @@ const eslintConfig = [
       "scripts/**",
       "playwright.config.ts",
       "tests/**",
+      "packages/*/dist/**",
     ],
   },
   {

@@ -42,6 +42,17 @@ export const SECURITY_CONFIG = {
     maxAgeDays: 90, // Warn after 90 days
     warningDays: 14, // Show warning 14 days before expiration
   },
+  emailRetention: {
+    softDeleteRetentionDays: 30, // Hard-delete soft-deleted records after 30 days
+    htmlBodyRetentionDays: 90, // Purge htmlBody from old records after 90 days
+    batchSize: 100, // Process records in batches
+  },
+  circuitBreaker: {
+    failureThreshold: 5, // Open circuit after 5 consecutive failures
+    resetTimeoutMs: 60_000, // Try recovery after 60 seconds
+    successThreshold: 2, // Close circuit after 2 successes in half-open
+    halfOpenMaxRequests: 1, // Only allow 1 probe request at a time in half-open
+  },
 } as const;
 
 export type SecurityConfig = typeof SECURITY_CONFIG;

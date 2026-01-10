@@ -3,6 +3,7 @@ import { DeviceInfo } from '@/lib/utils/user-agent';
 import { prisma } from '@/lib/db';
 import { env } from '@/lib/env';
 import log from '@/lib/logger';
+import { getEmailCircuitBreaker } from '@/lib/email/circuit-breaker';
 import {
   newDeviceAlertTemplate,
   accountLockedTemplate,
@@ -16,6 +17,8 @@ import {
 } from '@/lib/email/templates';
 
 export { organizationInviteTemplate } from '@/lib/email/templates';
+export { getEmailCircuitBreaker } from '@/lib/email/circuit-breaker';
+export type { CircuitBreakerState } from '@/lib/email/circuit-breaker';
 
 // Lazy initialization to support mocking in tests
 let _resend: Resend | null | undefined;
@@ -95,13 +98,30 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Attempt to send an email via Resend provider
- * Returns { success, providerId?, error? }
+ * Returns { success, providerId?, error?, circuitOpen? }
  */
 async function attemptSend(
   to: string,
   subject: string,
   html: string
-): Promise<{ success: boolean; providerId?: string; error?: string }> {
+): Promise<{
+  success: boolean;
+  providerId?: string;
+  error?: string;
+  circuitOpen?: boolean;
+}> {
+  const circuitBreaker = getEmailCircuitBreaker();
+
+  // Check circuit breaker before attempting send
+  if (!circuitBreaker.canExecute()) {
+    log.warn('[Email] Circuit breaker open, rejecting email', { to, subject });
+    return {
+      success: false,
+      error: 'Email provider circuit breaker open',
+      circuitOpen: true,
+    };
+  }
+
   // In development/test, simulate success
   if (env.NODE_ENV !== 'production') {
     log.debug('Email sent (dev mode)', {
@@ -109,12 +129,14 @@ async function attemptSend(
       subject,
       htmlPreview: html.substring(0, 200),
     });
+    circuitBreaker.recordSuccess();
     return { success: true, providerId: `dev-${Date.now()}` };
   }
 
   // In production, use Resend
   const resendClient = getResendClient();
   if (!resendClient) {
+    // Config error, don't count as provider failure
     return { success: false, error: 'RESEND_API_KEY not configured' };
   }
 
@@ -127,11 +149,14 @@ async function attemptSend(
     });
 
     if (error) {
+      circuitBreaker.recordFailure();
       return { success: false, error: error.message };
     }
 
+    circuitBreaker.recordSuccess();
     return { success: true, providerId: data?.id };
   } catch (error) {
+    circuitBreaker.recordFailure();
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -142,6 +167,8 @@ async function attemptSend(
 /**
  * Execute email send with retry logic.
  * Shared implementation for sendEmail and resendEmail.
+ *
+ * If circuit breaker is open, fails immediately without retrying.
  */
 async function executeWithRetry(
   emailLogId: string,
@@ -170,6 +197,24 @@ async function executeWithRetry(
 
       log.email.sent(type, to);
       return { success: true, emailLogId };
+    }
+
+    // Circuit breaker open - fail immediately without retrying
+    if (result.circuitOpen) {
+      await prisma.emailLog.update({
+        where: { id: emailLogId },
+        data: {
+          status: 'FAILED',
+          lastError: result.error,
+          attempts: attempt + 1,
+        },
+      });
+
+      return {
+        success: false,
+        emailLogId,
+        error: result.error,
+      };
     }
 
     // Failed - record error and attempt count in single write

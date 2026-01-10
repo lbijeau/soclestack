@@ -76,3 +76,6 @@ docs/public/openapi.json
 docs/public/openapi.yaml
 .worktrees/
 docs/.vitepress/dist/
+
+# SDK packages
+packages/*/dist/

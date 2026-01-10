@@ -33,6 +33,7 @@ const serverEnvSchema = z
 
     // === Optional: Email ===
     RESEND_API_KEY: z.string().optional(),
+    RESEND_WEBHOOK_SECRET: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
 
     // === Optional: OAuth Providers ===
@@ -43,6 +44,9 @@ const serverEnvSchema = z
 
     // === Optional: Validation Control ===
     VALIDATE_ENV_VARS: z.string().optional(),
+
+    // === Optional: SDK CORS Configuration ===
+    CORS_ORIGINS: z.string().optional(),
   })
   .refine((data) => !(data.GOOGLE_CLIENT_ID && !data.GOOGLE_CLIENT_SECRET), {
     message: 'GOOGLE_CLIENT_SECRET is required when GOOGLE_CLIENT_ID is set',
