@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { TestUser, TestDataFactory } from './test-data-factory';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { ROLE_NAMES as ROLES } from '@/lib/constants/roles';
 import { generateTOTPSecret } from './totp-helpers';
 
@@ -39,7 +40,10 @@ export class DatabaseHelpers {
         },
       });
 
-      // Delete UserRole records for test users
+      // Clean up test organizations (invites, memberships, orgs) before deleting users
+      await this.cleanupTestOrganizations();
+
+      // Delete UserRole records for test users (platform-wide roles)
       await this.prisma.userRole.deleteMany({
         where: {
           user: {
@@ -447,6 +451,367 @@ export class DatabaseHelpers {
    */
   static async disconnect(): Promise<void> {
     await this.prisma.$disconnect();
+  }
+
+  // ===========================================
+  // Organization Management Methods
+  // ===========================================
+
+  /**
+   * Create a test organization with an owner
+   */
+  static async createTestOrganization(data: {
+    name: string;
+    slug?: string;
+    ownerEmail: string;
+  }): Promise<any> {
+    // Generate slug from name if not provided
+    const slug = data.slug || data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    // Find or create the owner user
+    let owner = await this.prisma.user.findUnique({
+      where: { email: data.ownerEmail },
+    });
+
+    if (!owner) {
+      owner = await this.createTestUser({ email: data.ownerEmail });
+    }
+
+    // Create the organization
+    const organization = await this.prisma.organization.create({
+      data: {
+        name: data.name,
+        slug,
+      },
+    });
+
+    // Add owner as ROLE_OWNER in the organization
+    await this.addMemberToOrganization(organization.id, owner.id, 'OWNER');
+
+    return {
+      ...organization,
+      owner,
+    };
+  }
+
+  /**
+   * Delete a test organization and all related data
+   */
+  static async deleteTestOrganization(orgId: string): Promise<void> {
+    // Delete invites first
+    await this.prisma.organizationInvite.deleteMany({
+      where: { organizationId: orgId },
+    });
+
+    // Delete UserRole records for this organization
+    await this.prisma.userRole.deleteMany({
+      where: { organizationId: orgId },
+    });
+
+    // Delete the organization
+    await this.prisma.organization.delete({
+      where: { id: orgId },
+    });
+  }
+
+  /**
+   * Clean up all test organizations (orgs owned by @test.com users)
+   */
+  static async cleanupTestOrganizations(): Promise<void> {
+    // Find all orgs owned by test users
+    const testOrgs = await this.prisma.organization.findMany({
+      where: {
+        userRoles: {
+          some: {
+            user: {
+              email: {
+                endsWith: '@test.com',
+              },
+            },
+            role: {
+              name: ROLES.OWNER,
+            },
+          },
+        },
+      },
+    });
+
+    // Use Promise.allSettled to continue even if some deletions fail
+    const results = await Promise.allSettled(
+      testOrgs.map(org => this.deleteTestOrganization(org.id))
+    );
+
+    // Log any failures for debugging
+    const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failures.length > 0) {
+      console.warn(`Failed to cleanup ${failures.length} organizations:`, failures.map(f => f.reason));
+    }
+  }
+
+  /**
+   * Add a member to an organization with a specific role
+   */
+  static async addMemberToOrganization(
+    orgId: string,
+    userId: string,
+    role: 'OWNER' | 'ADMIN' | 'MEMBER'
+  ): Promise<any> {
+    // Map role parameter to actual role name
+    const roleNameMap: Record<'OWNER' | 'ADMIN' | 'MEMBER', string> = {
+      OWNER: ROLES.OWNER,
+      ADMIN: ROLES.ADMIN,
+      MEMBER: ROLES.USER, // MEMBER maps to ROLE_USER
+    };
+
+    const roleName = roleNameMap[role];
+    const roleRecord = await this.prisma.role.findUnique({
+      where: { name: roleName },
+    });
+
+    if (!roleRecord) {
+      throw new Error(`Role ${roleName} not found`);
+    }
+
+    try {
+      return await this.prisma.userRole.create({
+        data: {
+          userId,
+          roleId: roleRecord.id,
+          organizationId: orgId,
+        },
+        include: {
+          user: true,
+          role: true,
+          organization: true,
+        },
+      });
+    } catch (error: any) {
+      // Handle unique constraint error (P2002) from parallel test execution
+      if (error.code === 'P2002') {
+        return await this.prisma.userRole.findFirst({
+          where: {
+            userId,
+            roleId: roleRecord.id,
+            organizationId: orgId,
+          },
+          include: {
+            user: true,
+            role: true,
+            organization: true,
+          },
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Remove a member from an organization
+   */
+  static async removeMemberFromOrganization(orgId: string, userId: string): Promise<void> {
+    await this.prisma.userRole.deleteMany({
+      where: {
+        organizationId: orgId,
+        userId,
+      },
+    });
+  }
+
+  /**
+   * Get a member's role in an organization
+   */
+  static async getMemberRole(orgId: string, userId: string): Promise<'OWNER' | 'ADMIN' | 'MEMBER' | null> {
+    const userRole = await this.prisma.userRole.findFirst({
+      where: {
+        organizationId: orgId,
+        userId,
+      },
+      include: {
+        role: true,
+      },
+    });
+
+    if (!userRole) {
+      return null;
+    }
+
+    // Map role name back to simplified role type
+    const roleMap: Record<string, 'OWNER' | 'ADMIN' | 'MEMBER'> = {
+      [ROLES.OWNER]: 'OWNER',
+      [ROLES.ADMIN]: 'ADMIN',
+      [ROLES.USER]: 'MEMBER',
+    };
+
+    return roleMap[userRole.role.name] || null;
+  }
+
+  /**
+   * Create a test invite for an organization
+   */
+  static async createTestInvite(
+    orgId: string,
+    email: string,
+    role: 'ADMIN' | 'MEMBER',
+    options?: { expiresAt?: Date; invitedById?: string }
+  ): Promise<{ invite: any; token: string }> {
+    // Map role parameter to actual role name
+    const roleNameMap: Record<'ADMIN' | 'MEMBER', string> = {
+      ADMIN: ROLES.ADMIN,
+      MEMBER: ROLES.USER,
+    };
+
+    const roleName = roleNameMap[role];
+    const roleRecord = await this.prisma.role.findUnique({
+      where: { name: roleName },
+    });
+
+    if (!roleRecord) {
+      throw new Error(`Role ${roleName} not found`);
+    }
+
+    // Generate a secure token
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // Default expiry: 7 days from now
+    const expiresAt = options?.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    // Get invitedById - use provided or find org owner
+    let invitedById = options?.invitedById;
+    if (!invitedById) {
+      const ownerRole = await this.prisma.userRole.findFirst({
+        where: {
+          organizationId: orgId,
+          role: {
+            name: ROLES.OWNER,
+          },
+        },
+      });
+      invitedById = ownerRole?.userId;
+    }
+
+    if (!invitedById) {
+      throw new Error('No invitedById provided and no owner found for organization');
+    }
+
+    const invite = await this.prisma.organizationInvite.create({
+      data: {
+        email,
+        roleId: roleRecord.id,
+        token,
+        expiresAt,
+        organizationId: orgId,
+        invitedById,
+      },
+      include: {
+        organization: true,
+        invitedBy: true,
+      },
+    });
+
+    return { invite, token };
+  }
+
+  /**
+   * Get an invite by its token
+   */
+  static async getInviteByToken(token: string): Promise<any> {
+    return await this.prisma.organizationInvite.findUnique({
+      where: { token },
+      include: {
+        organization: true,
+        invitedBy: true,
+      },
+    });
+  }
+
+  /**
+   * Expire an invite by setting its expiresAt to the past
+   */
+  static async expireInvite(inviteId: string): Promise<void> {
+    await this.prisma.organizationInvite.update({
+      where: { id: inviteId },
+      data: {
+        expiresAt: new Date(Date.now() - 1000), // 1 second in the past
+      },
+    });
+  }
+
+  /**
+   * Set up a complete test organization with various user roles and invites
+   */
+  static async setupTestOrganization(): Promise<{
+    org: any;
+    owner: any;
+    admin: any;
+    member: any;
+    nonMember: any;
+    pendingInvite: { invite: any; token: string };
+    expiredInvite: { invite: any; token: string };
+  }> {
+    // Create the organization with an owner
+    const orgResult = await this.createTestOrganization({
+      name: 'Test Organization',
+      slug: `test-org-${Date.now()}`,
+      ownerEmail: 'org-owner@test.com',
+    });
+
+    const org = orgResult;
+    const owner = orgResult.owner;
+
+    // Create admin user and add to organization
+    const admin = await this.createTestUser({
+      email: 'org-admin@test.com',
+      username: 'orgadmin',
+      firstName: 'Org',
+      lastName: 'Admin',
+    });
+    await this.addMemberToOrganization(org.id, admin.id, 'ADMIN');
+
+    // Create member user and add to organization
+    const member = await this.createTestUser({
+      email: 'org-member@test.com',
+      username: 'orgmember',
+      firstName: 'Org',
+      lastName: 'Member',
+    });
+    await this.addMemberToOrganization(org.id, member.id, 'MEMBER');
+
+    // Create non-member user (not in organization)
+    const nonMember = await this.createTestUser({
+      email: 'non-member@test.com',
+      username: 'nonmember',
+      firstName: 'Non',
+      lastName: 'Member',
+    });
+
+    // Create pending invite
+    const pendingInvite = await this.createTestInvite(
+      org.id,
+      'pending-invite@test.com',
+      'MEMBER',
+      { invitedById: owner.id }
+    );
+
+    // Create expired invite
+    const expiredInvite = await this.createTestInvite(
+      org.id,
+      'expired-invite@test.com',
+      'MEMBER',
+      {
+        expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+        invitedById: owner.id,
+      }
+    );
+
+    return {
+      org,
+      owner,
+      admin,
+      member,
+      nonMember,
+      pendingInvite,
+      expiredInvite,
+    };
   }
 
   /**
