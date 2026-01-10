@@ -13,6 +13,11 @@ import {
   createCsrfRateLimitResponse,
 } from '@/lib/csrf';
 import { isGranted, ROLES, type RoleName } from '@/lib/security/index';
+import {
+  isOriginAllowed,
+  addCorsHeaders,
+  handleCorsPreflightRequest,
+} from '@/lib/cors';
 
 // Use Node.js runtime instead of Edge Runtime.
 // Trade-off: Slightly higher latency and cold starts, but required for:
@@ -62,12 +67,23 @@ const publicApiRoutes = ['/api/invites'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const origin = request.headers.get('origin');
+
+  // Handle CORS preflight requests
+  if (request.method === 'OPTIONS' && origin && isOriginAllowed(origin)) {
+    return handleCorsPreflightRequest(origin);
+  }
 
   // Generate unique nonce for this request (used for CSP)
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
   // Apply security headers to all requests
-  const response = NextResponse.next();
+  let response = NextResponse.next();
+
+  // Add CORS headers for allowed origins
+  if (origin && isOriginAllowed(origin)) {
+    response = addCorsHeaders(response, origin);
+  }
 
   // Pass nonce to downstream via header (for components that need it)
   response.headers.set('x-nonce', nonce);
