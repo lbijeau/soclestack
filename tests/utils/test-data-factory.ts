@@ -1,5 +1,13 @@
 import { faker } from '@faker-js/faker';
-import { Role } from '@prisma/client';
+
+// Role name constants (matches database Role.name values)
+export const ROLE_NAMES = {
+  USER: 'ROLE_USER',
+  ADMIN: 'ROLE_ADMIN',
+  MODERATOR: 'ROLE_MODERATOR',
+} as const;
+
+export type RoleName = (typeof ROLE_NAMES)[keyof typeof ROLE_NAMES];
 
 export interface TestUser {
   id?: string;
@@ -8,7 +16,7 @@ export interface TestUser {
   username?: string;
   firstName?: string;
   lastName?: string;
-  role: Role;
+  role: RoleName;
   isActive: boolean;
   emailVerified: boolean;
   createdAt?: Date;
@@ -35,7 +43,7 @@ export class TestDataFactory {
       username: overrides.username || faker.internet.userName({ firstName, lastName }).toLowerCase(),
       firstName: overrides.firstName || firstName,
       lastName: overrides.lastName || lastName,
-      role: overrides.role || Role.USER,
+      role: overrides.role || ROLE_NAMES.USER,
       isActive: overrides.isActive ?? true,
       emailVerified: overrides.emailVerified ?? true,
       createdAt: overrides.createdAt || faker.date.past(),
@@ -47,7 +55,7 @@ export class TestDataFactory {
 
   static createAdminUser(overrides: Partial<TestUser> = {}): TestUser {
     return this.createUser({
-      role: Role.ADMIN,
+      role: ROLE_NAMES.ADMIN,
       email: overrides.email || `admin.${faker.internet.userName()}@test.com`,
       ...overrides,
     });
@@ -55,7 +63,7 @@ export class TestDataFactory {
 
   static createModeratorUser(overrides: Partial<TestUser> = {}): TestUser {
     return this.createUser({
-      role: Role.MODERATOR,
+      role: ROLE_NAMES.MODERATOR,
       email: overrides.email || `mod.${faker.internet.userName()}@test.com`,
       ...overrides,
     });

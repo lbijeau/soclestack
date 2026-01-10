@@ -20,14 +20,14 @@ interface Member {
   username: string | null;
   firstName: string | null;
   lastName: string | null;
-  organizationRole: 'OWNER' | 'ADMIN' | 'MEMBER';
+  organizationRole: 'ROLE_OWNER' | 'ROLE_ADMIN' | 'ROLE_MEMBER';
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
 }
 
 interface CurrentUser {
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  role: 'ROLE_OWNER' | 'ROLE_ADMIN' | 'ROLE_MEMBER';
   id: string;
 }
 
@@ -149,22 +149,22 @@ export default function MembersPage() {
   };
 
   const canManage =
-    currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
+    currentUser?.role === 'ROLE_OWNER' || currentUser?.role === 'ROLE_ADMIN';
 
   const canManageMember = (member: Member) => {
     if (!currentUser || !canManage) return false;
     if (member.id === currentUser.id) return false; // Can't manage yourself
-    if (member.organizationRole === 'OWNER') return false; // Can't manage owner
-    if (currentUser.role === 'ADMIN' && member.organizationRole === 'ADMIN')
+    if (member.organizationRole === 'ROLE_OWNER') return false; // Can't manage owner
+    if (currentUser.role === 'ROLE_ADMIN' && member.organizationRole === 'ROLE_ADMIN')
       return false; // Admin can't manage admin
     return true;
   };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'OWNER':
+      case 'ROLE_OWNER':
         return 'bg-purple-100 text-purple-800';
-      case 'ADMIN':
+      case 'ROLE_ADMIN':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -250,7 +250,12 @@ export default function MembersPage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-500" data-testid="member-email">{member.email}</div>
+                    <div
+                      className="text-sm text-gray-500"
+                      data-testid="member-email"
+                    >
+                      {member.email}
+                    </div>
                   </div>
                 </div>
 
@@ -276,7 +281,7 @@ export default function MembersPage() {
                         data-testid="member-role-select"
                       >
                         <option value="MEMBER">Member</option>
-                        {currentUser?.role === 'OWNER' && (
+                        {currentUser?.role === 'ROLE_OWNER' && (
                           <option value="ADMIN">Admin</option>
                         )}
                       </select>
@@ -301,7 +306,7 @@ export default function MembersPage() {
                       className={getRoleBadgeColor(member.organizationRole)}
                       data-testid="member-role-badge"
                     >
-                      {member.organizationRole === 'OWNER' && (
+                      {member.organizationRole === 'ROLE_OWNER' && (
                         <Shield className="mr-1 h-3 w-3" />
                       )}
                       {member.organizationRole}

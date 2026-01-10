@@ -16,10 +16,6 @@ export class OrganizationPage extends BasePage {
   readonly membersLink: Locator;
   readonly invitesLink: Locator;
 
-  // Messages
-  readonly errorMessage: Locator;
-  readonly successMessage: Locator;
-
   constructor(page: Page) {
     super(page);
 
@@ -33,9 +29,15 @@ export class OrganizationPage extends BasePage {
 
     this.membersLink = page.locator('a[href="/organization/members"]');
     this.invitesLink = page.locator('a[href="/organization/invites"]');
+  }
 
-    this.errorMessage = page.locator('[data-testid="org-error-message"]');
-    this.successMessage = page.locator('[data-testid="org-success-message"]');
+  // Override BasePage messages with org-specific testids
+  override get errorMessage(): Locator {
+    return this.page.locator('[data-testid="org-error-message"]');
+  }
+
+  override get successMessage(): Locator {
+    return this.page.locator('[data-testid="org-success-message"]');
   }
 
   async goto(): Promise<void> {
@@ -67,7 +69,8 @@ export class OrganizationPage extends BasePage {
   }
 
   async assertRole(role: 'OWNER' | 'ADMIN' | 'MEMBER'): Promise<void> {
-    await expect(this.roleDisplay).toHaveText(role);
+    // UI displays full role names: ROLE_OWNER, ROLE_ADMIN, ROLE_MEMBER
+    await expect(this.roleDisplay).toContainText(role);
   }
 
   async assertMemberCount(count: number): Promise<void> {

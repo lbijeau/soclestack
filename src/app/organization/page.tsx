@@ -26,7 +26,7 @@ interface Organization {
   name: string;
   slug: string;
   memberCount: number;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  role: 'ROLE_OWNER' | 'ROLE_ADMIN' | 'ROLE_MEMBER';
   createdAt: string;
 }
 
@@ -129,8 +129,8 @@ export default function OrganizationPage() {
   };
 
   const canEdit =
-    organization?.role === 'OWNER' || organization?.role === 'ADMIN';
-  const canDelete = organization?.role === 'OWNER';
+    organization?.role === 'ROLE_OWNER' || organization?.role === 'ROLE_ADMIN';
+  const canDelete = organization?.role === 'ROLE_OWNER';
 
   if (loading) {
     return (

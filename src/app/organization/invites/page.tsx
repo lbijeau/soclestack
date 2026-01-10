@@ -18,7 +18,7 @@ import Link from 'next/link';
 interface Invite {
   id: string;
   email: string;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  role: 'ROLE_OWNER' | 'ROLE_ADMIN' | 'ROLE_MEMBER';
   expiresAt: string;
   createdAt: string;
   invitedBy: {
@@ -149,7 +149,7 @@ export default function InvitesPage() {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'ADMIN':
+      case 'ROLE_ADMIN':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -243,7 +243,11 @@ export default function InvitesPage() {
                 <option value="ADMIN">Admin</option>
               </select>
             </div>
-            <Button type="submit" disabled={sending || !email.trim()} data-testid="invite-send-button">
+            <Button
+              type="submit"
+              disabled={sending || !email.trim()}
+              data-testid="invite-send-button"
+            >
               {sending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -286,7 +290,10 @@ export default function InvitesPage() {
                   data-testid="pending-invite-row"
                 >
                   <div>
-                    <div className="font-medium text-gray-900" data-testid="pending-invite-email">
+                    <div
+                      className="font-medium text-gray-900"
+                      data-testid="pending-invite-email"
+                    >
                       {invite.email}
                     </div>
                     <div className="text-sm text-gray-500">
