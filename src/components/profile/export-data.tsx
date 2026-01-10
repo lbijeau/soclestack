@@ -53,7 +53,10 @@ export function ExportData() {
   return (
     <Card data-testid="export-data-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2" data-testid="export-data-title">
+        <CardTitle
+          className="flex items-center gap-2"
+          data-testid="export-data-title"
+        >
           <FileJson className="h-5 w-5" />
           Export Your Data
         </CardTitle>

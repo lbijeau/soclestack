@@ -112,7 +112,11 @@ export function SecuritySettings({
                 <p className="text-sm">
                   Enter your current 2FA code to disable:
                 </p>
-                {error && <Alert variant="error" data-testid="error-message">{error}</Alert>}
+                {error && (
+                  <Alert variant="error" data-testid="error-message">
+                    {error}
+                  </Alert>
+                )}
                 <input
                   type="text"
                   inputMode="numeric"

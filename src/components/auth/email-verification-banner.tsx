@@ -51,7 +51,11 @@ export function EmailVerificationBanner({
   }
 
   return (
-    <Alert variant="warning" className="mb-6" data-testid="email-verification-banner">
+    <Alert
+      variant="warning"
+      className="mb-6"
+      data-testid="email-verification-banner"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <Mail className="mt-0.5 h-5 w-5 flex-shrink-0" />
@@ -59,7 +63,10 @@ export function EmailVerificationBanner({
             <p className="font-medium" data-testid="verification-banner-title">
               Verify your email address
             </p>
-            <p className="mt-1 text-sm" data-testid="verification-banner-description">
+            <p
+              className="mt-1 text-sm"
+              data-testid="verification-banner-description"
+            >
               We sent a verification email to <strong>{email}</strong>. Please
               check your inbox and click the link to verify your account.
             </p>

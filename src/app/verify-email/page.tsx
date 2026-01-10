@@ -97,19 +97,32 @@ function VerifyEmailContent() {
           </CardHeader>
           <CardContent>
             {error && (
-              <Alert variant="error" className="mb-4" data-testid="verify-email-error-message">
+              <Alert
+                variant="error"
+                className="mb-4"
+                data-testid="verify-email-error-message"
+              >
                 {error}
               </Alert>
             )}
 
             {isVerified && (
-              <div className="space-y-4" data-testid="verify-email-success-content">
-                <Alert variant="success" data-testid="verify-email-success-message">
+              <div
+                className="space-y-4"
+                data-testid="verify-email-success-content"
+              >
+                <Alert
+                  variant="success"
+                  data-testid="verify-email-success-message"
+                >
                   Your email has been verified successfully! You can now log in
                   to your account.
                 </Alert>
                 <Link href="/login">
-                  <Button className="w-full" data-testid="continue-to-login-button">
+                  <Button
+                    className="w-full"
+                    data-testid="continue-to-login-button"
+                  >
                     Continue to Login
                   </Button>
                 </Link>
@@ -122,7 +135,10 @@ function VerifyEmailContent() {
                   Please check your email for a verification link.
                 </p>
                 <Link href="/login">
-                  <Button variant="secondary" data-testid="back-to-login-button">
+                  <Button
+                    variant="secondary"
+                    data-testid="back-to-login-button"
+                  >
                     Back to Login
                   </Button>
                 </Link>
@@ -132,7 +148,10 @@ function VerifyEmailContent() {
             {error && (
               <div className="mt-4 text-center">
                 <Link href="/login">
-                  <Button variant="secondary" data-testid="error-back-to-login-button">
+                  <Button
+                    variant="secondary"
+                    data-testid="error-back-to-login-button"
+                  >
                     Back to Login
                   </Button>
                 </Link>

@@ -134,7 +134,10 @@ function EmailPreviewModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
-          <h2 className="text-lg font-semibold" data-testid="email-preview-title">
+          <h2
+            className="text-lg font-semibold"
+            data-testid="email-preview-title"
+          >
             Email Details
           </h2>
           <button
@@ -517,7 +520,10 @@ export function EmailLogViewer() {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto" data-testid="email-log-table-container">
+          <div
+            className="overflow-x-auto"
+            data-testid="email-log-table-container"
+          >
             <table className="w-full text-sm" data-testid="email-log-table">
               <thead>
                 <tr className="border-b">
@@ -548,7 +554,11 @@ export function EmailLogViewer() {
                 {loading ? (
                   // Skeleton rows
                   Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-b" data-testid="email-log-loading-row">
+                    <tr
+                      key={i}
+                      className="border-b"
+                      data-testid="email-log-loading-row"
+                    >
                       {Array.from({ length: 7 }).map((_, j) => (
                         <td key={j} className="px-4 py-3">
                           <div className="h-4 animate-pulse rounded bg-gray-200" />
@@ -595,7 +605,10 @@ export function EmailLogViewer() {
                             {TYPE_LABELS[email.type] || email.type}
                           </span>
                         </td>
-                        <td className="px-4 py-3" data-testid="email-log-status">
+                        <td
+                          className="px-4 py-3"
+                          data-testid="email-log-status"
+                        >
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusConfig.bgColor} ${statusConfig.color}`}
                           >
@@ -614,7 +627,10 @@ export function EmailLogViewer() {
                         >
                           {formatDate(email.sentAt)}
                         </td>
-                        <td className="px-4 py-3" data-testid="email-log-actions">
+                        <td
+                          className="px-4 py-3"
+                          data-testid="email-log-actions"
+                        >
                           <div className="flex gap-1">
                             <Button
                               variant="ghost"

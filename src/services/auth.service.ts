@@ -610,14 +610,21 @@ export async function validate2FA(
   const { limit, windowMs } = SECURITY_CONFIG.rateLimits.twoFactorValidate;
   const rateLimitKey = `2fa-validate:${clientIP}`;
   const rateLimiter = await getRateLimiter();
-  const rateLimitResult = await rateLimiter.check(rateLimitKey, limit, windowMs);
+  const rateLimitResult = await rateLimiter.check(
+    rateLimitKey,
+    limit,
+    windowMs
+  );
 
   if (rateLimitResult.limited) {
-    throw new RateLimitError('Too many failed attempts. Please try again later.', {
-      limit: rateLimitResult.headers['X-RateLimit-Limit'],
-      remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
-      reset: rateLimitResult.headers['X-RateLimit-Reset'],
-    });
+    throw new RateLimitError(
+      'Too many failed attempts. Please try again later.',
+      {
+        limit: rateLimitResult.headers['X-RateLimit-Limit'],
+        remaining: rateLimitResult.headers['X-RateLimit-Remaining'],
+        reset: rateLimitResult.headers['X-RateLimit-Reset'],
+      }
+    );
   }
 
   // Verify pending token
@@ -733,7 +740,8 @@ export async function setup2FA(
   context: RequestContext
 ): Promise<Setup2FAResult> {
   // Skip rate limiting in test environment
-  const isTestEnv = process.env.NODE_ENV === 'test' || process.env.E2E_TEST === 'true';
+  const isTestEnv =
+    process.env.NODE_ENV === 'test' || process.env.E2E_TEST === 'true';
 
   if (!isTestEnv) {
     // Rate limiting

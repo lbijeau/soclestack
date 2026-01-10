@@ -348,7 +348,10 @@ export function ApiKeys() {
           {success && <Alert variant="success">{success}</Alert>}
 
           {keys.length === 0 ? (
-            <div className="py-8 text-center text-gray-500" data-testid="empty-keys-message">
+            <div
+              className="py-8 text-center text-gray-500"
+              data-testid="empty-keys-message"
+            >
               <Key className="mx-auto mb-3 h-12 w-12 text-gray-300" />
               <p>No API keys yet</p>
               <p className="text-sm">
@@ -372,7 +375,12 @@ export function ApiKeys() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate font-medium" data-testid="api-key-name">{key.name}</span>
+                      <span
+                        className="truncate font-medium"
+                        data-testid="api-key-name"
+                      >
+                        {key.name}
+                      </span>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
                           key.permission === 'READ_WRITE'
@@ -453,7 +461,10 @@ export function ApiKeys() {
 
       {/* Create Key Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="create-key-modal">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          data-testid="create-key-modal"
+        >
           <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6">
             <h3 className="mb-4 text-lg font-semibold">Create API Key</h3>
 
@@ -556,7 +567,10 @@ export function ApiKeys() {
 
       {/* New Key Display Modal */}
       {newKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="new-key-modal">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          data-testid="new-key-modal"
+        >
           <div className="mx-4 w-full max-w-lg rounded-lg bg-white p-6">
             <h3 className="mb-2 text-lg font-semibold">Your New API Key</h3>
             <p className="mb-4 text-sm text-gray-600">
@@ -564,7 +578,10 @@ export function ApiKeys() {
               it again!
             </p>
 
-            <div className="rounded-lg bg-gray-100 p-4 font-mono text-sm break-all" data-testid="new-api-key-value">
+            <div
+              className="rounded-lg bg-gray-100 p-4 font-mono text-sm break-all"
+              data-testid="new-api-key-value"
+            >
               {newKey}
             </div>
 
@@ -600,7 +617,11 @@ export function ApiKeys() {
               </label>
             </div>
 
-            <Button onClick={handleCloseNewKeyModal} className="mt-4 w-full" data-testid="close-new-key-modal-button">
+            <Button
+              onClick={handleCloseNewKeyModal}
+              className="mt-4 w-full"
+              data-testid="close-new-key-modal-button"
+            >
               Done
             </Button>
           </div>

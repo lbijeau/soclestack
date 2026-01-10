@@ -340,7 +340,10 @@ export function OrganizationDetail({
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {organization.members.map((member) => (
-                  <tr key={member.userId} data-testid="organization-detail-member-row">
+                  <tr
+                    key={member.userId}
+                    data-testid="organization-detail-member-row"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="font-medium text-gray-900">
@@ -439,7 +442,10 @@ export function OrganizationDetail({
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200" data-testid="organization-detail-danger-card">
+      <Card
+        className="border-red-200"
+        data-testid="organization-detail-danger-card"
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-red-600">
             <AlertTriangle className="h-5 w-5" />

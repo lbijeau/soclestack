@@ -105,7 +105,10 @@ export function LoginHistory() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-center py-8" data-testid="login-history-loading">
+          <div
+            className="flex justify-center py-8"
+            data-testid="login-history-loading"
+          >
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         </CardContent>
@@ -121,13 +124,22 @@ export function LoginHistory() {
       </CardHeader>
       <CardContent>
         {error && (
-          <Alert variant="error" className="mb-4" data-testid="login-history-error">
+          <Alert
+            variant="error"
+            className="mb-4"
+            data-testid="login-history-error"
+          >
             {error}
           </Alert>
         )}
 
         {history.length === 0 ? (
-          <p className="text-sm text-gray-500" data-testid="login-history-empty">No login history available.</p>
+          <p
+            className="text-sm text-gray-500"
+            data-testid="login-history-empty"
+          >
+            No login history available.
+          </p>
         ) : (
           <div className="space-y-3" data-testid="login-history-list">
             {history.map((event) => {
@@ -149,18 +161,30 @@ export function LoginHistory() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-gray-900" data-testid="login-event-action">
+                      <span
+                        className="font-medium text-gray-900"
+                        data-testid="login-event-action"
+                      >
                         {getActionLabel(event.action)}
                       </span>
-                      <span className="text-sm whitespace-nowrap text-gray-500" data-testid="login-event-date">
+                      <span
+                        className="text-sm whitespace-nowrap text-gray-500"
+                        data-testid="login-event-date"
+                      >
                         {formatDate(event.createdAt)}
                       </span>
                     </div>
-                    <div className="mt-1 text-sm text-gray-500" data-testid="login-event-device">
+                    <div
+                      className="mt-1 text-sm text-gray-500"
+                      data-testid="login-event-device"
+                    >
                       {browser} on {os} · {event.ipAddress || 'Unknown IP'}
                     </div>
                     {event.reason && (
-                      <div className="mt-1 text-sm text-red-600" data-testid="login-event-reason">
+                      <div
+                        className="mt-1 text-sm text-red-600"
+                        data-testid="login-event-reason"
+                      >
                         Reason: {event.reason}
                       </div>
                     )}

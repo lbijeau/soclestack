@@ -371,7 +371,10 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
             >
               {isEditMode ? role?.name : 'New Role'}
             </h1>
-            <p className="text-sm text-gray-500" data-testid="role-editor-subtitle">
+            <p
+              className="text-sm text-gray-500"
+              data-testid="role-editor-subtitle"
+            >
               {isEditMode ? 'Edit role properties' : 'Create a new role'}
             </p>
           </div>
@@ -400,7 +403,9 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
 
       <Card data-testid="role-editor-card">
         <CardHeader>
-          <CardTitle data-testid="role-editor-card-title">Role Details</CardTitle>
+          <CardTitle data-testid="role-editor-card-title">
+            Role Details
+          </CardTitle>
           <CardDescription data-testid="role-editor-card-description">
             {isSystem
               ? 'System roles have limited editing capabilities'
@@ -647,7 +652,10 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
               </h2>
             </div>
 
-            <p className="mb-4 text-gray-600" data-testid="role-editor-delete-modal-description">
+            <p
+              className="mb-4 text-gray-600"
+              data-testid="role-editor-delete-modal-description"
+            >
               This action cannot be undone. This will permanently delete the
               role <strong>{role?.name}</strong>.
             </p>

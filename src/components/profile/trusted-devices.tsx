@@ -122,7 +122,10 @@ export function TrustedDevices() {
     return (
       <Card data-testid="devices-card">
         <CardContent className="py-8">
-          <div className="flex items-center justify-center" data-testid="devices-loading">
+          <div
+            className="flex items-center justify-center"
+            data-testid="devices-loading"
+          >
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         </CardContent>
@@ -150,14 +153,21 @@ export function TrustedDevices() {
         )}
 
         {successMessage && (
-          <Alert variant="success" className="mb-4" data-testid="devices-success">
+          <Alert
+            variant="success"
+            className="mb-4"
+            data-testid="devices-success"
+          >
             <CheckCircle className="mr-2 inline h-4 w-4" />
             {successMessage}
           </Alert>
         )}
 
         {devices.length === 0 ? (
-          <div className="py-8 text-center text-gray-500" data-testid="devices-empty-message">
+          <div
+            className="py-8 text-center text-gray-500"
+            data-testid="devices-empty-message"
+          >
             <Monitor className="mx-auto mb-3 h-12 w-12 text-gray-300" />
             <p>No trusted devices found</p>
             <p className="mt-1 text-sm">
@@ -192,11 +202,17 @@ export function TrustedDevices() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900" data-testid="device-name">
+                        <h4
+                          className="font-medium text-gray-900"
+                          data-testid="device-name"
+                        >
                           {device.browser} on {device.os}
                         </h4>
                         {device.isCurrent && (
-                          <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600" data-testid="current-device-badge">
+                          <span
+                            className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600"
+                            data-testid="current-device-badge"
+                          >
                             Current
                           </span>
                         )}

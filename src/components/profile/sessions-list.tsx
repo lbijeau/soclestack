@@ -116,10 +116,17 @@ export function SessionsList({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && <Alert variant="error" data-testid="sessions-error">{error}</Alert>}
+        {error && (
+          <Alert variant="error" data-testid="sessions-error">
+            {error}
+          </Alert>
+        )}
 
         {sessions.length === 0 ? (
-          <p className="text-sm text-gray-500" data-testid="sessions-empty-message">
+          <p
+            className="text-sm text-gray-500"
+            data-testid="sessions-empty-message"
+          >
             No active sessions. Sessions are created when you log in with
             &quot;Remember me&quot; enabled.
           </p>
@@ -151,10 +158,16 @@ export function SessionsList({
                         {os === 'Unknown' && '🌐'}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 font-medium" data-testid="session-device-info">
+                        <div
+                          className="flex items-center gap-2 font-medium"
+                          data-testid="session-device-info"
+                        >
                           {browser} on {os}
                           {isCurrentDevice && (
-                            <span className="rounded bg-green-600 px-2 py-0.5 text-xs text-white" data-testid="current-device-badge">
+                            <span
+                              className="rounded bg-green-600 px-2 py-0.5 text-xs text-white"
+                              data-testid="current-device-badge"
+                            >
                               This device
                             </span>
                           )}

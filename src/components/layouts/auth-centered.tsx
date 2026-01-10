@@ -39,7 +39,10 @@ export function AuthCentered({
             </h1>
           )}
           {description && (
-            <p className="mt-2 text-sm text-gray-600" data-testid="auth-description">
+            <p
+              className="mt-2 text-sm text-gray-600"
+              data-testid="auth-description"
+            >
               {description}
             </p>
           )}

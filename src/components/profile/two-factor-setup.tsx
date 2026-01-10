@@ -105,13 +105,13 @@ export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
   if (step === 'loading') {
     return (
       <Card>
-        <CardContent className="p-8 text-center space-y-4">
+        <CardContent className="space-y-4 p-8 text-center">
           {error ? (
             <>
               <Alert variant="error" data-testid="error-message">
                 {error}
               </Alert>
-              <div className="flex gap-2 justify-center">
+              <div className="flex justify-center gap-2">
                 <Button variant="secondary" onClick={onCancel}>
                   Cancel
                 </Button>

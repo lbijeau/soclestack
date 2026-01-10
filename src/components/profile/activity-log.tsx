@@ -295,7 +295,10 @@ export function ActivityLog() {
             Activity Log
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex justify-center py-12" data-testid="activity-log-loading">
+        <CardContent
+          className="flex justify-center py-12"
+          data-testid="activity-log-loading"
+        >
           <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         </CardContent>
       </Card>
@@ -315,13 +318,20 @@ export function ActivityLog() {
       </CardHeader>
       <CardContent>
         {error && (
-          <Alert variant="error" className="mb-4" data-testid="activity-log-error">
+          <Alert
+            variant="error"
+            className="mb-4"
+            data-testid="activity-log-error"
+          >
             {error}
           </Alert>
         )}
 
         {logs.length === 0 ? (
-          <div className="py-12 text-center text-gray-500" data-testid="activity-log-empty">
+          <div
+            className="py-12 text-center text-gray-500"
+            data-testid="activity-log-empty"
+          >
             <Activity className="mx-auto mb-3 h-12 w-12 text-gray-300" />
             <p>No activity yet</p>
           </div>
@@ -347,7 +357,12 @@ export function ActivityLog() {
                     <div className="mt-0.5">{config.icon}</div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium" data-testid="activity-label">{config.label}</span>
+                        <span
+                          className="font-medium"
+                          data-testid="activity-label"
+                        >
+                          {config.label}
+                        </span>
                         {details && (
                           <span className="text-sm opacity-75">{details}</span>
                         )}
@@ -366,8 +381,14 @@ export function ActivityLog() {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-between border-t pt-4" data-testid="activity-pagination">
-                <span className="text-sm text-gray-500" data-testid="activity-page-info">
+              <div
+                className="mt-6 flex items-center justify-between border-t pt-4"
+                data-testid="activity-pagination"
+              >
+                <span
+                  className="text-sm text-gray-500"
+                  data-testid="activity-page-info"
+                >
                   Page {pagination.page} of {pagination.totalPages}
                 </span>
                 <div className="flex gap-2">

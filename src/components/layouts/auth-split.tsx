@@ -33,7 +33,10 @@ export function AuthSplit({ children, title, description }: AuthSplitProps) {
               </h1>
             )}
             {description && (
-              <p className="mt-2 text-sm text-gray-600" data-testid="auth-description">
+              <p
+                className="mt-2 text-sm text-gray-600"
+                data-testid="auth-description"
+              >
                 {description}
               </p>
             )}
@@ -50,10 +53,16 @@ export function AuthSplit({ children, title, description }: AuthSplitProps) {
       >
         <div className="flex h-full items-center justify-center p-12">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-800" data-testid="auth-hero-title">
+            <h2
+              className="text-3xl font-bold text-gray-800"
+              data-testid="auth-hero-title"
+            >
               Welcome to {branding.name}
             </h2>
-            <p className="mt-4 text-lg text-gray-600" data-testid="auth-hero-description">
+            <p
+              className="mt-4 text-lg text-gray-600"
+              data-testid="auth-hero-description"
+            >
               Secure authentication for your application
             </p>
           </div>

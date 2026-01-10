@@ -294,13 +294,20 @@ export function UserRoleSelect({
               <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             </div>
           ) : error ? (
-            <Alert variant="error" aria-live="polite" data-testid="user-role-select-error">
+            <Alert
+              variant="error"
+              aria-live="polite"
+              data-testid="user-role-select-error"
+            >
               {error}
             </Alert>
           ) : (
             <div className="space-y-4">
               {isEditingSelf && (
-                <div id="self-edit-warning" data-testid="user-role-select-self-warning">
+                <div
+                  id="self-edit-warning"
+                  data-testid="user-role-select-self-warning"
+                >
                   <Alert variant="warning">
                     <Info size={16} className="mr-2 inline" />
                     You are editing your own roles. Be careful not to lock

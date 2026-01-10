@@ -448,7 +448,10 @@ export function AuditLogViewer() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto" data-testid="audit-log-table-container">
+        <div
+          className="overflow-x-auto"
+          data-testid="audit-log-table-container"
+        >
           <table className="w-full text-sm" data-testid="audit-log-table">
             <thead>
               <tr className="border-b">
@@ -476,7 +479,11 @@ export function AuditLogViewer() {
               {loading ? (
                 // Skeleton rows
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b" data-testid="audit-log-loading-row">
+                  <tr
+                    key={i}
+                    className="border-b"
+                    data-testid="audit-log-loading-row"
+                  >
                     {Array.from({ length: 6 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 animate-pulse rounded bg-gray-200" />
@@ -574,7 +581,10 @@ export function AuditLogViewer() {
             className="flex items-center justify-between border-t pt-4"
             data-testid="audit-log-pagination"
           >
-            <div className="text-sm text-gray-600" data-testid="audit-log-pagination-info">
+            <div
+              className="text-sm text-gray-600"
+              data-testid="audit-log-pagination-info"
+            >
               Showing {(page - 1) * 50 + 1}-{Math.min(page * 50, total)} of{' '}
               {total} results
             </div>

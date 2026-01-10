@@ -85,7 +85,11 @@ export function DeleteAccount({
       </CardHeader>
       <CardContent>
         {!canDelete ? (
-          <Alert variant="warning" className="mb-4" data-testid="delete-account-blocked">
+          <Alert
+            variant="warning"
+            className="mb-4"
+            data-testid="delete-account-blocked"
+          >
             {isAdmin &&
               'System administrators cannot delete their own account. Contact another admin.'}
             {isOrgOwner &&
@@ -103,7 +107,10 @@ export function DeleteAccount({
                     This action is permanent and cannot be undone.
                   </p>
                   <p>All your data will be permanently deleted, including:</p>
-                  <ul className="mt-2 ml-4 list-disc space-y-1" data-testid="delete-account-data-list">
+                  <ul
+                    className="mt-2 ml-4 list-disc space-y-1"
+                    data-testid="delete-account-data-list"
+                  >
                     <li>Your profile and account information</li>
                     <li>All active sessions and devices</li>
                     <li>API keys and OAuth connections</li>
