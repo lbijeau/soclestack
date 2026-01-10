@@ -748,7 +748,16 @@ export class DatabaseHelpers {
     pendingInvite: { invite: any; token: string };
     expiredInvite: { invite: any; token: string };
   }> {
-    // Create the organization with an owner
+    // Create owner user first with known password for auth helpers
+    const ownerUser = await this.createTestUser({
+      email: 'org-owner@test.com',
+      password: 'OwnerTest123!',
+      username: 'orgowner',
+      firstName: 'Org',
+      lastName: 'Owner',
+    });
+
+    // Create the organization with the owner
     const orgResult = await this.createTestOrganization({
       name: 'Test Organization',
       slug: `test-org-${Date.now()}`,
@@ -756,11 +765,12 @@ export class DatabaseHelpers {
     });
 
     const org = orgResult;
-    const owner = orgResult.owner;
+    const owner = ownerUser;
 
     // Create admin user and add to organization
     const admin = await this.createTestUser({
       email: 'org-admin@test.com',
+      password: 'AdminTest123!',
       username: 'orgadmin',
       firstName: 'Org',
       lastName: 'Admin',
@@ -770,6 +780,7 @@ export class DatabaseHelpers {
     // Create member user and add to organization
     const member = await this.createTestUser({
       email: 'org-member@test.com',
+      password: 'MemberTest123!',
       username: 'orgmember',
       firstName: 'Org',
       lastName: 'Member',
@@ -779,6 +790,7 @@ export class DatabaseHelpers {
     // Create non-member user (not in organization)
     const nonMember = await this.createTestUser({
       email: 'non-member@test.com',
+      password: 'NonMemberTest123!',
       username: 'nonmember',
       firstName: 'Non',
       lastName: 'Member',
