@@ -97,3 +97,47 @@ export type SocleEvent =
  * Unsubscribe function returned by subscribe
  */
 export type Unsubscribe = () => void;
+
+/**
+ * Organization invite object
+ */
+export interface Invite {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  inviterName: string;
+  inviterEmail: string;
+  role: 'ROLE_ADMIN' | 'ROLE_MEMBER';
+  email: string;
+  expiresAt: string;
+}
+
+/**
+ * Status of an invite token
+ */
+export type InviteStatus =
+  | 'loading'
+  | 'valid'
+  | 'expired'
+  | 'invalid'
+  | 'already_used'
+  | 'already_member';
+
+/**
+ * Result from fetching an invite
+ */
+export interface InviteResult {
+  success: boolean;
+  invite?: Invite;
+  error?: string;
+  status?: InviteStatus;
+}
+
+/**
+ * Result from accepting an invite
+ */
+export interface AcceptInviteResult {
+  success: boolean;
+  organization?: Organization;
+  error?: string;
+}

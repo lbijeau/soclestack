@@ -5,6 +5,10 @@ import type {
   RegisterData,
   RegisterResult,
   SocleClientOptions,
+  Invite,
+  InviteStatus,
+  InviteResult,
+  AcceptInviteResult,
 } from './types';
 
 export class ApiClient {
@@ -147,5 +151,36 @@ export class ApiClient {
     );
 
     return ok && data.organization ? data.organization : null;
+  }
+
+  async getInvite(token: string): Promise<InviteResult> {
+    const { ok, data } = await this.request<{
+      invite?: Invite;
+      error?: string;
+      status?: InviteStatus;
+    }>(`/api/invites/${token}`);
+
+    if (ok && data.invite) {
+      return { success: true, invite: data.invite, status: 'valid' };
+    }
+
+    return {
+      success: false,
+      error: data.error ?? 'Invalid invite',
+      status: data.status ?? 'invalid',
+    };
+  }
+
+  async acceptInvite(token: string): Promise<AcceptInviteResult> {
+    const { ok, data } = await this.request<{
+      organization?: Organization;
+      error?: string;
+    }>(`/api/invites/${token}/accept`, { method: 'POST' });
+
+    if (ok && data.organization) {
+      return { success: true, organization: data.organization };
+    }
+
+    return { success: false, error: data.error ?? 'Failed to accept invite' };
   }
 }

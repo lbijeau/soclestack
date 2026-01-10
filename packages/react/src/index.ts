@@ -20,6 +20,9 @@ export type { CanOptions } from './hooks/usePermissions';
 export { useAuthRedirect } from './hooks/useAuthRedirect';
 export type { UseAuthRedirectOptions } from './hooks/useAuthRedirect';
 export { useOrganizations } from './hooks/useOrganizations';
+export { useInvite } from './hooks/useInvite';
+export { useSessionTimeout } from './hooks/useSessionTimeout';
+export type { UseSessionTimeoutOptions } from './hooks/useSessionTimeout';
 
 // Components
 export * from './components';

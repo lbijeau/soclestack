@@ -18,3 +18,9 @@ export type { AccessDeniedProps } from './AccessDenied';
 
 export { OrganizationSwitcher } from './OrganizationSwitcher';
 export type { OrganizationSwitcherProps } from './OrganizationSwitcher';
+
+export { InviteAccept } from './InviteAccept';
+export type { InviteAcceptProps } from './InviteAccept';
+
+export { SessionTimeoutWarning } from './SessionTimeoutWarning';
+export type { SessionTimeoutWarningProps } from './SessionTimeoutWarning';
