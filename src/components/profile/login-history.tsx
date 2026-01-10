@@ -97,7 +97,7 @@ export function LoginHistory() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card data-testid="login-history-card">
         <CardHeader>
           <CardTitle>Login History</CardTitle>
           <CardDescription>
@@ -105,7 +105,7 @@ export function LoginHistory() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-8" data-testid="login-history-loading">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         </CardContent>
@@ -114,28 +114,30 @@ export function LoginHistory() {
   }
 
   return (
-    <Card>
+    <Card data-testid="login-history-card">
       <CardHeader>
         <CardTitle>Login History</CardTitle>
         <CardDescription>Recent login activity on your account</CardDescription>
       </CardHeader>
       <CardContent>
         {error && (
-          <Alert variant="error" className="mb-4">
+          <Alert variant="error" className="mb-4" data-testid="login-history-error">
             {error}
           </Alert>
         )}
 
         {history.length === 0 ? (
-          <p className="text-sm text-gray-500">No login history available.</p>
+          <p className="text-sm text-gray-500" data-testid="login-history-empty">No login history available.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3" data-testid="login-history-list">
             {history.map((event) => {
               const { browser, os } = parseUserAgent(event.userAgent);
 
               return (
                 <div
                   key={event.id}
+                  data-testid={`login-event-${event.id}`}
+                  data-event-success={event.success}
                   className={`flex items-start gap-4 rounded-lg border p-4 ${
                     event.success
                       ? 'border-gray-200'
@@ -147,18 +149,18 @@ export function LoginHistory() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900" data-testid="login-event-action">
                         {getActionLabel(event.action)}
                       </span>
-                      <span className="text-sm whitespace-nowrap text-gray-500">
+                      <span className="text-sm whitespace-nowrap text-gray-500" data-testid="login-event-date">
                         {formatDate(event.createdAt)}
                       </span>
                     </div>
-                    <div className="mt-1 text-sm text-gray-500">
+                    <div className="mt-1 text-sm text-gray-500" data-testid="login-event-device">
                       {browser} on {os} · {event.ipAddress || 'Unknown IP'}
                     </div>
                     {event.reason && (
-                      <div className="mt-1 text-sm text-red-600">
+                      <div className="mt-1 text-sm text-red-600" data-testid="login-event-reason">
                         Reason: {event.reason}
                       </div>
                     )}

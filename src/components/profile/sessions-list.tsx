@@ -107,7 +107,7 @@ export function SessionsList({
   };
 
   return (
-    <Card>
+    <Card data-testid="sessions-card">
       <CardHeader>
         <CardTitle>Active Sessions</CardTitle>
         <CardDescription>
@@ -116,16 +116,16 @@ export function SessionsList({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && <Alert variant="error">{error}</Alert>}
+        {error && <Alert variant="error" data-testid="sessions-error">{error}</Alert>}
 
         {sessions.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500" data-testid="sessions-empty-message">
             No active sessions. Sessions are created when you log in with
             &quot;Remember me&quot; enabled.
           </p>
         ) : (
           <>
-            <div className="space-y-3">
+            <div className="space-y-3" data-testid="sessions-list">
               {sessions.map((session) => {
                 const { browser, os } = parseUserAgent(session.userAgent);
                 const isCurrentDevice = session.series === currentSeries;
@@ -133,6 +133,8 @@ export function SessionsList({
                 return (
                   <div
                     key={session.id}
+                    data-testid={`session-item-${session.id}`}
+                    data-session-series={session.series}
                     className={`flex items-center justify-between rounded-lg border p-4 ${
                       isCurrentDevice
                         ? 'border-green-300 bg-green-50'
@@ -149,10 +151,10 @@ export function SessionsList({
                         {os === 'Unknown' && '🌐'}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 font-medium">
+                        <div className="flex items-center gap-2 font-medium" data-testid="session-device-info">
                           {browser} on {os}
                           {isCurrentDevice && (
-                            <span className="rounded bg-green-600 px-2 py-0.5 text-xs text-white">
+                            <span className="rounded bg-green-600 px-2 py-0.5 text-xs text-white" data-testid="current-device-badge">
                               This device
                             </span>
                           )}
@@ -170,6 +172,7 @@ export function SessionsList({
                         onClick={() => handleRevoke(session.series)}
                         disabled={revokingId === session.series}
                         className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        data-testid="revoke-session-button"
                       >
                         {revokingId === session.series
                           ? 'Revoking...'
@@ -187,6 +190,7 @@ export function SessionsList({
                   variant="destructive"
                   onClick={handleRevokeAll}
                   disabled={revokingAll}
+                  data-testid="revoke-all-sessions-button"
                 >
                   {revokingAll
                     ? 'Revoking all...'
