@@ -102,6 +102,27 @@ export const TEST_INVITE_EMAILS = {
   expired: 'expired-invite@test.com',
 } as const;
 
+// ===========================================
+// Test Timeouts
+// ===========================================
+
+/**
+ * Standard timeouts for various test operations.
+ * Use these instead of hardcoding timeout values.
+ */
+export const TEST_TIMEOUTS = {
+  /** Default timeout for page loads and navigation */
+  pageLoad: 10000,
+  /** Timeout for authentication operations */
+  auth: 15000,
+  /** Short timeout for element visibility checks */
+  elementVisible: 5000,
+  /** Timeout for network idle state */
+  networkIdle: 10000,
+  /** Timeout for form submissions */
+  formSubmit: 10000,
+} as const;
+
 /**
  * Generate a unique slug for test isolation in parallel test runs
  */

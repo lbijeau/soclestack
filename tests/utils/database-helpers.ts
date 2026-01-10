@@ -486,6 +486,31 @@ export class DatabaseHelpers {
   }
 
   /**
+   * Delete a specific test user by ID
+   */
+  static async deleteTestUser(userId: string): Promise<void> {
+    // Delete backup codes for this user (foreign key constraint)
+    await this.prisma.backupCode.deleteMany({
+      where: { userId },
+    });
+
+    // Delete UserRole records for this user
+    await this.prisma.userRole.deleteMany({
+      where: { userId },
+    });
+
+    // Delete user sessions
+    await this.prisma.userSession.deleteMany({
+      where: { userId },
+    });
+
+    // Delete the user
+    await this.prisma.user.delete({
+      where: { id: userId },
+    });
+  }
+
+  /**
    * Clean up all test organizations (orgs owned by @test.com users)
    */
   static async cleanupTestOrganizations(): Promise<void> {

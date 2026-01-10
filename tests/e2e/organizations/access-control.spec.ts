@@ -14,106 +14,133 @@ test.describe('Organization Access Control', () => {
   });
 
   test('should redirect non-member from organization pages', async ({ page }) => {
-    // Login as non-member user
-    await AuthHelpers.loginAsNonMember(page);
+    await test.step('Login as non-member user', async () => {
+      await AuthHelpers.loginAsNonMember(page);
+    });
 
-    // Attempt to access organization main page
-    await page.goto('/organization');
-    await page.waitForLoadState('networkidle');
+    await test.step('Attempt to access organization main page', async () => {
+      await page.goto('/organization');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Should be redirected to dashboard (no organization)
-    await expect(page).toHaveURL(/\/(dashboard|login)/);
+    await test.step('Verify redirect to dashboard', async () => {
+      await expect(page).toHaveURL(/\/(dashboard|login)/);
+    });
 
-    // Attempt to access members page
-    await page.goto('/organization/members');
-    await page.waitForLoadState('networkidle');
+    await test.step('Attempt to access members page', async () => {
+      await page.goto('/organization/members');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Should be redirected
-    await expect(page).toHaveURL(/\/(dashboard|login)/);
+    await test.step('Verify redirect from members page', async () => {
+      await expect(page).toHaveURL(/\/(dashboard|login)/);
+    });
 
-    // Attempt to access invites page
-    await page.goto('/organization/invites');
-    await page.waitForLoadState('networkidle');
+    await test.step('Attempt to access invites page', async () => {
+      await page.goto('/organization/invites');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Should be redirected
-    await expect(page).toHaveURL(/\/(dashboard|organization|login)/);
+    await test.step('Verify redirect from invites page', async () => {
+      await expect(page).toHaveURL(/\/(dashboard|organization|login)/);
+    });
   });
 
   test('should allow member to view organization pages', async ({ page }) => {
-    // Login as organization member
-    await AuthHelpers.loginAsOrgMember(page);
+    await test.step('Login as organization member', async () => {
+      await AuthHelpers.loginAsOrgMember(page);
+    });
 
-    // Access organization main page
-    await page.goto('/organization');
-    await page.waitForLoadState('networkidle');
+    await test.step('Access organization main page', async () => {
+      await page.goto('/organization');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Should be able to view organization page
-    await expect(page).toHaveURL(/\/organization/);
-    await expect(page.locator('h1')).toContainText('Organization');
+    await test.step('Verify organization page is accessible', async () => {
+      await expect(page).toHaveURL(/\/organization/);
+      await expect(page.locator('h1')).toContainText('Organization');
+    });
 
-    // Member should see their role displayed
-    await expect(page.locator('[data-testid="org-role-display"]')).toBeVisible();
+    await test.step('Verify role is displayed', async () => {
+      await expect(page.locator('[data-testid="org-role-display"]')).toBeVisible();
+    });
 
-    // Access members page
-    await page.goto('/organization/members');
-    await page.waitForLoadState('networkidle');
+    await test.step('Access members page', async () => {
+      await page.goto('/organization/members');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Should be able to view members page
-    await expect(page).toHaveURL(/\/organization\/members/);
-    await expect(page.locator('[data-testid="members-list"]')).toBeVisible();
+    await test.step('Verify members page is accessible', async () => {
+      await expect(page).toHaveURL(/\/organization\/members/);
+      await expect(page.locator('[data-testid="members-list"]')).toBeVisible();
+    });
   });
 
   test('should restrict invites page to admins and owners', async ({ page }) => {
-    // Login as organization member (not admin or owner)
-    await AuthHelpers.loginAsOrgMember(page);
+    await test.step('Login as organization member', async () => {
+      await AuthHelpers.loginAsOrgMember(page);
+    });
 
-    // Attempt to access invites page
-    await page.goto('/organization/invites');
-    await page.waitForLoadState('networkidle');
+    await test.step('Attempt to access invites page as member', async () => {
+      await page.goto('/organization/invites');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Member should be redirected from invites page (403 redirects to /organization)
-    await expect(page).toHaveURL(/\/organization(?!\/invites)/);
+    await test.step('Verify member is redirected from invites page', async () => {
+      await expect(page).toHaveURL(/\/organization(?!\/invites)/);
+    });
 
-    // Logout and login as admin
-    await AuthHelpers.logout(page);
-    await AuthHelpers.loginAsOrgAdmin(page);
+    await test.step('Logout and login as admin', async () => {
+      await AuthHelpers.logout(page);
+      await AuthHelpers.loginAsOrgAdmin(page);
+    });
 
-    // Admin should be able to access invites page
-    await page.goto('/organization/invites');
-    await page.waitForLoadState('networkidle');
+    await test.step('Access invites page as admin', async () => {
+      await page.goto('/organization/invites');
+      await page.waitForLoadState('networkidle');
+    });
 
-    await expect(page).toHaveURL(/\/organization\/invites/);
-    await expect(page.locator('[data-testid="invite-email-input"]')).toBeVisible();
+    await test.step('Verify admin can access invites page', async () => {
+      await expect(page).toHaveURL(/\/organization\/invites/);
+      await expect(page.locator('[data-testid="invite-email-input"]')).toBeVisible();
+    });
 
-    // Logout and login as owner
-    await AuthHelpers.logout(page);
-    await AuthHelpers.loginAsOrgOwner(page);
+    await test.step('Logout and login as owner', async () => {
+      await AuthHelpers.logout(page);
+      await AuthHelpers.loginAsOrgOwner(page);
+    });
 
-    // Owner should be able to access invites page
-    await page.goto('/organization/invites');
-    await page.waitForLoadState('networkidle');
+    await test.step('Access invites page as owner', async () => {
+      await page.goto('/organization/invites');
+      await page.waitForLoadState('networkidle');
+    });
 
-    await expect(page).toHaveURL(/\/organization\/invites/);
-    await expect(page.locator('[data-testid="invite-email-input"]')).toBeVisible();
+    await test.step('Verify owner can access invites page', async () => {
+      await expect(page).toHaveURL(/\/organization\/invites/);
+      await expect(page.locator('[data-testid="invite-email-input"]')).toBeVisible();
+    });
   });
 
   test('should enforce cross-org isolation', async ({ browser }) => {
-    // Create a second organization with a different owner
-    const secondOwner = await DatabaseHelpers.createTestUser({
-      email: 'second-org-owner@test.com',
-      password: 'SecondOwnerTest123!',
-      username: 'secondowner',
-      firstName: 'Second',
-      lastName: 'Owner',
+    let secondOwner: Awaited<ReturnType<typeof DatabaseHelpers.createTestUser>>;
+    let secondOrg: Awaited<ReturnType<typeof DatabaseHelpers.createTestOrganization>>;
+
+    await test.step('Create a second organization with a different owner', async () => {
+      secondOwner = await DatabaseHelpers.createTestUser({
+        email: 'second-org-owner@test.com',
+        password: 'SecondOwnerTest123!',
+        username: 'secondowner',
+        firstName: 'Second',
+        lastName: 'Owner',
+      });
+
+      secondOrg = await DatabaseHelpers.createTestOrganization({
+        name: 'Second Test Organization',
+        slug: `second-test-org-${Date.now()}`,
+        ownerEmail: 'second-org-owner@test.com',
+      });
     });
 
-    const secondOrg = await DatabaseHelpers.createTestOrganization({
-      name: 'Second Test Organization',
-      slug: `second-test-org-${Date.now()}`,
-      ownerEmail: 'second-org-owner@test.com',
-    });
-
-    // Create two separate browser contexts for isolation
     const context1 = await browser.newContext();
     const context2 = await browser.newContext();
 
@@ -121,53 +148,59 @@ test.describe('Organization Access Control', () => {
       const page1 = await context1.newPage();
       const page2 = await context2.newPage();
 
-      // Login first owner in context1
-      await AuthHelpers.authenticateUser(page1, 'org-owner@test.com', 'OwnerTest123!');
-
-      // Login second owner in context2
-      await AuthHelpers.authenticateUser(page2, 'second-org-owner@test.com', 'SecondOwnerTest123!');
-
-      // First owner navigates to their organization
-      await page1.goto('/organization');
-      await page1.waitForLoadState('networkidle');
-
-      // Should see their organization name
-      const org1Name = await page1.locator('[data-testid="org-name-input"]').inputValue();
-      expect(org1Name).toBe('Test Organization');
-
-      // Second owner navigates to their organization
-      await page2.goto('/organization');
-      await page2.waitForLoadState('networkidle');
-
-      // Should see their organization name
-      const org2Name = await page2.locator('[data-testid="org-name-input"]').inputValue();
-      expect(org2Name).toBe('Second Test Organization');
-
-      // Test API isolation: first owner tries to access second org's members via API
-      // The API should only return current organization's data
-      const firstOwnerMembersResponse = await page1.evaluate(async () => {
-        const res = await fetch('/api/organizations/current/members');
-        return res.json();
+      await test.step('Login first owner in context1', async () => {
+        await AuthHelpers.authenticateUser(page1, 'org-owner@test.com', 'OwnerTest123!');
       });
 
-      // First owner should only see members of their own organization
-      const firstOrgMemberEmails = firstOwnerMembersResponse.members?.map(
-        (m: { email: string }) => m.email
-      ) || [];
-      expect(firstOrgMemberEmails).toContain('org-owner@test.com');
-      expect(firstOrgMemberEmails).not.toContain('second-org-owner@test.com');
-
-      // Second owner's members should not include first org's members
-      const secondOwnerMembersResponse = await page2.evaluate(async () => {
-        const res = await fetch('/api/organizations/current/members');
-        return res.json();
+      await test.step('Login second owner in context2', async () => {
+        await AuthHelpers.authenticateUser(page2, 'second-org-owner@test.com', 'SecondOwnerTest123!');
       });
 
-      const secondOrgMemberEmails = secondOwnerMembersResponse.members?.map(
-        (m: { email: string }) => m.email
-      ) || [];
-      expect(secondOrgMemberEmails).toContain('second-org-owner@test.com');
-      expect(secondOrgMemberEmails).not.toContain('org-owner@test.com');
+      await test.step('First owner navigates to their organization', async () => {
+        await page1.goto('/organization');
+        await page1.waitForLoadState('networkidle');
+      });
+
+      await test.step('Verify first owner sees their organization name', async () => {
+        const org1Name = await page1.locator('[data-testid="org-name-input"]').inputValue();
+        expect(org1Name).toBe('Test Organization');
+      });
+
+      await test.step('Second owner navigates to their organization', async () => {
+        await page2.goto('/organization');
+        await page2.waitForLoadState('networkidle');
+      });
+
+      await test.step('Verify second owner sees their organization name', async () => {
+        const org2Name = await page2.locator('[data-testid="org-name-input"]').inputValue();
+        expect(org2Name).toBe('Second Test Organization');
+      });
+
+      await test.step('Verify API isolation for first owner', async () => {
+        const firstOwnerMembersResponse = await page1.evaluate(async () => {
+          const res = await fetch('/api/organizations/current/members');
+          return res.json();
+        });
+
+        const firstOrgMemberEmails = firstOwnerMembersResponse.members?.map(
+          (m: { email: string }) => m.email
+        ) || [];
+        expect(firstOrgMemberEmails).toContain('org-owner@test.com');
+        expect(firstOrgMemberEmails).not.toContain('second-org-owner@test.com');
+      });
+
+      await test.step('Verify API isolation for second owner', async () => {
+        const secondOwnerMembersResponse = await page2.evaluate(async () => {
+          const res = await fetch('/api/organizations/current/members');
+          return res.json();
+        });
+
+        const secondOrgMemberEmails = secondOwnerMembersResponse.members?.map(
+          (m: { email: string }) => m.email
+        ) || [];
+        expect(secondOrgMemberEmails).toContain('second-org-owner@test.com');
+        expect(secondOrgMemberEmails).not.toContain('org-owner@test.com');
+      });
 
       await page1.close();
       await page2.close();
@@ -175,72 +208,68 @@ test.describe('Organization Access Control', () => {
       await context1.close();
       await context2.close();
 
-      // Clean up second organization
+      // Clean up second organization and its owner
       if (secondOrg?.id) {
         await DatabaseHelpers.deleteTestOrganization(secondOrg.id);
+      }
+      if (secondOwner?.id) {
+        await DatabaseHelpers.deleteTestUser(secondOwner.id);
       }
     }
   });
 
   test('should enforce role-based button visibility', async ({ page }) => {
-    // Test as Owner - should see all controls
-    await AuthHelpers.loginAsOrgOwner(page);
-    await page.goto('/organization');
-    await page.waitForLoadState('networkidle');
+    await test.step('Login as owner and navigate to organization page', async () => {
+      await AuthHelpers.loginAsOrgOwner(page);
+      await page.goto('/organization');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Owner should see edit controls (save button)
-    await expect(page.locator('[data-testid="org-save-button"]')).toBeVisible();
+    await test.step('Verify owner sees all controls', async () => {
+      await expect(page.locator('[data-testid="org-save-button"]')).toBeVisible();
+      await expect(page.locator('[data-testid="org-delete-button"]')).toBeVisible();
+      await expect(page.locator('a[href="/organization/invites"]')).toBeVisible();
+    });
 
-    // Owner should see delete button (in danger zone)
-    await expect(page.locator('[data-testid="org-delete-button"]')).toBeVisible();
+    await test.step('Logout and login as admin', async () => {
+      await AuthHelpers.logout(page);
+      await AuthHelpers.loginAsOrgAdmin(page);
+      await page.goto('/organization');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Owner should see invite link in navigation
-    await expect(page.locator('a[href="/organization/invites"]')).toBeVisible();
+    await test.step('Verify admin sees edit controls but not delete button', async () => {
+      await expect(page.locator('[data-testid="org-save-button"]')).toBeVisible();
+      await expect(page.locator('[data-testid="org-delete-button"]')).not.toBeVisible();
+      await expect(page.locator('a[href="/organization/invites"]')).toBeVisible();
+    });
 
-    // Logout and test as Admin
-    await AuthHelpers.logout(page);
-    await AuthHelpers.loginAsOrgAdmin(page);
-    await page.goto('/organization');
-    await page.waitForLoadState('networkidle');
+    await test.step('Logout and login as member', async () => {
+      await AuthHelpers.logout(page);
+      await AuthHelpers.loginAsOrgMember(page);
+      await page.goto('/organization');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Admin should see edit controls (save button)
-    await expect(page.locator('[data-testid="org-save-button"]')).toBeVisible();
+    await test.step('Verify member sees no edit controls', async () => {
+      await expect(page.locator('[data-testid="org-save-button"]')).not.toBeVisible();
+      await expect(page.locator('[data-testid="org-delete-button"]')).not.toBeVisible();
+      await expect(page.locator('a[href="/organization/invites"]')).not.toBeVisible();
+    });
 
-    // Admin should NOT see delete button (only owners can delete)
-    await expect(page.locator('[data-testid="org-delete-button"]')).not.toBeVisible();
+    await test.step('Navigate to members page as member', async () => {
+      await page.goto('/organization/members');
+      await page.waitForLoadState('networkidle');
+    });
 
-    // Admin should see invite link in navigation
-    await expect(page.locator('a[href="/organization/invites"]')).toBeVisible();
+    await test.step('Verify member sees no management controls on members page', async () => {
+      await expect(page.locator('[data-testid="invite-members-button"]')).not.toBeVisible();
+      await expect(page.locator('[data-testid="member-role-select"]')).not.toBeVisible();
+      await expect(page.locator('[data-testid="member-remove-button"]')).not.toBeVisible();
+    });
 
-    // Logout and test as Member
-    await AuthHelpers.logout(page);
-    await AuthHelpers.loginAsOrgMember(page);
-    await page.goto('/organization');
-    await page.waitForLoadState('networkidle');
-
-    // Member should NOT see save button (not editable)
-    await expect(page.locator('[data-testid="org-save-button"]')).not.toBeVisible();
-
-    // Member should NOT see delete button
-    await expect(page.locator('[data-testid="org-delete-button"]')).not.toBeVisible();
-
-    // Member should NOT see invite link in navigation
-    await expect(page.locator('a[href="/organization/invites"]')).not.toBeVisible();
-
-    // Test member controls on members page
-    await page.goto('/organization/members');
-    await page.waitForLoadState('networkidle');
-
-    // Member should NOT see invite members button
-    await expect(page.locator('[data-testid="invite-members-button"]')).not.toBeVisible();
-
-    // Member should NOT see role selection dropdowns (they see badges instead)
-    await expect(page.locator('[data-testid="member-role-select"]')).not.toBeVisible();
-
-    // Member should NOT see remove buttons
-    await expect(page.locator('[data-testid="member-remove-button"]')).not.toBeVisible();
-
-    // Member should see role badges instead
-    await expect(page.locator('[data-testid="member-role-badge"]').first()).toBeVisible();
+    await test.step('Verify member sees role badges instead of dropdowns', async () => {
+      await expect(page.locator('[data-testid="member-role-badge"]').first()).toBeVisible();
+    });
   });
 });
